@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+enum PoiStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AccessPassStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum VisitEventType {
+  POI_TRIGGERED
+  AUDIO_PLAYED
+  CHAT_ASKED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(STAFF)
+  createdAt    DateTime @default(now())
+}
+
+model Poi {
+  id              String    @id @default(uuid())
+  slug            String    @unique
+  latitude        Decimal   @db.Decimal(9, 6)
+  longitude       Decimal   @db.Decimal(9, 6)
+  triggerRadiusM  Int       @default(35)
+  status          PoiStatus @default(DRAFT)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  translations    PoiTranslation[]
+  routeStops      RouteStop[]
+  visitEvents     VisitEvent[]
+}
+
+model PoiTranslation {
+  id          String @id @default(uuid())
+  poiId       String
+  language    String @db.VarChar(10)
+  title       String
+  description String @db.Text
+  audioUrl    String?
+  imageUrl    String?
+  poi         Poi    @relation(fields: [poiId], references: [id], onDelete: Cascade)
+  @@unique([poiId, language])
+}
+
+model TourRoute {
+  id           String       @id @default(uuid())
+  slug         String       @unique
+  qrCode       String       @unique
+  status       PoiStatus    @default(DRAFT)
+  stops        RouteStop[]
+  accessPasses AccessPass[]
+  createdAt    DateTime     @default(now())
+}
+
+model RouteStop {
+  routeId String
+  poiId   String
+  position Int
+  route   TourRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  poi     Poi       @relation(fields: [poiId], references: [id], onDelete: Cascade)
+  @@id([routeId, poiId])
+  @@unique([routeId, position])
+}
+
+model AccessPass {
+  id        String           @id @default(uuid())
+  token     String           @unique
+  routeId   String
+  language  String           @default("vi") @db.VarChar(10)
+  status    AccessPassStatus @default(ACTIVE)
+  expiresAt DateTime
+  createdAt DateTime         @default(now())
+  route     TourRoute        @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  events    VisitEvent[]
+
+  @@index([token, status, expiresAt])
+}
+
+model VisitEvent {
+  id           String         @id @default(uuid())
+  accessPassId String
+  poiId        String?
+  type         VisitEventType
+  metadata     Json?
+  createdAt    DateTime       @default(now())
+  accessPass   AccessPass     @relation(fields: [accessPassId], references: [id], onDelete: Cascade)
+  poi          Poi?           @relation(fields: [poiId], references: [id], onDelete: SetNull)
+
+  @@index([accessPassId, createdAt])
+  @@index([type, createdAt])
+}
+
