@@ -1,0 +1,4938 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GeoAudio Guide · Thuyết Minh Tự Động GPS TP.HCM</title>
+<meta name="description" content="Ứng dụng thuyết minh tự động thông minh theo vị trí GPS tại TP. Hồ Chí Minh. Đa ngôn ngữ, Geofencing, thao tác một tay ngoài trời.">
+
+<!-- Fonts: Playfair Display & Be Vietnam Pro & JetBrains Mono -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ─── 1. Design Tokens: Sài Gòn Di Sản & Ngói Chuông Đồng ─── */
+:root {
+  --bg: #F4F6F4;
+  --bg-subtle: #EAEFEB;
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --border: #D2DDD7;
+  --border-strong: #9CB2A7;
+  
+  --text: #0E1D19;
+  --text-muted: #3D5A50;
+  --text-inverse: #FFFFFF;
+  
+  --accent: #C07F38;          /* Màu vàng đồng ngói di sản */
+  --accent-hover: #A76926;
+  --accent-glow: rgba(192, 127, 56, 0.25);
+  --accent-subtle: #FDF6EE;
+  
+  --emerald: #10B981;         /* Xanh lá GPS & Đang trong vùng */
+  --emerald-subtle: #ECFDF5;
+  --cobalt: #2563EB;          /* Xanh cobalt chưa đi qua */
+  --cobalt-subtle: #EFF6FF;
+  --sanctuary-deep: #0E1D19;
+  --danger: #B52B27;
+  --danger-subtle: #FDF2F2;
+  --success: #10B981;
+  --warn: #D97706;
+  
+  --shadow-sm: 0 2px 4px rgba(14, 29, 25, 0.05);
+  --shadow-md: 0 4px 16px rgba(14, 29, 25, 0.10);
+  --shadow-lg: 0 10px 30px rgba(14, 29, 25, 0.16);
+  --shadow-crisp: 0 3px 0px rgba(14, 29, 25, 0.12);
+  
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-pill: 9999px;
+  
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --transition: 0.25s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ─── 2. Chế độ Ban Đêm (Sanctuary Dark) ─── */
+[data-theme="dark"] {
+  --bg: #090E17;
+  --bg-subtle: #111827;
+  --surface: #131E2F;
+  --surface-elevated: #1A283E;
+  --border: #23344D;
+  --border-strong: #374D6E;
+  --text: #F1F5F9;
+  --text-muted: #94A3B8;
+  --text-inverse: #090E17;
+  --accent: #E2A765;
+  --accent-hover: #F0BC83;
+  --accent-glow: rgba(226, 167, 101, 0.3);
+  --accent-subtle: #2A2114;
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-crisp: 0 3px 0px rgba(0, 0, 0, 0.6);
+}
+
+/* ─── 3. Chế độ Nắng Gắt Ngoài Trời (Sunlight High-Contrast Mode) ─── */
+body.high-contrast {
+  --bg: #FFFFFF !important;
+  --bg-subtle: #F0F0F0 !important;
+  --surface: #FFFFFF !important;
+  --border: #000000 !important;
+  --border-strong: #000000 !important;
+  --text: #000000 !important;
+  --text-muted: #111111 !important;
+  --accent: #874200 !important;
+  --accent-subtle: #FFF4E5 !important;
+  --shadow-sm: none !important;
+  --shadow-md: none !important;
+  --shadow-crisp: 0 3px 0px #000000 !important;
+}
+
+body.high-contrast article.poi,
+body.high-contrast .card,
+body.high-contrast .top-hud,
+body.high-contrast .bottom-player {
+  border: 2px solid #000000 !important;
+}
+
+body.high-contrast button,
+body.high-contrast input,
+body.high-contrast select {
+  border: 2px solid #000000 !important;
+  font-weight: 700 !important;
+}
+
+/* ─── Reset & Base ─── */
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 400 15px/1.6 var(--font-body);
+  transition: background var(--transition), color var(--transition);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  padding-bottom: calc(110px + env(safe-area-inset-bottom));
+}
+
+::selection { background: var(--accent); color: #FFF; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+/* ─── Layout Container ─── */
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 12px 16px;
+}
+
+@media (min-width: 900px) {
+  .wrap { padding: 20px 24px; }
+  .main-layout {
+    display: grid;
+    grid-template-columns: 1fr 390px;
+    gap: 24px;
+    align-items: start;
+  }
+}
+
+/* ─── Typography Utility ─── */
+h1, h2, h3, .brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* ─── Nút tương tác công thái học: Tối thiểu 48x48px ─── */
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-weight: 600;
+  min-height: 48px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-sm);
+  user-select: none;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #FFFFFF;
+  border-color: var(--accent-hover);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-emerald {
+  background: var(--emerald);
+  color: #FFFFFF;
+  border-color: #059669;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.btn-icon {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   1. TOP FLOATING HUD (GLANCEABLE UI)
+══════════════════════════════════════════════════════════════ */
+.top-hud {
+  position: sticky;
+  top: 0;
+  z-index: 950;
+  background: rgba(244, 246, 244, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 18px rgba(14, 29, 25, 0.06);
+  transition: background var(--transition);
+  margin-bottom: 12px;
+}
+
+[data-theme="dark"] .top-hud {
+  background: rgba(9, 14, 23, 0.92);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.top-hud-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.top-hud-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-seal {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--sanctuary-deep);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  border: 1.5px solid var(--accent);
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.brand-titles .brand-name {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.brand-titles .brand-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.api-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.api-badge.live { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+.api-badge.demo { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+
+.top-hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* GPS Status Pill */
+.gps-pill {
+  min-height: 38px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  transition: all var(--transition);
+}
+
+.gps-pill:hover {
+  border-color: var(--emerald);
+}
+
+.gps-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--emerald);
+  position: relative;
+}
+
+.gps-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--emerald);
+  opacity: 0.4;
+  animation: ping-slow 2s infinite cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes ping-slow {
+  75%, 100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Master Auto-Play Toggle Pill */
+.autoplay-toggle-btn {
+  min-height: 38px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid var(--emerald);
+  background: var(--emerald-subtle);
+  color: #065F46;
+  box-shadow: var(--shadow-sm);
+}
+
+.autoplay-toggle-btn.off {
+  border-color: var(--border-strong);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+}
+
+/* Segmented View Switcher (Map / Cards / Walk) */
+.segmented-nav {
+  display: flex;
+  background: var(--bg-subtle);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  gap: 4px;
+}
+
+.segmented-nav button {
+  flex: 1;
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.segmented-nav button.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+
+/* Lang pills in Header */
+.lang-pills {
+  display: flex;
+  gap: 4px;
+}
+.lang-pill-btn {
+  min-width: 38px;
+  min-height: 38px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.lang-pill-btn.active {
+  background: var(--accent);
+  color: #FFF;
+  border-color: var(--accent-hover);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   2. GEOFENCE TRANSITION TOAST (5s COUNTDOWN BANNER)
+══════════════════════════════════════════════════════════════ */
+.transition-toast-banner {
+  position: fixed;
+  top: 76px;
+  left: 16px;
+  right: 16px;
+  max-width: 500px;
+  margin: 0 auto;
+  z-index: 1000;
+  background: var(--sanctuary-deep);
+  color: #FFFFFF;
+  border: 2px solid var(--emerald);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  animation: slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.transition-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.transition-progress-fill {
+  height: 100%;
+  background: var(--emerald);
+  width: 100%;
+  transition: width 1s linear;
+}
+
+.transition-toast-content {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transition-toast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--emerald);
+  font-weight: 700;
+}
+
+.transition-toast-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.transition-toast-msg {
+  font-size: 13px;
+  color: #CBD5E1;
+  line-height: 1.4;
+}
+
+.transition-toast-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.transition-toast-actions button {
+  flex: 1;
+  min-height: 44px;
+  font-size: 13px;
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   3. INTERACTIVE MAP & GEOFENCE HALOS
+══════════════════════════════════════════════════════════════ */
+.radar-map-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.radar-header {
+  padding: 12px 16px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.radar-canvas-box {
+  width: 100%;
+  height: 380px;
+  background: radial-gradient(circle at center, rgba(16, 185, 129, 0.04) 0%, transparent 70%),
+              linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 36px 36px, 36px 36px;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .radar-canvas-box {
+  background: radial-gradient(circle at center, rgba(16, 185, 129, 0.08) 0%, transparent 75%),
+              linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 36px 36px, 36px 36px;
+}
+
+/* POI Pin on Map with Geofence Halo */
+.radar-pin-wrap {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  z-index: 5;
+  transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.radar-pin-wrap:hover {
+  transform: translate(-50%, -50%) scale(1.15);
+  z-index: 10;
+}
+
+/* Geofence Halo ring */
+.geofence-halo {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px dashed var(--cobalt);
+  background: rgba(37, 99, 235, 0.08);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  transition: all 0.3s;
+}
+
+.geofence-halo.active-zone {
+  border: 2px solid var(--emerald);
+  background: rgba(16, 185, 129, 0.15);
+  animation: halo-pulse 2s infinite ease-out;
+}
+
+.geofence-halo.visited-zone {
+  border: 1px dashed #94A3B8;
+  background: rgba(148, 163, 184, 0.05);
+}
+
+@keyframes halo-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.8; }
+  50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.4; }
+  100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.8; }
+}
+
+.radar-pin {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--cobalt);
+  color: var(--cobalt);
+  font-weight: 700;
+  font-size: 13px;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-crisp);
+  transition: all var(--transition);
+}
+
+.radar-pin.active {
+  background: var(--emerald);
+  border-color: #059669;
+  color: #FFF;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+}
+
+.radar-pin.visited {
+  background: #E2E8F0;
+  border-color: #94A3B8;
+  color: #475569;
+}
+
+.radar-pin-label {
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(14, 29, 25, 0.85);
+  backdrop-filter: blur(4px);
+  color: #FFF;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* User Live Position Avatar on Map */
+.radar-user-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 15;
+  pointer-events: none;
+}
+
+.user-marker-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #10B981;
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.8);
+  position: relative;
+}
+
+.user-marker-ping {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid #10B981;
+  animation: ping-slow 2s infinite;
+}
+
+/* GPS Simulator Floating Controls */
+.gps-sim-bar {
+  padding: 10px 14px;
+  background: var(--bg-subtle);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.gps-sim-bar select {
+  flex: 1;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4. 3-STAGE BOTTOM SHEET AUDIO PLAYER
+══════════════════════════════════════════════════════════════ */
+.bottom-player {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 2px solid var(--accent);
+  box-shadow: 0 -8px 30px rgba(14, 29, 25, 0.16);
+  z-index: 990;
+  transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1), background var(--transition);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Stage heights */
+.bottom-player.stage-mini {
+  height: 76px;
+}
+.bottom-player.stage-half {
+  height: 420px;
+}
+.bottom-player.stage-full {
+  height: 85vh;
+  border-radius: 24px 24px 0 0;
+}
+
+.sheet-handle {
+  width: 100%;
+  padding: 6px 0 2px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sheet-drag-bar {
+  width: 44px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  transition: background 0.2s;
+}
+
+.sheet-handle:hover .sheet-drag-bar {
+  background: var(--accent);
+}
+
+.sheet-handle-text {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Mini player row */
+.player-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 16px 8px 16px;
+  gap: 12px;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.player-seal-mini {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--sanctuary-deep);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  border: 1px solid var(--accent);
+}
+
+.player-text {
+  min-width: 0;
+}
+
+.player-poi-title {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.player-status-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Expanded Sheet Body (Half & Full stages) */
+.sheet-expanded-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 16px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Waveform Visualizer & Seekbar */
+.waveform-container {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.waveform-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 3px;
+  height: 40px;
+  cursor: pointer;
+}
+
+.waveform-bar {
+  flex: 1;
+  background: var(--border-strong);
+  border-radius: 2px;
+  min-height: 4px;
+  transition: all 0.15s ease;
+}
+
+.waveform-bar.passed {
+  background: var(--accent);
+}
+
+.waveform-bar.playing {
+  background: var(--emerald);
+  animation: bar-dance 0.7s infinite alternate ease-in-out;
+}
+
+@keyframes bar-dance {
+  0% { transform: scaleY(0.4); }
+  100% { transform: scaleY(1.1); }
+}
+
+/* Live Highlighted Transcript (Karaoke Sync) */
+.transcript-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  flex: 1;
+  min-height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transcript-header {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.transcript-sentence {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.transcript-sentence:hover {
+  background: var(--bg-subtle);
+  color: var(--text);
+}
+
+.transcript-sentence.active {
+  background: var(--accent-subtle);
+  color: var(--text);
+  border-left-color: var(--accent);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+/* Rate & Deep Controls */
+.speed-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.speed-pills button {
+  min-width: 44px;
+  min-height: 36px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+.speed-pills button.active {
+  background: var(--accent);
+  color: #FFF;
+  border-color: var(--accent-hover);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   5. WALK MODE (RẢNH TAY - ANTI-GLARE OLED DARK)
+══════════════════════════════════════════════════════════════ */
+.walk-mode-view {
+  min-height: calc(100vh - 160px);
+  background: #090E17;
+  color: #F8FAFC;
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 20px;
+}
+
+.walk-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34D399;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.walk-giant-btn {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--emerald) 0%, #059669 100%);
+  color: #FFFFFF;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin: 20px 0;
+}
+
+.walk-giant-btn:active {
+  transform: scale(0.92);
+}
+
+.walk-next-card {
+  width: 100%;
+  max-width: 440px;
+  background: #1E293B;
+  border: 1px solid #334155;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   6. CARDS LIST, MODALS & TOASTS
+══════════════════════════════════════════════════════════════ */
+.poi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+article.poi {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition);
+  position: relative;
+}
+
+article.poi:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+article.poi.playing-poi {
+  border-color: var(--emerald);
+  box-shadow: 0 0 0 2px var(--emerald);
+}
+
+.poi-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.poi-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+}
+.tag-temple { background: #F6F2EC; color: #8A5722; border-color: #E6D8C8; }
+.tag-view { background: #ECF4F7; color: #1C5A70; border-color: #CDE2EB; }
+.tag-culture { background: #F7ECF2; color: #822757; border-color: #ECCEDF; }
+.tag-food { background: #F8F1EB; color: #91451C; border-color: #ECD4C4; }
+
+.fav-btn {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  font-size: 16px;
+}
+.fav-btn.active {
+  background: #FFF1F1;
+  border-color: #FFCACA;
+}
+
+.poi-title {
+  font-size: 20px;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.poi-address {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.poi-narration-preview {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+.poi-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.poi-actions button {
+  flex: 1;
+  min-width: 130px;
+}
+
+/* Side Card */
+.side-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.tour-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tour-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #FFF;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.stars span {
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--border-strong);
+}
+.stars span.filled { color: var(--accent); }
+
+/* Modal & Toast */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 29, 25, 0.6);
+  backdrop-filter: blur(6px);
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.modal.hidden { display: none; }
+
+.modal-content {
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius);
+  max-width: 580px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 20px;
+  box-shadow: var(--shadow-md);
+}
+
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--sanctuary-deep);
+  color: #FFF;
+  border-left: 4px solid var(--accent);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  animation: slide-in 0.25s ease-out;
+}
+
+@keyframes slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.hidden-select { display: none !important; }
+.hidden-view { display: none !important; }
+
+/* ─── Leaflet Map & 3D Google Maps Style Pins ─── */
+#map {
+  width: 100%;
+  height: 420px;
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  background: #E5E7EB;
+}
+
+[data-theme="dark"] #map {
+  background: #0F172A;
+}
+
+/* Custom 3D Droplet Marker */
+.gmap-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.gmap-marker-wrap {
+  position: relative;
+  width: 44px;
+  height: 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.gmap-pin-body {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  border: 2.5px solid #FFFFFF;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.gmap-pin-icon {
+  transform: rotate(45deg);
+  font-size: 19px;
+  line-height: 1;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+}
+
+.gmap-pin-label {
+  position: absolute;
+  top: 42px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(6px);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+  transition: all 0.25s;
+}
+
+/* Active / In Range / Playing state: Scale 1.3x, Gold/Emerald glow & Ripple */
+.gmap-marker-wrap.active {
+  transform: scale(1.3);
+  z-index: 1000 !important;
+}
+
+.gmap-marker-wrap.active .gmap-pin-body {
+  background: linear-gradient(135deg, #F59E0B 0%, #C07F38 100%);
+  border-color: #FEF08A;
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.85), 0 6px 16px rgba(0,0,0,0.45);
+}
+
+.gmap-marker-wrap.active .gmap-pin-label {
+  background: #C07F38;
+  color: #FFFFFF;
+  border-color: #FEF08A;
+  font-weight: 800;
+  box-shadow: 0 0 12px rgba(192, 127, 56, 0.6);
+}
+
+.gmap-pin-ripple {
+  position: absolute;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 2.5px solid #10B981;
+  background: rgba(16, 185, 129, 0.22);
+  top: -19px;
+  left: -16px;
+  pointer-events: none;
+  animation: pin-radar-ripple 2s infinite cubic-bezier(0, 0.2, 0.8, 1);
+  display: none;
+}
+
+.gmap-marker-wrap.active .gmap-pin-ripple {
+  display: block;
+}
+
+@keyframes pin-radar-ripple {
+  0% { transform: scale(0.3); opacity: 1; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+/* Visited Marker State */
+.gmap-marker-wrap.visited .gmap-pin-body {
+  background: linear-gradient(135deg, #64748B 0%, #475569 100%);
+  border-color: #CBD5E1;
+}
+
+/* Google Maps Nav Dot for User */
+.user-marker-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.gmap-user-marker {
+  width: 26px;
+  height: 26px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gmap-user-core {
+  width: 18px;
+  height: 18px;
+  background: #2563EB;
+  border: 3px solid #FFFFFF;
+  border-radius: 50%;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.6);
+  z-index: 2;
+  position: relative;
+}
+
+.gmap-user-halo {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  background: rgba(37, 99, 235, 0.28);
+  border-radius: 50%;
+  border: 1.5px solid rgba(37, 99, 235, 0.6);
+  animation: user-nav-pulse 2s infinite ease-out;
+  z-index: 1;
+}
+
+@keyframes user-nav-pulse {
+  0% { transform: scale(0.5); opacity: 0.9; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+/* AI Chatbot Floating & Drawer */
+.floating-ai-btn {
+  position: fixed;
+  bottom: 84px;
+  right: 18px;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1.5px solid var(--accent);
+  padding: 10px 16px;
+  border-radius: 9999px;
+  box-shadow: var(--shadow-md);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.floating-ai-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+.ai-chat-drawer {
+  position: fixed;
+  bottom: 140px;
+  right: 18px;
+  width: 360px;
+  max-width: calc(100vw - 36px);
+  height: 480px;
+  max-height: 60vh;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.ai-chat-drawer.hidden {
+  display: none;
+}
+.chat-header {
+  background: var(--surface);
+  border-bottom: 1.5px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+}
+.chat-messages {
+  flex: 1;
+  padding: 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chat-bubble {
+  max-width: 85%;
+  padding: 9px 13px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+.chat-bubble.user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #FFF;
+  border-bottom-right-radius: 4px;
+}
+.chat-bubble.bot {
+  align-self: flex-start;
+  background: var(--bg-subtle);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+.chat-bubble.typing {
+  font-style: italic;
+  color: var(--text-muted);
+}
+.chat-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.chat-chip-btn {
+  white-space: nowrap;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.chat-chip-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--accent);
+}
+.chat-input-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1.5px solid var(--border);
+  background: var(--surface);
+}
+.chat-input-bar input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  font: inherit;
+  font-size: 13px;
+  background: #FFF;
+}
+.route-metrics-box {
+  background: var(--bg-subtle);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+.route-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.route-metric-row:last-child {
+  margin-bottom: 0;
+}
+</style>
+<!-- Leaflet.js & Google Maps Tiles -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     1. TOP FLOATING HUD
+══════════════════════════════════════════════════════════════ -->
+<header class="top-hud">
+  <div class="top-hud-inner">
+    <!-- Row 1: Brand, GPS Pill, Auto-Play Switch & Theme toggles -->
+    <div class="top-hud-row1">
+      <div class="brand-wrapper">
+        <div class="brand-seal" title="GeoAudio Guide TP.HCM">🏛</div>
+        <div class="brand-titles">
+          <h1 class="brand-name">GeoAudio Guide</h1>
+          <div class="brand-sub">
+            <span>Sài Gòn Di Sản</span>
+            <span class="api-badge demo" id="apiStatusBadge">🟡 Dữ liệu mẫu (Ngoại tuyến)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="top-hud-actions">
+        <!-- GPS Status Pill (Click opens Manual Modal) -->
+        <div class="gps-pill" id="gpsPillBtn" onclick="openManualGpsModal()" title="Bấm để chọn điểm hoặc nhập GPS thủ công">
+          <span class="gps-dot"></span>
+          <span id="gpsPillText">GPS: ±3m</span>
+        </div>
+
+        <!-- Master Auto-Play Toggle Switch -->
+        <button class="autoplay-toggle-btn" id="autoPlayToggleBtn" onclick="toggleAutoPlayMaster()" title="Bật/Tắt tự động thuyết minh khi lọt vào Geofence">
+          <span>🔊 Tự động: BẬT</span>
+        </button>
+
+        <!-- Quick Lang VI, EN, KO, JA, ZH -->
+        <div class="lang-pills">
+          <button class="lang-pill-btn active" data-lang="vi" onclick="setQuickLang('vi')">VI</button>
+          <button class="lang-pill-btn" data-lang="en" onclick="setQuickLang('en')">EN</button>
+          <button class="lang-pill-btn" data-lang="ko" onclick="setQuickLang('ko')">KO</button>
+          <button class="lang-pill-btn" data-lang="ja" onclick="setQuickLang('ja')">JA</button>
+          <button class="lang-pill-btn" data-lang="zh" onclick="setQuickLang('zh')">ZH</button>
+        </div>
+
+        <!-- Hidden Select giữ 100% tương thích mã nguồn cũ -->
+        <select id="lang" class="hidden-select" title="Ngôn ngữ thuyết minh">
+          <option value="vi" selected>🇻🇳 Tiếng Việt</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="ko">🇰🇷 한국어</option>
+          <option value="ja">🇯🇵 日本語</option>
+          <option value="zh">🇨🇳 中文</option>
+        </select>
+
+        <!-- Sunlight Mode & Dark Mode -->
+        <button class="btn-icon" id="highContrast" title="Chế độ Nắng Gắt ngoài trời">☀️</button>
+        <button class="btn-icon" id="themeToggle" title="Chế độ Tối/Sáng">🌙</button>
+        <button class="btn-icon" id="accessPassBtn" title="Kích hoạt Vé Tham Quan (AccessPass)" onclick="openAccessPassModal()">🎟️</button>
+        <button class="btn-icon" id="chatBotHeaderBtn" title="Hỏi đáp Hướng dẫn viên AI" onclick="toggleAiChat()">🤖</button>
+        <button class="btn-icon" id="adminBtn" title="Bảng Quản Trị">⚙️</button>
+        <button class="btn-icon" id="help" title="Hướng dẫn sử dụng">❓</button>
+        <button id="privacy" class="hidden-select">🔒 Riêng tư</button>
+        <!-- Checkbox ẩn lưu biến auto để giữ 100% tương thích -->
+        <input id="auto" type="checkbox" checked class="hidden-select">
+      </div>
+    </div>
+
+    <!-- Row 2: Segmented View Switcher (Map | Cards | Walk Mode) -->
+    <nav class="segmented-nav" aria-label="Chế độ hiển thị">
+      <button class="active" id="navViewMap" onclick="switchMainView('map')">🗺️ Bản đồ (Map)</button>
+      <button id="navViewCards" onclick="switchMainView('cards')">📍 Gần bạn (Cards)</button>
+      <button id="navViewWalk" onclick="switchMainView('walk')">🎧 Rảnh tay (Walk Mode)</button>
+    </nav>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════════
+     2. GEOFENCE TRANSITION TOAST BANNER (5S COUNTDOWN)
+══════════════════════════════════════════════════════════════ -->
+<aside id="geofenceTransitionToast" class="transition-toast-banner" style="display:none;" aria-live="polite">
+  <div class="transition-progress-bar">
+    <div id="transitionProgressFill" class="transition-progress-fill"></div>
+  </div>
+  <div class="transition-toast-content">
+    <div class="transition-toast-header">
+      <span>🔔 Phát hiện vùng Geofence mới</span>
+      <span id="transitionToastCountdown" style="font-family:var(--font-mono);font-size:13px;color:#FDE047;">3s</span>
+    </div>
+    <div class="transition-toast-title" id="transitionToastName">Tên địa điểm</div>
+    <div class="transition-toast-msg" id="transitionToastMsg">
+      Bạn vừa bước vào vùng tham quan. Tự động thuyết minh sau 5 giây...
+    </div>
+    <div class="transition-toast-actions">
+      <button class="btn-primary" id="toastConfirmPlayBtn" onclick="confirmGeofencePlay()">▶ Phát ngay</button>
+      <button class="btn-outline" id="toastDismissBtn" style="color:#FFF;border-color:rgba(255,255,255,0.4);" onclick="dismissGeofenceToast()">✕ Bỏ qua</button>
+    </div>
+  </div>
+</aside>
+
+<div class="wrap">
+  <!-- ══════════════════════════════════════════════════════════════
+       VIEW 1: BẢN ĐỒ & TƯƠNG TÁC GEOFENCE
+  ══════════════════════════════════════════════════════════════ -->
+  <main id="viewMapSection" class="main-layout">
+    <!-- Cột Trái: Radar Map & Khám phá POI -->
+    <div class="left-col">
+      <!-- Radar Map mô phỏng bán đảo -->
+      <div class="radar-map-card">
+        <div class="radar-header">
+          <span>🗺️ Bản Đồ Vị Trí & Vòng Bán Kính Geofence</span>
+          <span id="clock" style="font-weight:600;font-size:13px;color:var(--text-muted);font-family:var(--font-mono)"></span>
+        </div>
+
+        <div id="map" class="radar-canvas-box">
+          <div class="map-label" style="position:absolute;top:10px;left:14px;font-size:12px;color:var(--text-muted);font-weight:600">
+            Trung tâm Sài Gòn · Vị trí: Đang tải...
+          </div>
+        </div>
+
+        <!-- GPS Simulator Control Bar -->
+        <div class="gps-sim-bar">
+          <button class="btn-primary" id="realGps" style="flex-shrink:0;">📡 Dùng GPS thật</button>
+          
+          <button id="autoWalkBtn" onclick="toggleAutoWalkRoute()" class="btn-outline" style="border-color:var(--emerald);color:var(--emerald);">
+            🚶 Mô phỏng đi bộ (Auto-Walk)
+          </button>
+
+          <select id="sim" title="Chọn tọa độ giả lập để thử nghiệm Geofence">
+            <option value="">📍 GPS giả lập: chọn điểm tham quan</option>
+          </select>
+        </div>
+
+        <div id="status" class="radar-status-bar" style="padding:10px 16px;font-size:13px;background:var(--surface);border-top:1px solid var(--border);">
+          <span>🔔</span> Sẵn sàng. Chọn GPS giả lập hoặc bấm "Mô phỏng đi bộ" để thử Geofence tự động.
+        </div>
+      </div>
+
+      <!-- Thanh Tìm kiếm & Lọc Danh Mục -->
+      <div class="search-box">
+        <span class="search-icon-decor">🔍</span>
+        <input id="q" placeholder="Tìm điểm tham quan Sài Gòn theo tên, địa chỉ..." autocomplete="off">
+      </div>
+
+      <nav class="category-tabs" id="viewTabs" aria-label="Lọc danh mục">
+        <button class="active" data-tab="all">Tất cả</button>
+        <button data-tab="culture">🏛 Di tích & Lịch sử</button>
+        <button data-tab="temple">⛪ Kiến trúc Tôn giáo</button>
+        <button data-tab="view">🌅 Cảnh quan & Đi bộ</button>
+        <button data-tab="food">🍜 Ẩm thực & Chợ</button>
+      </nav>
+
+      <!-- Danh sách POI -->
+      <div id="poiList" class="poi-list">
+        <!-- Render động từ JS -->
+      </div>
+    </div>
+
+    <!-- Cột Phải: Lộ trình Tour, Yêu thích & Cài đặt bổ trợ -->
+    <aside class="right-col">
+      <!-- Tour Gợi Ý Từ Hệ Thống (Suggested Tours - UC6) -->
+      <div class="side-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <h2 style="margin:0;">🌟 Tour Gợi Ý Từ Chuyên Gia</h2>
+          <button class="btn-icon" onclick="loadSuggestedTours()" title="Tải lại tour gợi ý" style="min-width:32px;min-height:32px;font-size:12px;">🔄</button>
+        </div>
+        <div id="suggestedToursList" style="display:flex;flex-direction:column;gap:8px;">
+          <span style="font-size:12px;color:var(--text-muted);">Đang tải các tour gợi ý...</span>
+        </div>
+      </div>
+
+      <!-- Tour cá nhân -->
+      <div class="side-card">
+        <h2>🧭 Lộ Trình Tour Của Tôi</h2>
+        <div id="tour" style="margin-bottom:12px;"></div>
+        
+        <!-- Hộp thống kê khoảng cách & thời gian tính từ API (UC6) -->
+        <div id="routeMetricsBox" class="route-metrics-box" style="display:none;">
+          <div class="route-metric-row">
+            <span style="color:var(--text-muted);font-weight:600;">Tổng khoảng cách:</span>
+            <span id="routeTotalDist" style="font-weight:700;color:var(--accent);font-family:var(--font-mono);">0 m</span>
+          </div>
+          <div class="route-metric-row">
+            <span style="color:var(--text-muted);font-weight:600;">Thời gian dự kiến:</span>
+            <span id="routeTotalTime" style="font-weight:700;color:var(--emerald);font-family:var(--font-mono);">0 phút</span>
+          </div>
+        </div>
+
+        <p id="sum" style="font-size:13px;color:var(--text-muted);margin-bottom:14px;font-weight:500;"></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-primary" id="start" style="flex:1;">▶ Bắt đầu</button>
+          <button id="next" style="flex:1;">⏭ Điểm tiếp</button>
+          <button class="btn-danger" id="clear" title="Xóa toàn bộ tour">🗑</button>
+        </div>
+      </div>
+
+      <!-- Địa điểm Yêu thích -->
+      <div class="side-card">
+        <h2>❤️ Điểm Yêu Thích</h2>
+        <div id="favList">
+          <span style="font-size:14px;color:var(--text-muted)">Chưa có địa điểm yêu thích. Bấm nút ❤️ ở từng địa điểm để lưu lại.</span>
+        </div>
+      </div>
+
+      <!-- Cài đặt Thuyết minh & Trợ năng -->
+      <div class="side-card">
+        <h2>🔊 Tùy Chỉnh Thuyết Minh</h2>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Tốc độ đọc</label>
+            <select id="rate" style="width:100%;min-height:44px;">
+              <option value=".7">0.7x Rất chậm</option>
+              <option value=".85">0.85x Chậm</option>
+              <option value="1" selected>1.0x Bình thường</option>
+              <option value="1.15">1.15x Nhanh</option>
+              <option value="1.3">1.3x Rất nhanh</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Thời gian chờ</label>
+            <select id="cool" style="width:100%;min-height:44px;">
+              <option value="0">Không giới hạn (demo)</option>
+              <option value="60">60 giây</option>
+              <option value="180">3 phút</option>
+              <option value="300">5 phút</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">Giọng đọc hệ thống</label>
+          <select id="voiceSelect" style="width:100%;min-height:44px;">
+            <option value="">Mặc định hệ thống</option>
+          </select>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);">
+          <span style="font-size:13px;font-weight:600;">Cỡ chữ:</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn-icon" id="fontMinus" style="min-width:40px;min-height:40px;font-size:13px;" title="Giảm cỡ chữ">A-</button>
+            <button class="btn-icon" id="fontPlus" style="min-width:40px;min-height:40px;font-size:13px;" title="Tăng cỡ chữ">A+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lịch sử & Thao tác dữ liệu -->
+      <div class="side-card">
+        <h2>📊 Lịch Sử Tham Quan</h2>
+        <div id="visitCount" style="font-size:13px;color:var(--text-muted);margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button id="history" style="flex:1;">📜 Lịch sử nghe</button>
+          <button id="exportData" style="flex:1;">📤 Xuất dữ liệu</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       VIEW 2: GẦN BẠN (PROXIMITY CARDS)
+  ══════════════════════════════════════════════════════════════ -->
+  <section id="viewCardsSection" class="hidden-view">
+    <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h2 style="font-size:20px;font-weight:700;">Địa Điểm Gần Bạn Nhất</h2>
+        <p style="font-size:13px;color:var(--text-muted)">Tự động xếp hạng theo khoảng cách GPS thực tế từ vị trí hiện tại</p>
+      </div>
+      <span id="proximityCountBadge" class="api-badge live" style="font-size:12px;padding:4px 10px;">8 Điểm</span>
+    </div>
+
+    <div id="proximityCardsList" class="poi-list">
+      <!-- Render động theo khoảng cách từ gần đến xa -->
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       VIEW 3: RẢNH TAY (WALK MODE - OLED ANTI-GLARE)
+  ══════════════════════════════════════════════════════════════ -->
+  <section id="viewWalkSection" class="hidden-view">
+    <div class="walk-mode-view">
+      <div class="walk-mode-pill">
+        <span>🎧 Walk Mode • Chế độ rảnh tay chống chói</span>
+      </div>
+
+      <div style="max-width:500px;margin:10px 0;">
+        <div id="walkCurrentDist" style="font-size:13px;font-family:var(--font-mono);color:#34D399;font-weight:700;margin-bottom:4px;">
+          Khoảng cách: 12m (Trong vùng kích hoạt)
+        </div>
+        <h2 id="walkCurrentTitle" style="font-size:28px;font-weight:800;color:#FFFFFF;margin-bottom:6px;line-height:1.2;">
+          Dinh Độc Lập
+        </h2>
+        <p id="walkCurrentAddress" style="font-size:13px;color:#94A3B8;">
+          135 Nam Kỳ Khởi Nghĩa, Bến Thành, Quận 1
+        </p>
+      </div>
+
+      <!-- Giant Play/Pause Circle (Glanceable) -->
+      <button class="walk-giant-btn" id="walkGiantPlayBtn" onclick="togglePlayPause()" title="Chạm để tạm dừng hoặc phát tiếp">
+        <span id="walkGiantBtnIcon">▶</span>
+      </button>
+
+      <!-- Fast seek & speed buttons in Walk mode -->
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
+        <button onclick="skipAudio(-15)" class="btn-icon" style="background:#1E293B;color:#FFF;border-color:#334155;" title="Lùi 15s">⏪</button>
+        <span id="walkTimeElapsed" style="font-family:var(--font-mono);font-size:14px;color:#34D399;font-weight:700;">00:00 / 00:28</span>
+        <button onclick="skipAudio(15)" class="btn-icon" style="background:#1E293B;color:#FFF;border-color:#334155;" title="Tua 15s">⏩</button>
+      </div>
+
+      <!-- Next destination card -->
+      <div class="walk-next-card" id="walkNextCard" onclick="goToNextPoiInWalk()">
+        <div style="text-align:left;">
+          <div style="font-size:11px;color:#94A3B8;text-transform:uppercase;">Điểm tiếp theo theo hướng đi:</div>
+          <div id="walkNextName" style="font-size:14px;font-weight:700;color:#FFFFFF;">Nhà thờ Đức Bà Sài Gòn</div>
+        </div>
+        <div id="walkNextDist" style="font-family:var(--font-mono);font-size:14px;color:#34D399;font-weight:700;">
+          ~280m
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     3-STAGE BOTTOM SHEET AUDIO PLAYER
+══════════════════════════════════════════════════════════════ -->
+<div class="bottom-player stage-mini" id="bottomAudioPlayer">
+  <!-- Pull handle to cycle stages -->
+  <div class="sheet-handle" onclick="toggleBottomSheetStage()">
+    <div class="sheet-drag-bar"></div>
+    <div class="sheet-handle-text" id="sheetHandleText">▲ Chạm để xem kịch bản thuyết minh</div>
+  </div>
+
+  <!-- Progress bar on top of mini player -->
+  <div class="progress-bar" id="narrationProgress" style="cursor:pointer;" onclick="seekAudioByClick(event)">
+    <div class="progress-fill" id="narrationFill" style="width:0%"></div>
+  </div>
+
+  <!-- Mini player row (Always visible) -->
+  <div class="player-top-row">
+    <div class="player-info" onclick="toggleBottomSheetStage()">
+      <div class="player-seal-mini" id="playerThumbnailSeal">🏛</div>
+      <div class="player-text">
+        <div class="player-poi-title" id="playerTitle">Chưa phát thuyết minh</div>
+        <div class="player-status-sub">
+          <span id="playerLangBadge">🇻🇳 VI</span>
+          <span>·</span>
+          <span id="playerSubStatus">Sẵn sàng nghe tự động hoặc chọn điểm</span>
+          <span id="playerDistBadge" style="font-family:var(--font-mono);color:var(--emerald);font-weight:700;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="player-controls">
+      <button class="btn-icon" onclick="skipAudio(-15)" title="Lùi 15s" style="min-width:44px;min-height:44px;font-size:14px;">
+        ↺15
+      </button>
+
+      <button class="btn-primary btn-icon" id="playPauseBtn" onclick="togglePlayPause()" title="Phát hoặc Dừng lại" style="min-width:52px;min-height:52px;border-radius:50%;font-size:22px;">
+        ▶
+      </button>
+
+      <button class="btn-icon" onclick="skipAudio(15)" title="Tua 15s" style="min-width:44px;min-height:44px;font-size:14px;">
+        15↻
+      </button>
+
+      <button class="btn-icon" id="stop" title="Dừng hẳn thuyết minh" style="min-width:44px;min-height:44px;">
+        ⏹
+      </button>
+    </div>
+  </div>
+
+  <!-- Expanded Body (Visible in Half & Full stages) -->
+  <div class="sheet-expanded-body" id="sheetExpandedBody">
+    <!-- Soundwave Seekbar -->
+    <div class="waveform-container">
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">
+        <span id="waveCurrentTime">00:00</span>
+        <span style="color:var(--emerald);font-weight:700;">● Live Audio Waveform</span>
+        <span id="waveTotalTime">00:25</span>
+      </div>
+
+      <div class="waveform-bars" id="waveformBars" onclick="seekAudioByWaveform(event)">
+        <!-- 30 Dynamic sound bars -->
+      </div>
+    </div>
+
+    <!-- Live Highlighted Karaoke Transcript -->
+    <div class="transcript-card">
+      <div class="transcript-header">
+        <span>📖 Kịch bản thuyết minh đồng bộ</span>
+        <span style="font-size:11px;color:var(--accent);">Chạm câu bất kỳ để nghe đoạn đó</span>
+      </div>
+
+      <div id="liveTranscriptBox" style="display:flex;flex-direction:column;gap:6px;">
+        <!-- Từng câu thoại render động, câu đang đọc highlight màu vàng đồng -->
+      </div>
+    </div>
+
+    <!-- Quick controls at bottom of expanded sheet -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:6px;gap:8px;">
+      <div class="speed-pills">
+        <span style="font-size:11px;color:var(--text-muted);font-weight:600;">Tốc độ:</span>
+        <button onclick="setFastPlaybackRate(0.85)">0.8x</button>
+        <button class="active" onclick="setFastPlaybackRate(1.0)">1.0x</button>
+        <button onclick="setFastPlaybackRate(1.25)">1.2x</button>
+      </div>
+
+      <button class="btn-outline" id="markVisitedBtn" onclick="toggleCurrentVisited()" style="min-height:40px;font-size:12px;padding:6px 12px;">
+        ✓ Đã tham quan
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     FLOATING AI CHATBOT & DRAWER (UC4)
+══════════════════════════════════════════════════════════════ -->
+<button id="floatingAiChatBtn" class="floating-ai-btn" onclick="toggleAiChat()" title="Trò chuyện với Hướng dẫn viên AI">
+  <span style="font-size:18px;">💬</span>
+  <span class="ai-btn-text">Hỏi AI Sài Gòn</span>
+</button>
+
+<div id="aiChatDrawer" class="ai-chat-drawer hidden">
+  <div class="chat-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:20px;">🤖</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;">Hướng Dẫn Viên AI</div>
+        <div style="font-size:11px;color:var(--emerald);font-weight:600;">● Sẵn sàng giải đáp 24/7</div>
+      </div>
+    </div>
+    <button class="btn-icon" onclick="toggleAiChat()" style="min-width:32px;min-height:32px;border-radius:50%;font-size:14px;">✕</button>
+  </div>
+  <div class="chat-messages" id="chatMessagesList">
+    <div class="chat-bubble bot">
+      Xin chào! Tôi là hướng dẫn viên ảo di sản Sài Gòn. Bạn muốn tìm hiểu thông tin lịch sử, gợi ý ăn uống hay lộ trình tham quan nào hôm nay?
+    </div>
+  </div>
+  <div class="chat-chips">
+    <button class="chat-chip-btn" onclick="sendAiChatMessage('Gợi ý lộ trình tham quan trung tâm Sài Gòn')">🧭 Gợi ý lộ trình</button>
+    <button class="chat-chip-btn" onclick="sendAiChatMessage('Chợ Bến Thành có món gì ngon?')">🍜 Ẩm thực Bến Thành</button>
+    <button class="chat-chip-btn" onclick="sendAiChatMessage('Lịch sử Dinh Độc Lập')">🏛 Dinh Độc Lập</button>
+  </div>
+  <div class="chat-input-bar">
+    <input type="text" id="chatInput" placeholder="Nhập câu hỏi cho hướng dẫn viên..." onkeydown="if(event.key==='Enter')sendAiChatMessage()" />
+    <button class="btn-primary" onclick="sendAiChatMessage()" style="padding:0 14px;min-height:38px;font-size:13px;border-radius:8px;">Gửi</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL DIALOG (THÔNG TIN / MANUAL GPS / QR)
+══════════════════════════════════════════════════════════════ -->
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1.5px solid var(--border);padding-bottom:10px;">
+      <h2 id="mtitle" style="font-size:18px;">Thông tin</h2>
+      <button class="btn-icon" onclick="closeModal()" style="min-width:40px;min-height:40px;border-radius:50%;font-size:16px;">✕</button>
+    </div>
+    <div id="mbody" style="font-size:14px;line-height:1.6;"></div>
+  </div>
+</div>
+
+<!-- ─── Toast Container ─── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Nạp Client Data Adapter trước script giao diện -->
+<script src="api-client.js"></script>
+
+<script>
+const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL) || (typeof ApiClient !== 'undefined' ? ApiClient.resolveBaseUrl() : `${window.location.origin}/api`);
+
+
+/* ─── 1. DỮ LIỆU CƠ SỞ: 8 ĐỊA ĐIỂM SÀI GÒN VỚI 5 NGÔN NGỮ (VI, EN, KO, JA, ZH) ─── */
+const base = [
+  {
+    id: 'dinh-doc-lap',
+    name: 'Dinh Độc Lập',
+    cat: 'culture',
+    address: '135 Nam Kỳ Khởi Nghĩa, Bến Thành, Quận 1',
+    lat: 10.7770, lng: 106.6953,
+    radius: 50, priority: 10, duration: 6,
+    text: {
+      vi: [
+        'Dinh Độc Lập',
+        'Chào mừng bạn đến với Dinh Độc Lập, di tích lịch sử quốc gia đặc biệt tại trung tâm Thành phố Hồ Chí Minh. Công trình do kiến trúc sư Ngô Viết Thụ thiết kế, kết hợp hài hòa giữa triết lý phương Đông và phong cách hiện đại. Nơi đây từng là nơi làm việc của Tổng thống Việt Nam Cộng hòa và chứng kiến ngày thống nhất đất nước 30 tháng 4 năm 1975. Hãy bước qua cổng chính để chiêm ngưỡng những phòng khánh tiết trang trọng.'
+      ],
+      en: [
+        'Independence Palace',
+        'Welcome to Independence Palace, a special national historical landmark in the heart of Ho Chi Minh City. Designed by architect Ngo Viet Thu, it harmoniously blends Eastern philosophy with modernist architecture. This site witnessed the historic reunification of Vietnam on April 30, 1975. Step inside to admire the grand ceremonial chambers and lush presidential gardens.'
+      ],
+      ko: [
+        '통일궁',
+        '호치민시 중심부에 위치한 특별 국가 역사 유적지인 통일궁에 오신 것을 환영합니다. 건축가 응오 비엣 투가 설계하였으며, 동양 철학과 현대 건축 양식이 조화를 이루고 있습니다. 1975년 4월 30일 베트남 통일의 역사적 현장입니다. 대형 의전실과 아름다운 정원을 감상해 보세요.'
+      ],
+      ja: [
+        '統一会堂',
+        'ホーチミン市中心部に位置する国家特別歴史遺跡、統一会堂へようこそ。建築家ヴォ・ヴィエット・トゥによって設計され、東洋の哲学と現代建築が見事に調和しています。1975年4月30日の歴史的な南北統一の舞台となりました。壮麗な会議室や美しい庭園をご堪能ください。'
+      ],
+      zh: [
+        '统一宫',
+        '欢迎来到位于胡志明市中心的国家级特别历史遗迹——统一宫。这座建筑由建筑大师吴日秋设计，巧妙融合了东方哲学与现代主义风格，见证了1975年4月30日国家统一的历史时刻。'
+      ]
+    }
+  },
+  {
+    id: 'nha-tho-duc-ba',
+    name: 'Nhà thờ Đức Bà Sài Gòn',
+    cat: 'temple',
+    address: '01 Công xã Paris, Bến Nghé, Quận 1',
+    lat: 10.7798, lng: 106.6990,
+    radius: 45, priority: 9, duration: 5,
+    text: {
+      vi: [
+        'Nhà thờ Đức Bà Sài Gòn',
+        'Vương cung Thánh đường Chính tòa Đức Mẹ Vô nhiễm Nguyên tội được xây dựng từ năm 1877 đến 1880. Toàn bộ gạch đỏ xây dựng đều được vận chuyển trực tiếp từ cảng Marseille nước Pháp. Hai tháp chuông cao 58 mét vươn thẳng lên nền trời, là biểu tượng tôn giáo và kiến trúc độc đáo bậc nhất Sài Gòn. Phía trước thánh đường là tượng Đức Mẹ Hòa Bình uy nghiêm.'
+      ],
+      en: [
+        'Notre-Dame Cathedral Basilica of Saigon',
+        'Built between 1877 and 1880, all exterior red bricks were shipped directly from Marseille, France. Its twin bell towers soar 58 meters into the sky, serving as one of Saigon most recognizable architectural and religious icons. In the front courtyard stands the serene marble statue of Our Lady of Peace.'
+      ],
+      ko: [
+        '사이공 노트르담 대성당',
+        '1877년부터 1880년 사이에 건축된 이 성당의 외벽 붉은 벽돌은 전량 프랑스 마르세유에서 직접 운송되었습니다. 58미터 높이의 쌍둥이 종탑은 사이공의 가장 상징적인 종교 및 건축 랜드마크입니다. 성당 앞뜰에는 평화의 성모 마리아상이 모셔져 있습니다.'
+      ],
+      ja: [
+        'サイゴン・ノートルダム大聖堂',
+        '1877年から1880年にかけて建設され、外壁の赤レンガはすべてフランスのマルセイユから運ばれました。高さ58メートルの二塔の鐘楼が空高くそびえ立ち、サイゴン屈指の歴史的建築物です。聖堂の前には平和の聖母マリア像が厳かに佇んでいます。'
+      ],
+      zh: [
+        '西贡圣母大教堂',
+        '建于1877年至1880年间，整座教堂的外墙红砖均由法国马赛直接海运而来。高达58米的一对双钟楼耸立于城市天际线，是西贡最具代表性的宗教与建筑地标。'
+      ]
+    }
+  },
+  {
+    id: 'buu-dien-trung-tam',
+    name: 'Bưu điện Trung tâm Sài Gòn',
+    cat: 'culture',
+    address: '02 Công xã Paris, Bến Nghé, Quận 1',
+    lat: 10.7799, lng: 106.6999,
+    radius: 40, priority: 8, duration: 5,
+    text: {
+      vi: [
+        'Bưu điện Trung tâm Sài Gòn',
+        'Nằm kế bên Nhà thờ Đức Bà, Bưu điện Trung tâm được xây dựng vào cuối thế kỷ 19 theo đồ án của kiến trúc sư Villedieu và Foulhoux. Công trình nổi tiếng với vòm kim loại uốn cong tinh xảo, sàn gạch hoa cổ điển và hai bản đồ lịch sử vẽ tay công phu trên tường sảnh lớn. Nơi đây vẫn phục vụ dịch vụ bưu chính truyền thống cho du khách thập phương.'
+      ],
+      en: [
+        'Saigon Central Post Office',
+        'Located right next to Notre-Dame Cathedral, this grand post office was built in the late 19th century by French architects Villedieu and Foulhoux. It is renowned for its arched metal ceiling, patterned tile floors, and historic hand-painted wall maps. It still functions as an active postal office welcoming guests from around the globe.'
+      ],
+      ko: [
+        '사이공 중앙 우체국',
+        '노트르담 대성당 바로 옆에 위치한 중앙 우체국은 19세기 후반 프랑스 건축가들이 설계했습니다. 웅장한 아치형 철골 천장과 고풍스러운 타일 바닥, 대형 홀 벽면의 수제 역사 지도로 유명합니다.'
+      ],
+      ja: [
+        'サイゴン中央郵便局',
+        'ノートルダム大聖堂のすぐ隣に位置するこの郵便局は、19世紀末に建てられました。美しいアーチ型の鉄骨天井、クラシックなタイルの床、そして大ホールの壁に描かれた歴史的な手描きの地図が見どころです。'
+      ],
+      zh: [
+        '西贡中央邮局',
+        '紧邻圣母大教堂的中央邮局建于19世纪末，由法国著名建筑师设计。高大的弧形金属拱顶、古典花砖地面以及大堂两侧保存完好的巨幅手绘历史地图令人叹为观止。'
+      ]
+    }
+  },
+  {
+    id: 'bao-tang-chung-tich',
+    name: 'Bảo tàng Chứng tích Chiến tranh',
+    cat: 'culture',
+    address: '28 Võ Văn Tần, Phường Võ Thị Sáu, Quận 3',
+    lat: 10.7794, lng: 106.6922,
+    radius: 45, priority: 8, duration: 6,
+    text: {
+      vi: [
+        'Bảo tàng Chứng tích Chiến tranh',
+        'Bảo tàng Chứng tích Chiến tranh là nơi lưu giữ những tư liệu, hiện vật và hình ảnh chân thực về cuộc kháng chiến bảo vệ Tổ quốc. Khuôn viên trưng bày nhiều loại máy bay, xe tăng quân sự và các phòng trưng bày ảnh báo chí quốc tế, truyền tải thông điệp sâu sắc về hòa bình cho nhân loại. Hãy bước đi chậm rãi và giữ trật tự trang nghiêm.'
+      ],
+      en: [
+        'War Remnants Museum',
+        'The War Remnants Museum houses graphic exhibits and military artifacts documenting the realities of war and the quest for peace. The outdoor courtyard features armored vehicles and aircraft, alongside powerful international photography exhibitions conveying deep humanitarian messages.'
+      ],
+      ko: [
+        '전쟁유적박물관',
+        '전쟁의 참상과 평화의 소중함을 증언하는 귀중한 역사 유물과 기록 사진들이 보존된 곳입니다. 야외 전시장에는 군용기와 탱크가 전시되어 있으며, 감동적인 국제 보도사진들이 전시되어 있습니다.'
+      ],
+      ja: [
+        '戦争証跡博物館',
+        '戦争の真実と平和への祈りを伝える貴重な資料や記録写真が展示されています。屋外には戦車や軍用機が並び、世界中の報道写真家による心を打つ作品が展示されています。'
+      ],
+      zh: [
+        '战争遗迹博物馆',
+        '馆内收藏了大量详实的图文资料与实物展品，真实记录了战争的苦难与对和平的渴望。户外展区陈列着重型装甲车与战机，馆内展出多位知名国际战地记者的纪实摄影原作。'
+      ]
+    }
+  },
+  {
+    id: 'nha-hat-thanh-pho',
+    name: 'Nhà hát Thành phố',
+    cat: 'culture',
+    address: '07 Công trường Lam Sơn, Bến Nghé, Quận 1',
+    lat: 10.7767, lng: 106.7032,
+    radius: 40, priority: 7, duration: 5,
+    text: {
+      vi: [
+        'Nhà hát Thành phố',
+        'Khánh thành vào năm 1900, Nhà hát Thành phố được xây dựng theo phong cách kiến trúc Flamboyant rực rỡ của thời kỳ Đệ tam Cộng hòa Pháp. Mặt tiền trang trí các bức phù điêu thiên thần, bên trong là khán phòng sang trọng với âm học xuất sắc phục vụ các buổi hòa nhạc và kịch nghệ đỉnh cao.'
+      ],
+      en: [
+        'Saigon Opera House',
+        'Inaugurated in 1900, the Opera House was built in the ornate Flamboyant style of the French Third Republic. Its facade is adorned with angelic reliefs, housing an acoustically refined auditorium for symphonies, ballets, and contemporary theatrical performances.'
+      ],
+      ko: [
+        '호치민 시립극장 (사이공 오페라 하우스)',
+        '1900년에 완공된 시립극장은 프랑스 제3공화국 시대의 화려한 플랑부아양 양식으로 지어졌습니다. 정면의 천사 부조 조각과 뛰어난 음향을 자랑하는 우아한 공연홀을 갖추고 있습니다.'
+      ],
+      ja: [
+        '市民劇場（サイゴン・オペラハウス）',
+        '1900年に開館したこの劇場は、フランス第三共和政時代の華麗なフランボワイヤン様式で建てられました。ファサードの美しい彫刻と音響に優れた客席が特徴です。'
+      ],
+      zh: [
+        '胡志明市大剧院（西贡歌剧院）',
+        '竣工于1900年，采用法国第三共和国时期华丽的火焰哥特式风格建造。正面雕刻着精美的天使浮雕，剧院内部声学效果卓越，是举办高端交响音乐会与歌剧演出的艺术殿堂。'
+      ]
+    }
+  },
+  {
+    id: 'pho-di-bo-nguyen-hue',
+    name: 'Phố đi bộ Nguyễn Huệ',
+    cat: 'view',
+    address: 'Đại lộ Nguyễn Huệ, Bến Nghé, Quận 1',
+    lat: 10.7738, lng: 106.7047,
+    radius: 55, priority: 8, duration: 5,
+    text: {
+      vi: [
+        'Phố đi bộ Nguyễn Huệ',
+        'Đại lộ đi bộ hiện đại dài 670 mét nối từ Trụ sở UBND Thành phố đến Bến Bạch Đằng bên bờ sông Sài Gòn. Nơi đây từng là kênh đào Chợ Vải xưa, nay trở thành quảng trường văn hóa, lễ hội với hệ thống phun nước nghệ thuật và ánh sáng lung linh rực rỡ về đêm.'
+      ],
+      en: [
+        'Nguyen Hue Walking Street',
+        'A vibrant 670-meter pedestrian boulevard extending from City Hall straight down to the Bach Dang riverfront. Once the historic Grand Canal, it is now the premier public promenade in Saigon featuring musical fountains and festive night illumination.'
+      ],
+      ko: [
+        '응우옌후에 보행자 거리',
+        '호치민 인민위원회 청사부터 사이공강 바익당 선착장까지 670미터에 이르는 번화한 보행자 거리입니다. 과거 운하였던 곳이 현재는 분수대와 야경이 아름다운 시민 광장으로 변모했습니다.'
+      ],
+      ja: [
+        'グエンフエ歩行者天国',
+        '人民委員会庁舎からサイゴン川のバクダン埠頭まで全長670メートルにわたる賑やかな遊歩道です。夜には噴水ショーと美しいイルミネーションで彩られる憩いの広場です。'
+      ],
+      zh: [
+        '阮惠步行街',
+        '长达670米的现代化步行大道，由胡志明市人民委员会大楼笔直延伸至西贡河畔的白藤码头。这里原为古老的运河，如今已是集音乐喷泉、夜景灯光和节庆聚会于一身的城市客厅。'
+      ]
+    }
+  },
+  {
+    id: 'cho-ben-thanh',
+    name: 'Chợ Bến Thành',
+    cat: 'food',
+    address: 'Đường Lê Lợi, Phường Bến Thành, Quận 1',
+    lat: 10.7725, lng: 106.6980,
+    radius: 50, priority: 9, duration: 5,
+    text: {
+      vi: [
+        'Chợ Bến Thành',
+        'Xây dựng từ năm 1912 đến 1914, Chợ Bến Thành với tháp đồng hồ bốn mặt tại cửa Nam là biểu tượng quen thuộc nhất của Sài Gòn. Ngôi chợ quy tụ hàng ngàn gian hàng phong phú từ thủ công mỹ nghệ, lụa là cho đến khu ẩm thực nức tiếng với các món ngon ba miền.'
+      ],
+      en: [
+        'Ben Thanh Market',
+        'Constructed between 1912 and 1914, Ben Thanh Market with its iconic four-sided clock tower at the South Gate is the ultimate symbol of Saigon. It features thousands of vibrant stalls offering souvenirs, handicrafts, and renowned regional street food delicacies.'
+      ],
+      ko: [
+        '벤탄 시장',
+        '1912년에서 1914년 사이에 지어진 벤탄 시장은 남문의 4면 시계탑으로 유명한 호치민의 대표 랜드마크입니다. 공예품, 기념품부터 베트남 각지의 전통 음식까지 다양한 상품을 만날 수 있습니다.'
+      ],
+      ja: [
+        'ベンタイン市場',
+        '1912年から1914年にかけて建設されたベンタイン市場は、南門の4面時計台がホーチミンの象徴となっています。伝統工芸品からお土産、美味しい屋台グルメまで何でも揃う活気ある市場です。'
+      ],
+      zh: [
+        '滨城市场',
+        '建于1912年至1914年间，南门醒目的四面钟楼是胡志明市家喻户晓的城市象征。市场内汇聚数千家商铺，从传统工艺品、手信特产到风味地道的南北越风味小吃应有尽有。'
+      ]
+    }
+  },
+  {
+    id: 'ben-nha-rong',
+    name: 'Bến Nhà Rồng — Bảo tàng Hồ Chí Minh',
+    cat: 'culture',
+    address: '01 Nguyễn Tất Thành, Phường 12, Quận 4',
+    lat: 10.7682, lng: 106.7068,
+    radius: 50, priority: 8, duration: 6,
+    text: {
+      vi: [
+        'Bến Nhà Rồng — Bảo tàng Hồ Chí Minh',
+        'Tọa lạc bên ngã ba sông Sài Gòn, tòa nhà được công ty vận tải Messageries Maritimes xây dựng năm 1863 với hình tượng hai con rồng châu đầu vào mặt trăng trên nóc. Nơi đây gắn liền với sự kiện ngày 5 tháng 6 năm 1911, người thanh niên yêu nước Nguyễn Tất Thành ra đi tìm đường cứu nước.'
+      ],
+      en: [
+        'Dragon Wharf — Ho Chi Minh Museum',
+        'Located by the Saigon River junction, this historic wharf was built in 1863 by Messageries Maritimes, crowned with two dragons facing the moon. It was from this wharf on June 5, 1911 that young patriot Nguyen Tat Thanh set sail on his quest for national independence.'
+      ],
+      ko: [
+        '냐롱 부두 — 호치민 박물관',
+        '사이공 강변에 위치한 냐롱 부두는 1863년에 지어진 서양식 건물로, 지붕 위에 용 두 마리가 마주보고 있는 조각이 특징입니다. 1911년 6월 5일 청년 호치민이 구국의 길을 찾아 출항한 역사적인 장소입니다.'
+      ],
+      ja: [
+        'ニャロン埠頭 — ホーチミン博物館',
+        'サイゴン川のほとりに位置し、1863年にフランスの海運会社によって建設されました。屋根にある二匹の龍の彫像が特徴的で、1911年6月5日にホー・チ・ミン主席が救国の旅に出航した歴史的な港です。'
+      ],
+      zh: [
+        '龙屋港 — 胡志明博物馆',
+        '坐落于西贡河畔，建于1863年，屋顶饰有双龙戏珠雕塑。1911年6月5日，年轻的胡志明主席正是在这个码头登上远洋轮船，开启了探寻民族独立与救国真理的光辉历程。'
+      ]
+    }
+  }
+];
+
+/* ─── Lộ trình đi bộ mẫu tuần tự (Auto-Walk Simulator) ─── */
+const autoWalkRoute = [
+  { lat: 10.7785, lng: 106.6980, name: 'Điểm khởi đầu: Công viên 30/4' },
+  { lat: 10.7770, lng: 106.6953, name: 'Dinh Độc Lập (Trong Geofence)' },
+  { lat: 10.7785, lng: 106.6970, name: 'Góc đường Nam Kỳ Khởi Nghĩa' },
+  { lat: 10.7798, lng: 106.6990, name: 'Nhà thờ Đức Bà (Trong Geofence)' },
+  { lat: 10.7799, lng: 106.6999, name: 'Bưu điện Trung tâm (Trong Geofence)' },
+  { lat: 10.7780, lng: 106.7018, name: 'Đường Đồng Khởi' },
+  { lat: 10.7767, lng: 106.7032, name: 'Nhà hát Thành phố (Trong Geofence)' },
+  { lat: 10.7738, lng: 106.7047, name: 'Phố đi bộ Nguyễn Huệ (Trong Geofence)' },
+  { lat: 10.7725, lng: 106.6980, name: 'Chợ Bến Thành (Trong Geofence)' },
+  { lat: 10.7682, lng: 106.7068, name: 'Bến Nhà Rồng (Trong Geofence)' }
+];
+
+/* ─── 2. STATE QUẢN LÝ ỨNG DỤNG ─── */
+let pois = JSON.parse(localStorage.getItem('tmtd-pois') || 'null') || base;
+// Đảm bảo dữ liệu Sài Gòn nếu cache cũ còn chứa dữ liệu cũ
+if (!pois.some(p => p.id === 'dinh-doc-lap')) {
+  pois = [...base];
+  localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+}
+
+let tour = JSON.parse(localStorage.getItem('tmtd-tour') || '[]');
+let events = JSON.parse(localStorage.getItem('tmtd-events') || '[]');
+let favorites = JSON.parse(localStorage.getItem('tmtd-favs') || '[]');
+let visitedPois = JSON.parse(localStorage.getItem('tmtd-visited') || '[]');
+let ratings = JSON.parse(localStorage.getItem('tmtd-ratings') || '{}');
+let last = {}, index = 0;
+// Tọa độ khởi tạo mặc định tại trung tâm Sài Gòn (gần Công viên 30/4)
+let position = { lat: 10.7785, lng: 106.6980 };
+let isSpeaking = false;
+let currentPlayingId = null;
+let currentTab = 'all';
+let currentViewMode = 'map'; // 'map' | 'cards' | 'walk'
+let bottomSheetStage = 'mini'; // 'mini' | 'half' | 'full'
+let fontSize = parseInt(localStorage.getItem('tmtd-fontsize') || '15');
+let currentPlaybackRate = 1.0;
+let isAutoWalking = false;
+let autoWalkTimer = null;
+let autoWalkIndex = 0;
+
+// Geofence Transition Toast State
+let pendingTransitionPoi = null;
+let transitionCountdownTimer = null;
+let currentZonePoiId = null; // Tránh lặp lại toast liên tục khi đứng yên trong cùng 1 vùng
+
+const $ = x => document.getElementById(x);
+
+const save = () => {
+  localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+  localStorage.setItem('tmtd-tour', JSON.stringify(tour));
+  localStorage.setItem('tmtd-events', JSON.stringify(events));
+  localStorage.setItem('tmtd-favs', JSON.stringify(favorites));
+  localStorage.setItem('tmtd-visited', JSON.stringify(visitedPois));
+  localStorage.setItem('tmtd-ratings', JSON.stringify(ratings));
+};
+
+/* ─── Khoảng cách Haversine (Mét) ─── */
+const dist = (a, b, c, e) => {
+  if (typeof a !== 'number' || typeof b !== 'number' || typeof c !== 'number' || typeof e !== 'number') return Infinity;
+  let r = Math.PI / 180;
+  let x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((e - b) * r / 2) ** 2;
+  return Math.round(6371000 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)));
+};
+
+function formatMeters(m) {
+  if (!Number.isFinite(m)) return '--';
+  if (m < 1000) return `${m}m`;
+  return `${(m / 1000).toFixed(1)}km`;
+}
+
+/* ─── Toast Thông báo ─── */
+function toast(msg, icon = '✓') {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span>${icon}</span> ${msg}`;
+  $('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+/* ─── Modal Dialog ─── */
+function modal(t, html) {
+  $('mtitle').textContent = t;
+  $('mbody').innerHTML = html;
+  $('modal').classList.remove('hidden');
+}
+function closeModal() { $('modal').classList.add('hidden'); }
+window.closeModal = closeModal;
+
+/* ─── Theme: Sáng / Tối / Nắng Gắt ─── */
+function initTheme() {
+  const saved = localStorage.getItem('tmtd-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  $('themeToggle').textContent = saved === 'dark' ? '☀️' : '🌙';
+  const isHighContrast = localStorage.getItem('tmtd-contrast') === 'true';
+  if (isHighContrast) document.body.classList.add('high-contrast');
+}
+
+$('themeToggle').onclick = () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('tmtd-theme', next);
+  $('themeToggle').textContent = next === 'dark' ? '☀️' : '🌙';
+  if (typeof updateMapTheme === 'function') updateMapTheme(next);
+  toast(next === 'dark' ? 'Đã bật chế độ Tối' : 'Đã bật chế độ Sáng', next === 'dark' ? '🌙' : '☀️');
+};
+
+$('highContrast').onclick = () => {
+  const isHc = document.body.classList.toggle('high-contrast');
+  localStorage.setItem('tmtd-contrast', isHc ? 'true' : 'false');
+  toast(isHc ? '☀️ Chế độ Nắng Gắt (Tương phản cao ngoài trời)' : 'Đã tắt chế độ Nắng Gắt', '☀️');
+};
+initTheme();
+
+/* ─── Accessibility: Cỡ chữ ─── */
+function applyFontSize() {
+  document.body.style.fontSize = fontSize + 'px';
+  localStorage.setItem('tmtd-fontsize', fontSize);
+}
+applyFontSize();
+$('fontMinus').onclick = () => { if (fontSize > 13) { fontSize -= 1.5; applyFontSize(); toast('Cỡ chữ: ' + fontSize + 'px', 'A-'); } };
+$('fontPlus').onclick = () => { if (fontSize < 22) { fontSize += 1.5; applyFontSize(); toast('Cỡ chữ: ' + fontSize + 'px', 'A+'); } };
+
+/* ─── TỪ ĐIỂN ĐA NGÔN NGỮ (FULL I18N DICTIONARY FOR 5 LANGUAGES) ─── */
+const UI_STRINGS = {
+  vi: {
+    appTitle: "GeoAudio Guide",
+    appSub: "Sài Gòn Di Sản",
+    gpsAccuracy: "GPS: ±3m",
+    gpsHighAccuracy: "GPS: ±3m Chính xác cao",
+    autoOn: "🔊 Tự động: BẬT",
+    autoOff: "🔇 Tự động: TẮT",
+    viewMap: "🗺️ Bản đồ (Map)",
+    viewCards: "📍 Gần bạn (Cards)",
+    viewWalk: "🎧 Rảnh tay (Walk Mode)",
+    mapTitle: "🗺️ Bản Đồ Vị Trí & Vòng Bán Kính Geofence",
+    mapRegion: "Trung tâm Sài Gòn · Vị trí: ",
+    realGps: "📡 Dùng GPS thật",
+    autoWalkStart: "🚶 Mô phỏng đi bộ (Auto-Walk)",
+    autoWalkStop: "⏹ Dừng mô phỏng",
+    simPrompt: "📍 GPS giả lập: chọn điểm tham quan",
+    mapLegendReady: "🔔 Sẵn sàng. Chọn GPS giả lập hoặc bấm 'Mô phỏng đi bộ' để thử Geofence tự động.",
+    searchPlaceholder: "Tìm điểm tham quan Sài Gòn theo tên, địa chỉ...",
+    filterAll: "Tất cả",
+    filterCulture: "🏛 Di tích & Lịch sử",
+    filterTemple: "⛪ Kiến trúc Tôn giáo",
+    filterView: "🌅 Cảnh quan & Đi bộ",
+    filterFood: "🍜 Ẩm thực & Chợ",
+    myTour: "🧭 Lộ Trình Tour Của Tôi",
+    tourEmpty: "Chưa có điểm dừng. Bấm '➕ Thêm tour' ở các điểm tham quan để lập lộ trình.",
+    tourStart: "▶ Bắt đầu",
+    tourNext: "⏭ Điểm tiếp",
+    tourClear: "🗑 Xóa tour",
+    tourRemoveStop: "Xóa điểm",
+    tourSummary: (c, m, l) => `${c} điểm tham quan · Ước tính ~${m} phút · ${l} lượt đã nghe`,
+    favTitle: "❤️ Điểm Yêu Thích",
+    favEmpty: "Chưa có địa điểm yêu thích. Bấm nút ❤️ ở từng địa điểm để lưu lại.",
+    settingsAudio: "🔊 Tùy Chỉnh Thuyết Minh",
+    readSpeed: "Tốc độ đọc",
+    cooldownTime: "Thời gian chờ",
+    systemVoice: "Giọng đọc hệ thống",
+    defaultVoice: "Mặc định hệ thống",
+    fontSize: "Cỡ chữ:",
+    historyTitle: "📊 Lịch Sử Tham Quan",
+    btnHistory: "📜 Lịch sử nghe",
+    btnExport: "📤 Xuất dữ liệu",
+    btnListen: "▶ Nghe thuyết minh",
+    btnPause: "⏸ Tạm dừng",
+    btnAddTour: "➕ Thêm tour",
+    btnAddedTour: "✓ Đã thêm tour",
+    btnDirections: "🧭 Chỉ đường",
+    btnShare: "📤 Chia sẻ",
+    badgeInZone: "● Trong vùng",
+    badgeRadius: "Bán kính",
+    badgePriority: "Ưu tiên",
+    badgeVisited: "✓ Đã đến",
+    badgeNearby: "gần bạn",
+    distAway: "Cách",
+    proximityTitle: "Địa Điểm Gần Bạn Nhất",
+    proximitySub: "Tự động xếp hạng theo khoảng cách GPS thực tế từ vị trí hiện tại",
+    walkBadge: "🎧 Walk Mode • Chế độ rảnh tay chống chói",
+    walkNextGuide: "Điểm tiếp theo theo hướng đi:",
+    sheetHandleMini: "▲ Chạm để xem kịch bản thuyết minh",
+    sheetHandleHalf: "▲ Mở rộng toàn màn hình (chạm để thu nhỏ)",
+    sheetHandleFull: "▼ Thu nhỏ kịch bản",
+    playerNoTrack: "Chưa phát thuyết minh",
+    playerReady: "Sẵn sàng nghe tự động hoặc chọn điểm",
+    playerManual: "Đang phát thủ công",
+    playerAuto: "Tự động phát qua GPS",
+    playerFinished: "Đã phát xong",
+    playerPaused: "Đã tạm dừng",
+    playerStopped: "Đã dừng phát",
+    playerWaveLabel: "● Live Audio Waveform",
+    transcriptTitle: "📖 Kịch bản thuyết minh đồng bộ",
+    transcriptSub: "Chạm câu bất kỳ để nghe đoạn đó",
+    markVisited: "✓ Đã tham quan",
+    toastNewZone: "🔔 Phát hiện vùng Geofence mới",
+    toastPlayNow: "▶ Phát ngay",
+    toastKeepCurrent: "✕ Giữ bài hiện tại",
+    toastTransitionMsg: (name, dist, sec) => `📍 Bạn đã đến ${name} (Cách ${dist}) — Tự động phát sau ${sec}s...`,
+    qrModalTitle: "📷 Đã Quét Mã QR Di Tích!",
+    qrModalSub: "Điểm thuyết minh được nhận diện qua QR",
+    qrModalStart: "▶ BẮT ĐẦU NGHE THUYẾT MINH NGAY",
+    qrModalExplore: "Tự do khám phá trên bản đồ",
+    catNames: {
+      culture: "🏛 Di tích Lịch sử",
+      temple: "⛪ Kiến trúc Tôn giáo",
+      view: "🌅 Cảnh quan & Đi bộ",
+      food: "🍜 Ẩm thực & Chợ"
+    },
+    rateOptions: {
+      '.7': '0.7x Rất chậm',
+      '.85': '0.85x Chậm',
+      '1': '1.0x Bình thường',
+      '1.15': '1.15x Nhanh',
+      '1.3': '1.3x Rất nhanh'
+    },
+    coolOptions: {
+      '0': 'Không giới hạn (demo)',
+      '60': '60 giây',
+      '180': '3 phút',
+      '300': '5 phút'
+    },
+    visitStats: (l, f, v, t) => `📊 ${l} lượt nghe · ${f} yêu thích · ${v}/${t} đã tham quan`,
+    historyModal: {
+      title: "📜 Lịch Sử Nghe Thuyết Minh",
+      total: (n) => `Tổng số lượt đã nghe: <b>${n}</b> lượt`,
+      langLabel: "Ngôn ngữ",
+      empty: "Chưa có lượt nghe nào được ghi nhận."
+    },
+    helpModal: {
+      title: "❓ Hướng Dẫn Sử Dụng GeoAudio Guide",
+      p1: "<b>1. Nghe thuyết minh tự động (Geofencing):</b> Bật GPS thật hoặc chọn một địa điểm trong menu 'GPS giả lập' / bấm 'Mô phỏng đi bộ'. Khi bạn bước vào vòng bán kính (Geofence Halo), hệ thống sẽ đếm ngược 5s và tự động phát bài thuyết minh.",
+      p2: "<b>2. Chế độ xem đa dạng:</b> Dễ dàng chuyển giữa <b>Bản đồ</b> trực quan, <b>Gần bạn</b> (xếp theo mét tăng dần), và <b>Rảnh tay (Walk Mode)</b> màn hình OLED chống lóa.",
+      p3: "<b>3. Trình phát âm thanh 3 nấc:</b> Kéo nhẹ thanh điều khiển dưới đáy lên để xem kịch bản thuyết minh đồng bộ câu chữ (Live Karaoke) và sóng âm trực quan.",
+      p4: "<b>4. Chế độ Nắng Gắt (☀️):</b> Kích hoạt tương phản tuyệt đối khi đứng ngoài trời nắng gắt.",
+      p5: "<b>5. Đa ngôn ngữ:</b> Chọn nhanh 5 ngôn ngữ VI, EN, KO, JA, ZH trên thanh tiêu đề nổi."
+    },
+    toasts: {
+      tourAdded: "Đã thêm vào lộ trình tour",
+      tourRemoved: "Đã xóa khỏi tour",
+      tourCleared: "Đã xóa toàn bộ lộ trình tour",
+      tourEmptyWarn: "Lộ trình tour đang trống",
+      favAdded: "Đã lưu vào danh sách yêu thích",
+      favRemoved: "Đã bỏ yêu thích",
+      rated: (s) => `Đã đánh giá ${s} sao`,
+      copied: "Đã sao chép nội dung chia sẻ",
+      exported: "Đã xuất tệp dữ liệu JSON",
+      playerPaused: "Đã tạm dừng",
+      playerStopped: "Đã dừng phát",
+      gpsQuery: "📡 Đang truy vấn vị trí GPS thực tế...",
+      gpsSuccess: "Đã cập nhật vị trí GPS thật",
+      gpsFail: "Không thể truy cập quyền GPS"
+    }
+  },
+  en: {
+    appTitle: "GeoAudio Guide",
+    appSub: "Saigon Heritage",
+    gpsAccuracy: "GPS: ±3m",
+    gpsHighAccuracy: "GPS: ±3m High Accuracy",
+    autoOn: "🔊 Auto-Play: ON",
+    autoOff: "🔇 Auto-Play: OFF",
+    viewMap: "🗺️ Map",
+    viewCards: "📍 Nearby",
+    viewWalk: "🎧 Walk Mode",
+    mapTitle: "🗺️ GPS Map & Geofence Coverage",
+    mapRegion: "Saigon Center · Location: ",
+    realGps: "📡 Use Real GPS",
+    autoWalkStart: "🚶 Auto-Walk Demo",
+    autoWalkStop: "⏹ Stop Walking",
+    simPrompt: "📍 Virtual GPS: Select Landmark",
+    mapLegendReady: "🔔 Ready. Select a simulated location or click 'Auto-Walk Demo' to test geofencing.",
+    searchPlaceholder: "Search landmarks by name, address...",
+    filterAll: "All",
+    filterCulture: "🏛 History & Culture",
+    filterTemple: "⛪ Religious Architecture",
+    filterView: "🌅 Promenade & Scenic",
+    filterFood: "🍜 Food & Markets",
+    myTour: "🧭 My Tour Itinerary",
+    tourEmpty: "No stops yet. Click '➕ Add to tour' on any attraction to build your itinerary.",
+    tourStart: "▶ Start Tour",
+    tourNext: "⏭ Next Stop",
+    tourClear: "🗑 Clear Tour",
+    tourRemoveStop: "Remove stop",
+    tourSummary: (c, m, l) => `${c} attractions · Est. ~${m} mins · ${l} listened`,
+    favTitle: "❤️ Favorite Places",
+    favEmpty: "No favorite places yet. Tap the ❤️ button on any location to save it.",
+    settingsAudio: "🔊 Audio & Narration Settings",
+    readSpeed: "Voice Speed",
+    cooldownTime: "Cooldown Period",
+    systemVoice: "System TTS Voice",
+    defaultVoice: "System Default",
+    fontSize: "Font Size:",
+    historyTitle: "📊 Visiting Stats",
+    btnHistory: "📜 Listening History",
+    btnExport: "📤 Export Data",
+    btnListen: "▶ Listen",
+    btnPause: "⏸ Pause",
+    btnAddTour: "➕ Add to tour",
+    btnAddedTour: "✓ Added to tour",
+    btnDirections: "🧭 Directions",
+    btnShare: "📤 Share",
+    badgeInZone: "● Inside Zone",
+    badgeRadius: "Radius",
+    badgePriority: "Priority",
+    badgeVisited: "✓ Visited",
+    badgeNearby: "nearby",
+    distAway: "Distance",
+    proximityTitle: "Landmarks Closest to You",
+    proximitySub: "Automatically ranked by real-time GPS distance in meters",
+    walkBadge: "🎧 Walk Mode • Glare-Free OLED Display",
+    walkNextGuide: "Next stop ahead:",
+    sheetHandleMini: "▲ Tap to view live transcript",
+    sheetHandleHalf: "▲ Full screen (tap to collapse)",
+    sheetHandleFull: "▼ Minimize transcript",
+    playerNoTrack: "No narration playing",
+    playerReady: "Ready for automatic playback or select a location",
+    playerManual: "Manual playback",
+    playerAuto: "GPS Auto-playing",
+    playerFinished: "Finished playback",
+    playerPaused: "Paused",
+    playerStopped: "Stopped playback",
+    playerWaveLabel: "● Live Audio Waveform",
+    transcriptTitle: "📖 Live Synchronized Transcript",
+    transcriptSub: "Tap any sentence to seek audio playback",
+    markVisited: "✓ Mark Visited",
+    toastNewZone: "🔔 New Geofence Zone Detected",
+    toastPlayNow: "▶ Play Now",
+    toastKeepCurrent: "✕ Keep Current",
+    toastTransitionMsg: (name, dist, sec) => `📍 Arrived at ${name} (${dist} away) — Auto-playing in ${sec}s...`,
+    qrModalTitle: "📷 Heritage QR Code Detected!",
+    qrModalSub: "Landmark recognized via QR scan",
+    qrModalStart: "▶ START AUDIO NARRATION NOW",
+    qrModalExplore: "Explore freely on map",
+    catNames: {
+      culture: "🏛 History & Culture",
+      temple: "⛪ Religious Architecture",
+      view: "🌅 Promenade & Scenic",
+      food: "🍜 Food & Markets"
+    },
+    rateOptions: {
+      '.7': '0.7x Very slow',
+      '.85': '0.85x Slow',
+      '1': '1.0x Normal',
+      '1.15': '1.15x Fast',
+      '1.3': '1.3x Very fast'
+    },
+    coolOptions: {
+      '0': 'No cooldown (Demo)',
+      '60': '60 seconds',
+      '180': '3 minutes',
+      '300': '5 minutes'
+    },
+    visitStats: (l, f, v, t) => `📊 ${l} listened · ${f} favorites · ${v}/${t} visited`,
+    historyModal: {
+      title: "📜 Narration Listening History",
+      total: (n) => `Total listened: <b>${n}</b> times`,
+      langLabel: "Language",
+      empty: "No listening history recorded yet."
+    },
+    helpModal: {
+      title: "❓ GeoAudio Guide User Manual",
+      p1: "<b>1. Automatic Geofence Narration:</b> Enable real GPS or select a landmark in 'Virtual GPS' / tap 'Auto-Walk Demo' to test automatic playback upon entry.",
+      p2: "<b>2. Versatile View Modes:</b> Easily toggle between <b>Map</b>, <b>Nearby Cards</b> (sorted by distance in meters), and <b>Walk Mode</b> with glare-resistant OLED screen.",
+      p3: "<b>3. 3-Stage Bottom Player:</b> Pull up the bottom bar to view line-by-line synchronized Live Karaoke Transcript.",
+      p4: "<b>4. High-Contrast Sunlight Mode (☀️):</b> Toggle outdoor high contrast for clear readability under bright sunlight.",
+      p5: "<b>5. Multilingual Support:</b> Switch anytime between VI, EN, KO, JA, ZH on the Top Floating HUD."
+    },
+    toasts: {
+      tourAdded: "Added to tour itinerary",
+      tourRemoved: "Removed from tour",
+      tourCleared: "Cleared tour itinerary",
+      tourEmptyWarn: "Tour itinerary is currently empty",
+      favAdded: "Saved to favorite places",
+      favRemoved: "Removed from favorites",
+      rated: (s) => `Rated ${s} stars`,
+      copied: "Copied share text to clipboard",
+      exported: "Exported JSON data file",
+      playerPaused: "Paused",
+      playerStopped: "Stopped playback",
+      gpsQuery: "📡 Querying real device GPS...",
+      gpsSuccess: "Updated real GPS location",
+      gpsFail: "Unable to access GPS permission"
+    }
+  },
+  ko: {
+    appTitle: "GeoAudio Guide",
+    appSub: "사이공 헤리티지",
+    gpsAccuracy: "GPS: ±3m",
+    gpsHighAccuracy: "GPS: ±3m 고정밀",
+    autoOn: "🔊 자동: 켜짐",
+    autoOff: "🔇 자동: 꺼짐",
+    viewMap: "🗺️ 지도 (Map)",
+    viewCards: "📍 가까운 곳 (Cards)",
+    viewWalk: "🎧 워크 모드 (Walk Mode)",
+    mapTitle: "🗺️ GPS 지도 및 지오펜스 영역",
+    mapRegion: "사이공 중심부 · 현재 위치: ",
+    realGps: "📡 실제 GPS 사용",
+    autoWalkStart: "🚶 자동 보행 데모 (Auto-Walk)",
+    autoWalkStop: "⏹ 보행 중지",
+    simPrompt: "📍 가상 GPS: 명소 선택",
+    mapLegendReady: "🔔 준비 완료. 관광지를 선택하거나 '자동 보행 데모'를 눌러 지오펜스를 테스트하세요.",
+    searchPlaceholder: "명소 이름, 주소 검색...",
+    filterAll: "전체",
+    filterCulture: "🏛 역사 및 문화",
+    filterTemple: "⛪ 종교 건축",
+    filterView: "🌅 산책로 및 광장",
+    filterFood: "🍜 음식 및 시장",
+    myTour: "🧭 내 여행 일정",
+    tourEmpty: "아직 일정이 없습니다. 각 명소에서 '➕ 투어 추가'를 눌러 일정을 만드세요.",
+    tourStart: "▶ 투어 시작",
+    tourNext: "⏭ 다음 목적지",
+    tourClear: "🗑 일정 초기화",
+    tourRemoveStop: "정류장 삭제",
+    tourSummary: (c, m, l) => `${c}곳의 명소 · 예상 ~${m}분 · ${l}회 청취`,
+    favTitle: "❤️ 즐겨찾는 장소",
+    favEmpty: "아직 즐겨찾는 장소가 없습니다. ❤️ 버튼을 눌러 보관하세요.",
+    settingsAudio: "🔊 오디오 가이드 설정",
+    readSpeed: "읽기 속도",
+    cooldownTime: "재생 대기 시간",
+    systemVoice: "시스템 음성 엔진",
+    defaultVoice: "시스템 기본값",
+    fontSize: "글자 크기:",
+    historyTitle: "📊 관람 통계",
+    btnHistory: "📜 청취 기록",
+    btnExport: "📤 데이터 내보내기",
+    btnListen: "▶ 해설 듣기",
+    btnPause: "⏸ 일시 중지",
+    btnAddTour: "➕ 투어 추가",
+    btnAddedTour: "✓ 투어 담김",
+    btnDirections: "🧭 길찾기",
+    btnShare: "📤 공유",
+    badgeInZone: "● 영역 진입",
+    badgeRadius: "반경",
+    badgePriority: "우선순위",
+    badgeVisited: "✓ 방문 완료",
+    badgeNearby: "인근",
+    distAway: "거리",
+    proximityTitle: "현재 위치에서 가장 가까운 명소",
+    proximitySub: "현재 위치로부터의 실제 거리(m) 순으로 자동 정렬됩니다",
+    walkBadge: "🎧 Walk Mode • 눈부심 방지 OLED 다크 스크린",
+    walkNextGuide: "다음 목적지 안내:",
+    sheetHandleMini: "▲ 탭하여 해설 자막 보기",
+    sheetHandleHalf: "▲ 전체 화면으로 확대 (탭하여 축소)",
+    sheetHandleFull: "▼ 자막 축소",
+    playerNoTrack: "재생 중인 해설이 없습니다",
+    playerReady: "자동 재생 대기 중이거나 명소를 선택하세요",
+    playerManual: "수동 재생 중",
+    playerAuto: "GPS 자동 재생 중",
+    playerFinished: "해설 종료",
+    playerPaused: "일시 중지됨",
+    playerStopped: "재생 중지됨",
+    playerWaveLabel: "● Live Audio Waveform",
+    transcriptTitle: "📖 실시간 동기화 해설 자막",
+    transcriptSub: "원하는 문장을 탭하면 해당 구간부터 재생됩니다",
+    markVisited: "✓ 방문 완료 표시",
+    toastNewZone: "🔔 새로운 지오펜스 영역 감지",
+    toastPlayNow: "▶ 지금 재생",
+    toastKeepCurrent: "✕ 현재 유지",
+    toastTransitionMsg: (name, dist, sec) => `📍 ${name}에 도착했습니다 (${dist}) — ${sec}초 후 자동 재생...`,
+    qrModalTitle: "📷 QR 코드 인식 완료!",
+    qrModalSub: "QR 스캔을 통해 인식된 역사 문화재",
+    qrModalStart: "▶ 지금 오디오 해설 시작",
+    qrModalExplore: "지도에서 자유롭게 탐색",
+    catNames: {
+      culture: "🏛 역사 및 문화",
+      temple: "⛪ 종교 건축",
+      view: "🌅 산책로 및 광장",
+      food: "🍜 음식 및 시장"
+    },
+    rateOptions: {
+      '.7': '0.7x 매우 느림',
+      '.85': '0.85x 느림',
+      '1': '1.0x 보통',
+      '1.15': '1.15x 빠름',
+      '1.3': '1.3x 매우 빠름'
+    },
+    coolOptions: {
+      '0': '대기시간 없음 (데모)',
+      '60': '60초',
+      '180': '3분',
+      '300': '5분'
+    },
+    visitStats: (l, f, v, t) => `📊 ${l}회 청취 · ${f}개 보관 · ${v}/${t}곳 방문`,
+    historyModal: {
+      title: "📜 오디오 가이드 청취 기록",
+      total: (n) => `총 청취 횟수: <b>${n}</b>회`,
+      langLabel: "언어",
+      empty: "아직 청취 기록이 없습니다."
+    },
+    helpModal: {
+      title: "❓ GeoAudio Guide 이용 안내",
+      p1: "<b>1. 자동 지오펜스 해설:</b> 실제 GPS를 켜거나 '가상 GPS' 메뉴에서 명소를 선택 / '자동 보행 데모'를 눌러 자동 재생을 체험해보세요.",
+      p2: "<b>2. 다채로운 화면 모드:</b> <b>지도(Map)</b>, 거리순 <b>가까운 곳(Cards)</b>, 눈부심 방지 OLED <b>워크 모드(Walk)</b>를 자유롭게 전환하세요.",
+      p3: "<b>3. 3단계 바텀 플레이어:</b> 하단 바를 위로 당겨 문장별 실시간 가라오케 자막(Live Transcript)을 확인하세요.",
+      p4: "<b>4. 햇빛 모드 (☀️):</b> 야외 직사광선 아래에서도 또렷하게 읽을 수 있는 고대비 모드를 지원합니다.",
+      p5: "<b>5. 다국어 지원:</b> 상단 HUD에서 VI, EN, KO, JA, ZH를 언제든 즉시 변경할 수 있습니다."
+    },
+    toasts: {
+      tourAdded: "투어 일정에 추가되었습니다",
+      tourRemoved: "투어에서 삭제되었습니다",
+      tourCleared: "투어 일정을 모두 비웠습니다",
+      tourEmptyWarn: "투어 일정이 비어 있습니다",
+      favAdded: "즐겨찾기에 저장되었습니다",
+      favRemoved: "즐겨찾기에서 제외되었습니다",
+      rated: (s) => `별점 ${s}점을 남겼습니다`,
+      copied: "공유 내용이 복사되었습니다",
+      exported: "JSON 데이터가 내보내졌습니다",
+      playerPaused: "일시 중지됨",
+      playerStopped: "해설 재생 중지됨",
+      gpsQuery: "📡 실제 GPS 신호 확인 중...",
+      gpsSuccess: "실제 GPS 위치 갱신됨",
+      gpsFail: "GPS 권한을 가져올 수 없습니다"
+    }
+  },
+  ja: {
+    appTitle: "GeoAudio Guide",
+    appSub: "サイゴン・ヘリテージ",
+    gpsAccuracy: "GPS: ±3m",
+    gpsHighAccuracy: "GPS: ±3m 高精度",
+    autoOn: "🔊 自動: ON",
+    autoOff: "🔇 自動: OFF",
+    viewMap: "🗺️ 地図 (Map)",
+    viewCards: "📍 近くの場所 (Cards)",
+    viewWalk: "🎧 ハンズフリー (Walk Mode)",
+    mapTitle: "🗺️ GPSマップ＆ジオフェンス検知範囲",
+    mapRegion: "サイゴン中心部 · 現在地: ",
+    realGps: "📡 実GPSを使用",
+    autoWalkStart: "🚶 自動歩行デモ (Auto-Walk)",
+    autoWalkStop: "⏹ 歩行停止",
+    simPrompt: "📍 仮想GPS：観光地を選択",
+    mapLegendReady: "🔔 準備完了。観光地を選択するか「自動歩行デモ」をクリックしてジオフェンスをテストしてください。",
+    searchPlaceholder: "観光地名や住所で検索...",
+    filterAll: "すべて",
+    filterCulture: "🏛 歴史・文化",
+    filterTemple: "⛪ 宗教建築",
+    filterView: "🌅 遊歩道・広場",
+    filterFood: "🍜 グルメ・市場",
+    myTour: "🧭 マイツアー日程",
+    tourEmpty: "立ち寄り地はまだありません。「➕ ツアー追加」を押して日程を作成してください。",
+    tourStart: "▶ 開始",
+    tourNext: "⏭ 次へ",
+    tourClear: "🗑 日程をクリア",
+    tourRemoveStop: "立ち寄り地を削除",
+    tourSummary: (c, m, l) => `${c}箇所の観光地 · 目安 ~${m}分 · ${l}回再生`,
+    favTitle: "❤️ お気に入りの場所",
+    favEmpty: "お気に入りはまだありません。❤️を押してブックマークしてください。",
+    settingsAudio: "🔊 音声ガイド設定",
+    readSpeed: "読み上げ速度",
+    cooldownTime: "待機時間 (クールダウン)",
+    systemVoice: "システム音声",
+    defaultVoice: "システム標準",
+    fontSize: "文字サイズ:",
+    historyTitle: "📊 観光ログ",
+    btnHistory: "📜 視聴履歴",
+    btnExport: "📤 データ出力",
+    btnListen: "▶ ガイドを聴く",
+    btnPause: "⏸ 一時停止",
+    btnAddTour: "➕ ツアー追加",
+    btnAddedTour: "✓ ツアー追加済",
+    btnDirections: "🧭 ルート案内",
+    btnShare: "📤 共有",
+    badgeInZone: "● エリア内",
+    badgeRadius: "半径",
+    badgePriority: "優先度",
+    badgeVisited: "✓ 訪問済み",
+    badgeNearby: "近隣",
+    distAway: "距離",
+    proximityTitle: "現在地から近いスポット",
+    proximitySub: "現在地からの実距離（m）に基づいて自動的にソートされます",
+    walkBadge: "🎧 Walk Mode • 反射防止OLEDダーク画面",
+    walkNextGuide: "次の目的地案内:",
+    sheetHandleMini: "▲ タップして解説テキストを表示",
+    sheetHandleHalf: "▲ 全画面表示（タップで縮小）",
+    sheetHandleFull: "▼ テキストを縮小",
+    playerNoTrack: "再生中の解説はありません",
+    playerReady: "自動再生待機中または場所を選択",
+    playerManual: "手動再生中",
+    playerAuto: "GPS自動再生中",
+    playerFinished: "再生終了",
+    playerPaused: "一時停止中",
+    playerStopped: "ガイド再生停止",
+    playerWaveLabel: "● Live Audio Waveform",
+    transcriptTitle: "📖 リアルタイム同期解説スクリプト",
+    transcriptSub: "任意の文章をタップしてその位置から再生",
+    markVisited: "✓ 訪問済みにする",
+    toastNewZone: "🔔 新しいジオフェンス検知",
+    toastPlayNow: "▶ 今すぐ再生",
+    toastKeepCurrent: "✕ 現在を維持",
+    toastTransitionMsg: (name, dist, sec) => `📍 ${name}に到着しました（距離 ${dist}）— ${sec}秒後に自動再生...`,
+    qrModalTitle: "📷 QRコードを認識しました！",
+    qrModalSub: "QRスキャンにより検出された名所",
+    qrModalStart: "▶ 今すぐ音声ガイドを開始",
+    qrModalExplore: "マップで自由に探索",
+    catNames: {
+      culture: "🏛 歴史・文化",
+      temple: "⛪ 宗教建築",
+      view: "🌅 遊歩道・広場",
+      food: "🍜 グルメ・市場"
+    },
+    rateOptions: {
+      '.7': '0.7x とても遅い',
+      '.85': '0.85x 遅い',
+      '1': '1.0x 標準',
+      '1.15': '1.15x 速い',
+      '1.3': '1.3x とても速い'
+    },
+    coolOptions: {
+      '0': '待機なし (デモ)',
+      '60': '60秒',
+      '180': '3分',
+      '300': '5分'
+    },
+    visitStats: (l, f, v, t) => `📊 ${l}回再生 · ${f}件お気に入り · ${v}/${t}箇所訪問済み`,
+    historyModal: {
+      title: "📜 音声ガイド再生履歴",
+      total: (n) => `総再生回数: <b>${n}</b>回`,
+      langLabel: "言語",
+      empty: "視聴履歴はまだありません。"
+    },
+    helpModal: {
+      title: "❓ GeoAudio Guide 利用ガイド",
+      p1: "<b>1. ジオフェンス自動音声ガイド:</b> 実際のGPSを有効にするか「仮想GPS」メニューから観光地を選択／「自動歩行デモ」を押して自動再生をテストしてください。",
+      p2: "<b>2. 多彩な表示モード:</b> <b>地図</b>、距離順の<b>近くの場所</b>、屋外の反射を抑えるOLED<b>Walk Mode</b>をワンタップで切り替え可能です。",
+      p3: "<b>3. 3段階ボトムプレイヤー:</b> 画面下のバーを引き上げると、リアルタイム同期のカラオケ字幕を表示できます。",
+      p4: "<b>4. 強い日差しモード (☀️):</b> 直射日光の下でも見やすい高コントラストモードに切り替えられます。",
+      p5: "<b>5. 多言語切り替え:</b> トップHUDでいつでも VI, EN, KO, JA, ZH に変更できます。"
+    },
+    toasts: {
+      tourAdded: "ツアー日程に追加しました",
+      tourRemoved: "ツアーから削除しました",
+      tourCleared: "ツアー日程をクリアしました",
+      tourEmptyWarn: "ツアー日程が空です",
+      favAdded: "お気に入りに追加しました",
+      favRemoved: "お気に入りを解除しました",
+      rated: (s) => `${s}つ星の評価をつけました`,
+      copied: "共有テキストをコピーしました",
+      exported: "JSONファイルを出力しました",
+      playerPaused: "一時停止中",
+      playerStopped: "ガイド再生を停止しました",
+      gpsQuery: "📡 デバイスのGPS位置を取得中...",
+      gpsSuccess: "実GPS位置に更新しました",
+      gpsFail: "GPS権限を取得できませんでした"
+    }
+  },
+  zh: {
+    appTitle: "GeoAudio Guide",
+    appSub: "西贡遗产导览",
+    gpsAccuracy: "GPS: ±3m",
+    gpsHighAccuracy: "GPS: ±3m 高精度",
+    autoOn: "🔊 自动: 开启",
+    autoOff: "🔇 自动: 关闭",
+    viewMap: "🗺️ 地图导览 (Map)",
+    viewCards: "📍 附近景点 (Cards)",
+    viewWalk: "🎧 随身导览 (Walk Mode)",
+    mapTitle: "🗺️ GPS定位与地理围栏覆盖范围",
+    mapRegion: "西贡市中心 · 当前位置：",
+    realGps: "📡 使用真实GPS",
+    autoWalkStart: "🚶 自动漫步演示 (Auto-Walk)",
+    autoWalkStop: "⏹ 停止演示",
+    simPrompt: "📍 虚拟GPS：选择景点",
+    mapLegendReady: "🔔 就绪。选择景点或点击“自动漫步演示”测试地理围栏触发功能。",
+    searchPlaceholder: "按景点名称、地址搜索...",
+    filterAll: "全部",
+    filterCulture: "🏛 历史文化",
+    filterTemple: "⛪ 宗教建筑",
+    filterView: "🌅 景观步道",
+    filterFood: "🍜 美食市集",
+    myTour: "🧭 我的游览行程",
+    tourEmpty: "暂无行程景点。点击各景点的“➕ 加入行程”定制路线。",
+    tourStart: "▶ 开始游览",
+    tourNext: "⏭ 下一站",
+    tourClear: "🗑 清空行程",
+    tourRemoveStop: "移除站点",
+    tourSummary: (c, m, l) => `${c}个景点 · 预计 ~${m}分钟 · ${l}次收听`,
+    favTitle: "❤️ 收藏的景点",
+    favEmpty: "暂无收藏。点击景点卡片上的 ❤️ 按钮即可保存。",
+    settingsAudio: "🔊 语音解说设置",
+    readSpeed: "语速调节",
+    cooldownTime: "冷却时间",
+    systemVoice: "系统语音引擎",
+    defaultVoice: "系统默认",
+    fontSize: "字体大小：",
+    historyTitle: "📊 游览统计",
+    btnHistory: "📜 收听历史",
+    btnExport: "📤 导出数据",
+    btnListen: "▶ 收听讲解",
+    btnPause: "⏸ 暂停",
+    btnAddTour: "➕ 加入行程",
+    btnAddedTour: "✓ 已加入行程",
+    btnDirections: "🧭 导航路线",
+    btnShare: "📤 分享",
+    badgeInZone: "● 已在区域内",
+    badgeRadius: "半径",
+    badgePriority: "优先级",
+    badgeVisited: "✓ 已游览",
+    badgeNearby: "附近",
+    distAway: "距离",
+    proximityTitle: "离您最近的景点",
+    proximitySub: "根据您当前GPS位置的实际米数自动升序排列",
+    walkBadge: "🎧 Walk Mode • 防眩光OLED纯黑护眼模式",
+    walkNextGuide: "前方下一站点：",
+    sheetHandleMini: "▲ 轻触查看实时讲解字幕",
+    sheetHandleHalf: "▲ 展开半屏（轻触缩回）",
+    sheetHandleFull: "▼ 缩回字幕",
+    playerNoTrack: "暂无正在播放的解说",
+    playerReady: "准备自动播报或选择景点",
+    playerManual: "手动播放中",
+    playerAuto: "GPS自动播报中",
+    playerFinished: "播放结束",
+    playerPaused: "已暂停",
+    playerStopped: "解说已停止",
+    playerWaveLabel: "● Live Audio Waveform",
+    transcriptTitle: "📖 实时同步解说字幕",
+    transcriptSub: "轻触任意句子即可跳转播放",
+    markVisited: "✓ 标为已游览",
+    toastNewZone: "🔔 发现新地理围栏",
+    toastPlayNow: "▶ 立即播放",
+    toastKeepCurrent: "✕ 保持当前",
+    toastTransitionMsg: (name, dist, sec) => `📍 您已到达 ${name}（距离 ${dist}）— ${sec}秒后自动播报...`,
+    qrModalTitle: "📷 成功识别古迹二维码！",
+    qrModalSub: "通过二维码扫描确认的景点",
+    qrModalStart: "▶ 立即开始语音解说",
+    qrModalExplore: "在地图上自由探索",
+    catNames: {
+      culture: "🏛 历史文化",
+      temple: "⛪ 宗教建筑",
+      view: "🌅 景观步道",
+      food: "🍜 美食市集"
+    },
+    rateOptions: {
+      '.7': '0.7x 极慢',
+      '.85': '0.85x 较慢',
+      '1': '1.0x 正常',
+      '1.15': '1.15x 较快',
+      '1.3': '1.3x 极快'
+    },
+    coolOptions: {
+      '0': '无冷却 (演示)',
+      '60': '60秒',
+      '180': '3分钟',
+      '300': '5分钟'
+    },
+    visitStats: (l, f, v, t) => `📊 ${l}次收听 · ${f}个收藏 · ${v}/${t}已游览`,
+    historyModal: {
+      title: "📜 语音解说收听历史",
+      total: (n) => `总收听次数：<b>${n}</b>次`,
+      langLabel: "语言",
+      empty: "暂无收听记录。"
+    },
+    helpModal: {
+      title: "❓ GeoAudio Guide 使用指南",
+      p1: "<b>1. 地理围栏自动讲解：</b> 开启真实GPS或在“虚拟GPS”菜单中选择景点/点击“自动漫步演示”，体验靠近景点时自动触发语音解说。",
+      p2: "<b>2. 多重浏览视角：</b> 自由切换<b>地图导览</b>、按米数升序的<b>附近景点</b>以及防眩光OLED<b>随身模式 (Walk Mode)</b>。",
+      p3: "<b>3. 三段式底部播放器：</b> 向上轻拉底部操作栏，即可查看逐句高亮的实时双语字幕 (Live Karaoke Transcript)。",
+      p4: "<b>4. 强光户外模式 (☀️)：</b> 一键开启极高对比度，烈日直射下依然清晰易读。",
+      p5: "<b>5. 极速多语切换：</b> 在顶部悬浮HUD中随时切换 VI, EN, KO, JA, ZH 语言。"
+    },
+    toasts: {
+      tourAdded: "已加入游览行程",
+      tourRemoved: "已从行程中移除",
+      tourCleared: "已清空游览行程",
+      tourEmptyWarn: "行程列表为空",
+      favAdded: "已保存到收藏夹",
+      favRemoved: "已取消收藏",
+      rated: (s) => `已给出${s}星好评`,
+      copied: "已复制分享文案",
+      exported: "已导出JSON数据文件",
+      playerPaused: "已暂停",
+      playerStopped: "已停止解说播报",
+      gpsQuery: "📡 正在获取设备真实GPS定位...",
+      gpsSuccess: "已更新真实GPS位置",
+      gpsFail: "无法获取GPS定位权限"
+    }
+  }
+};
+
+function updateSettingsDropdowns() {
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  
+  const rateSel = $('rate');
+  if (rateSel && t.rateOptions) {
+    const curVal = rateSel.value;
+    rateSel.innerHTML = Object.entries(t.rateOptions).map(([val, label]) => 
+      `<option value="${val}" ${val === curVal ? 'selected' : ''}>${label}</option>`
+    ).join('');
+  }
+
+  const coolSel = $('cool');
+  if (coolSel && t.coolOptions) {
+    const curVal = coolSel.value;
+    coolSel.innerHTML = Object.entries(t.coolOptions).map(([val, label]) => 
+      `<option value="${val}" ${val === curVal ? 'selected' : ''}>${label}</option>`
+    ).join('');
+  }
+
+  loadVoices();
+}
+
+function updateVisitStats() {
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  const now = new Date();
+  const timeLocales = { vi: 'vi-VN', en: 'en-US', ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN' };
+  $('clock').textContent = now.toLocaleTimeString(timeLocales[lang] || 'vi-VN');
+  if ($('visitCount') && t.visitStats) {
+    $('visitCount').textContent = t.visitStats(events.length, favorites.length, visitedPois.length, pois.length);
+  }
+}
+
+function applyLanguage(code) {
+  const t = UI_STRINGS[code] || UI_STRINGS.vi;
+
+  // 1. Top HUD
+  $('gpsPillText').textContent = t.gpsAccuracy;
+  $('autoPlayToggleBtn').innerHTML = $('auto').checked ? `<span>${t.autoOn}</span>` : `<span>${t.autoOff}</span>`;
+  $('navViewMap').textContent = t.viewMap;
+  $('navViewCards').textContent = t.viewCards;
+  $('navViewWalk').textContent = t.viewWalk;
+
+  // 2. Map & Simulator
+  $('realGps').textContent = t.realGps;
+  $('autoWalkBtn').innerHTML = isAutoWalking ? t.autoWalkStop : t.autoWalkStart;
+  $('status').innerHTML = `<span>🔔</span> ${t.mapLegendReady}`;
+  $('q').placeholder = t.searchPlaceholder;
+
+  // 3. Category Filter Tabs
+  const tabAll = document.querySelector('#viewTabs button[data-tab="all"]');
+  if (tabAll) tabAll.textContent = t.filterAll;
+  const tabCulture = document.querySelector('#viewTabs button[data-tab="culture"]');
+  if (tabCulture) tabCulture.textContent = t.filterCulture;
+  const tabTemple = document.querySelector('#viewTabs button[data-tab="temple"]');
+  if (tabTemple) tabTemple.textContent = t.filterTemple;
+  const tabView = document.querySelector('#viewTabs button[data-tab="view"]');
+  if (tabView) tabView.textContent = t.filterView;
+  const tabFood = document.querySelector('#viewTabs button[data-tab="food"]');
+  if (tabFood) tabFood.textContent = t.filterFood;
+
+  // 4. Proximity & Walk Mode
+  const proxH2 = document.querySelector('#viewCardsSection h2');
+  if (proxH2) proxH2.textContent = t.proximityTitle;
+  const proxP = document.querySelector('#viewCardsSection p');
+  if (proxP) proxP.textContent = t.proximitySub;
+
+  const walkPill = document.querySelector('.walk-mode-pill span');
+  if (walkPill) walkPill.textContent = t.walkBadge;
+  const walkGuide = document.querySelector('.walk-next-card div div');
+  if (walkGuide) walkGuide.textContent = t.walkNextGuide;
+
+  // 5. Bottom Sheet Player labels
+  const handleText = $('sheetHandleText');
+  if (handleText) {
+    if (bottomSheetStage === 'mini') handleText.textContent = t.sheetHandleMini;
+    else if (bottomSheetStage === 'half') handleText.textContent = t.sheetHandleHalf;
+    else handleText.textContent = t.sheetHandleFull;
+  }
+  const waveLabel = document.querySelector('.waveform-container span:nth-child(2)');
+  if (waveLabel) waveLabel.textContent = t.playerWaveLabel;
+  const transHeader = document.querySelector('.transcript-header span:first-child');
+  if (transHeader) transHeader.textContent = t.transcriptTitle;
+  const transSub = document.querySelector('.transcript-header span:last-child');
+  if (transSub) transSub.textContent = t.transcriptSub;
+  const markBtn = $('markVisitedBtn');
+  if (markBtn) markBtn.textContent = t.markVisited;
+
+  // 6. Transition Toast Buttons
+  const toastConfirmBtn = $('toastConfirmPlayBtn');
+  if (toastConfirmBtn) toastConfirmBtn.textContent = t.toastPlayNow;
+  const toastKeepBtn = document.querySelector('.transition-toast-actions button:last-child');
+  if (toastKeepBtn) toastKeepBtn.textContent = t.toastKeepCurrent;
+
+  // 7. Right Column Cards (Tour, Favorites, Settings, History)
+  const sideCards = document.querySelectorAll('.right-col .side-card');
+  if (sideCards[0]) {
+    const h2 = sideCards[0].querySelector('h2');
+    if (h2) h2.textContent = t.myTour;
+    $('start').textContent = t.tourStart;
+    $('next').textContent = t.tourNext;
+    $('clear').textContent = t.tourClear;
+  }
+  if (sideCards[1]) {
+    const h2 = sideCards[1].querySelector('h2');
+    if (h2) h2.textContent = t.favTitle;
+  }
+  if (sideCards[2]) {
+    const h2 = sideCards[2].querySelector('h2');
+    if (h2) h2.textContent = t.settingsAudio;
+    const labels = sideCards[2].querySelectorAll('label');
+    if (labels[0]) labels[0].textContent = t.readSpeed;
+    if (labels[1]) labels[1].textContent = t.cooldownTime;
+    if (labels[2]) labels[2].textContent = t.systemVoice;
+    const fontSpan = sideCards[2].querySelector('span');
+    if (fontSpan) fontSpan.textContent = t.fontSize;
+  }
+  if (sideCards[3]) {
+    const h2 = sideCards[3].querySelector('h2');
+    if (h2) h2.textContent = t.historyTitle;
+    $('history').textContent = t.btnHistory;
+    $('exportData').textContent = t.btnExport;
+  }
+
+  // 8. Cập nhật các select dropdowns (Rate, Cooldown, Voice)
+  updateSettingsDropdowns();
+  updateVisitStats();
+
+  // 9. Nếu đang phát âm thanh, chuyển ngữ tức thì cho TTS và Karaoke Transcript
+  if (isSpeaking && currentPlayingId) {
+    const p = pois.find(x => x.id === currentPlayingId);
+    if (p) {
+      const textArr = (p.text && (p.text[code] || p.text.vi)) || [p.name, p.description || ''];
+      const contentToSpeak = textArr[1] || textArr[0];
+      $('playerTitle').textContent = textArr[0];
+      renderLiveTranscript(contentToSpeak);
+
+      // Khởi động lại utterance với ngôn ngữ mới
+      if (window.speechSynthesis) {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(contentToSpeak);
+        const langMap = { vi: 'vi-VN', en: 'en-US', ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN' };
+        u.lang = langMap[code] || 'vi-VN';
+        u.rate = currentPlaybackRate;
+        u.onend = () => {
+          isSpeaking = false;
+          currentPlayingId = null;
+          $('playPauseBtn').textContent = '▶';
+          $('walkGiantBtnIcon').textContent = '▶';
+          $('playerSubStatus').textContent = t.playerFinished;
+          $('narrationFill').style.width = '100%';
+          updateWaveformProgress(100);
+          if (!visitedPois.includes(p.id)) { visitedPois.push(p.id); save(); }
+          setTimeout(() => { $('narrationFill').style.width = '0%'; updateWaveformProgress(0); }, 1200);
+          render();
+        };
+        u.onerror = () => {
+          isSpeaking = false;
+          currentPlayingId = null;
+          $('playPauseBtn').textContent = '▶';
+          $('walkGiantBtnIcon').textContent = '▶';
+        };
+        speechSynthesis.speak(u);
+      }
+    }
+  } else {
+    if (!currentPlayingId) {
+      $('playerTitle').textContent = t.playerNoTrack;
+      $('playerSubStatus').textContent = t.playerReady;
+    } else {
+      const p = pois.find(x => x.id === currentPlayingId);
+      if (p) {
+        const textArr = (p.text && (p.text[code] || p.text.vi)) || [p.name, p.description || ''];
+        $('playerTitle').textContent = textArr[0];
+        $('playerSubStatus').textContent = t.playerFinished;
+        renderLiveTranscript(textArr[1] || textArr[0]);
+      }
+    }
+  }
+}
+window.applyLanguage = applyLanguage;
+
+
+/* ─── Ngôn ngữ Nhanh (Pills VI, EN, KO, JA, ZH) ─── */
+function setQuickLang(code) {
+  document.querySelectorAll('.lang-pill-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === code);
+  });
+  $('lang').value = code;
+  const flagMap = { vi: '🇻🇳 VI', en: '🇬🇧 EN', ko: '🇰🇷 KO', ja: '🇯🇵 JA', zh: '🇨🇳 ZH' };
+  $('playerLangBadge').textContent = flagMap[code] || code.toUpperCase();
+  applyLanguage(code);
+  render();
+  renderTour();
+  renderFavorites();
+  updateSimDropdown();
+  toast(`Language: ${code.toUpperCase()}`, '🌐');
+}
+window.setQuickLang = setQuickLang;
+
+
+/* ─── Danh mục (Categories) ─── */
+const catInfo = {
+  culture: { icon: '🏛', label: 'Di tích Lịch sử', tagClass: 'tag-culture' },
+  temple: { icon: '⛪', label: 'Kiến trúc Tôn giáo', tagClass: 'tag-temple' },
+  view: { icon: '🌅', label: 'Không gian Công cộng', tagClass: 'tag-view' },
+  food: { icon: '🍜', label: 'Thương mại & Ẩm thực', tagClass: 'tag-food' },
+};
+
+/* ══════════════════════════════════════════════════════════════
+   3. GIAO DIỆN VIEW SWITCHER (MAP / CARDS / WALK)
+══════════════════════════════════════════════════════════════ */
+function switchMainView(mode) {
+  currentViewMode = mode;
+  $('navViewMap').classList.toggle('active', mode === 'map');
+  $('navViewCards').classList.toggle('active', mode === 'cards');
+  $('navViewWalk').classList.toggle('active', mode === 'walk');
+
+  $('viewMapSection').classList.toggle('hidden-view', mode !== 'map');
+  $('viewCardsSection').classList.toggle('hidden-view', mode !== 'cards');
+  $('viewWalkSection').classList.toggle('hidden-view', mode !== 'walk');
+
+  if (mode === 'map' && leafletMap) {
+    setTimeout(() => { leafletMap.invalidateSize(); }, 150);
+  }
+  if (mode === 'cards') renderProximityCards();
+  if (mode === 'walk') updateWalkModeView();
+}
+window.switchMainView = switchMainView;
+
+/* ─── Auto-Play Master Toggle Switch ─── */
+function toggleAutoPlayMaster() {
+  const isChecked = $('auto').checked;
+  const next = !isChecked;
+  $('auto').checked = next;
+  const btn = $('autoPlayToggleBtn');
+  if (next) {
+    btn.className = 'autoplay-toggle-btn';
+    btn.innerHTML = '<span>🔊 Tự động: BẬT</span>';
+    toast('Đã BẬT tự động phát Geofence', '🔊');
+  } else {
+    btn.className = 'autoplay-toggle-btn off';
+    btn.innerHTML = '<span>🔇 Tự động: TẮT</span>';
+    toast('Đã TẮT tự động phát', '🔇');
+  }
+}
+window.toggleAutoPlayMaster = toggleAutoPlayMaster;
+
+/* ─── Modal Chọn điểm thủ công & QR Simulator ─── */
+function openManualGpsModal() {
+  modal('📍 Định Vị Thủ Công / Quét QR', `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <p style="font-size:13px;color:var(--text-muted)">
+        Chọn nhanh địa điểm để mô phỏng tọa độ du khách hoặc quét mã QR di tích khi mất sóng GPS:
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;">
+        ${pois.map(p => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-subtle);border-radius:var(--radius-sm);cursor:pointer;"
+               onclick="selectManualPoi('${p.id}')">
+            <div>
+              <b style="font-size:14px;">${p.name}</b>
+              <div style="font-size:11px;color:var(--text-muted)">${p.address}</div>
+            </div>
+            <button class="btn-primary" style="min-height:36px;font-size:12px;padding:4px 10px;">Dịch chuyển</button>
+          </div>
+        `).join('')}
+      </div>
+      <div style="padding-top:10px;border-top:1px solid var(--border);display:flex;gap:8px;">
+        <button class="btn-outline" style="flex:1;" onclick="simulateQrScan()">📷 Quét mã QR mẫu</button>
+        <button class="btn-outline" style="flex:1;" onclick="closeModal()">Đóng</button>
+      </div>
+    </div>
+  `);
+}
+window.openManualGpsModal = openManualGpsModal;
+
+function selectManualPoi(id) {
+  const p = pois.find(x => x.id === id);
+  if (p) {
+    locate(p.lat, p.lng);
+    closeModal();
+    toast(`Đã dịch chuyển đến: ${p.name}`, '📍');
+  }
+}
+window.selectManualPoi = selectManualPoi;
+
+function simulateQrScan() {
+  const randomPoi = pois[Math.floor(Math.random() * pois.length)];
+  closeModal();
+  toast(`📷 Đã quét mã QR: ${randomPoi.name}`, '✓');
+  locate(randomPoi.lat, randomPoi.lng);
+  speak(randomPoi.id, true);
+}
+window.simulateQrScan = simulateQrScan;
+
+/* ══════════════════════════════════════════════════════════════
+   4. RENDER BẢN ĐỒ & VÒNG GEOFENCE HALOS
+══════════════════════════════════════════════════════════════ */
+/* ─── Bản Đồ Thực Tế Google Maps & Leaflet.js ─── */
+let leafletMap = null;
+let leafletUserMarker = null;
+let leafletPoiMarkers = {};
+let leafletPoiCircles = {};
+let currentTileLayer = null;
+
+const POI_ICONS = {
+  'dinh-doc-lap': '🏛️',
+  'nha-tho-duc-ba': '⛪',
+  'buu-dien-tp': '📮',
+  'bao-tang-chung-tich': '🪖',
+  'nha-hat-tp': '🎭',
+  'pho-di-bo-nguyen-hue': '⛲',
+  'cho-ben-thanh': '🛍️',
+  'ben-nha-rong': '🚢'
+};
+
+function initLeafletMap() {
+  if (leafletMap || typeof L === 'undefined') return;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  
+  leafletMap = L.map('map', {
+    center: [position.lat, position.lng],
+    zoom: 16,
+    zoomControl: true,
+    attributionControl: false
+  });
+
+  const googleRoadsUrl = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+  const googleHybridUrl = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+
+  currentTileLayer = L.tileLayer(isDark ? googleHybridUrl : googleRoadsUrl, {
+    maxZoom: 20,
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  }).addTo(leafletMap);
+
+  renderMap();
+}
+
+function updateMapTheme(theme) {
+  if (!leafletMap || !currentTileLayer) return;
+  leafletMap.removeLayer(currentTileLayer);
+  const url = theme === 'dark'
+    ? 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+    : 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+  currentTileLayer = L.tileLayer(url, { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(leafletMap);
+}
+
+function renderMap() {
+  if (!leafletMap && typeof L !== 'undefined') {
+    initLeafletMap();
+    return;
+  }
+  if (!leafletMap) return;
+
+  const lang = $('lang').value || 'vi';
+
+  // 1. Cập nhật Marker người dùng (Google Maps Navigation Blue Dot)
+  if (position) {
+    if (!leafletUserMarker) {
+      const userIcon = L.divIcon({
+        className: 'user-marker-icon',
+        html: `
+          <div class="gmap-user-marker">
+            <div class="gmap-user-halo"></div>
+            <div class="gmap-user-core"></div>
+          </div>
+        `,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      leafletUserMarker = L.marker([position.lat, position.lng], { icon: userIcon, zIndexOffset: 2000 }).addTo(leafletMap);
+    } else {
+      leafletUserMarker.setLatLng([position.lat, position.lng]);
+    }
+  }
+
+  // 2. Cập nhật 3D Droplet Pins & Geofence Circles cho từng địa điểm
+  pois.forEach(p => {
+    const d = position ? dist(position.lat, position.lng, p.lat, p.lng) : Infinity;
+    const inRange = d <= p.radius;
+    const isPlayingThis = isSpeaking && currentPlayingId === p.id;
+    const isVisited = visitedPois.includes(p.id);
+    const locTitle = (p.text && p.text[lang] && p.text[lang][0]) || p.name;
+    const iconChar = POI_ICONS[p.id] || '🏛️';
+
+    let statusClass = '';
+    if (isPlayingThis || inRange) statusClass = 'active';
+    else if (isVisited) statusClass = 'visited';
+
+    const pinHtml = `
+      <div class="gmap-marker-wrap ${statusClass}">
+        <div class="gmap-pin-ripple"></div>
+        <div class="gmap-pin-body">
+          <span class="gmap-pin-icon">${isPlayingThis ? '🔊' : iconChar}</span>
+        </div>
+        <div class="gmap-pin-label">${locTitle} ${Number.isFinite(d) ? `(${formatMeters(d)})` : ''}</div>
+      </div>
+    `;
+
+    const customIcon = L.divIcon({
+      className: 'gmap-div-icon',
+      html: pinHtml,
+      iconSize: [44, 54],
+      iconAnchor: [22, 42]
+    });
+
+    if (!leafletPoiMarkers[p.id]) {
+      const m = L.marker([p.lat, p.lng], { icon: customIcon }).addTo(leafletMap);
+      m.on('click', () => handlePinClick(p.id));
+      leafletPoiMarkers[p.id] = m;
+    } else {
+      leafletPoiMarkers[p.id].setIcon(customIcon);
+    }
+
+    // Vòng bán kính Geofence Circle (Màu Xanh Ngọc khi Active, Viền nét đứt khi chờ)
+    const circleColor = (isPlayingThis || inRange) ? '#10B981' : (isVisited ? '#64748B' : '#2563EB');
+    const fillOpacity = (isPlayingThis || inRange) ? 0.24 : 0.10;
+
+    if (!leafletPoiCircles[p.id]) {
+      leafletPoiCircles[p.id] = L.circle([p.lat, p.lng], {
+        radius: p.radius,
+        color: circleColor,
+        fillColor: circleColor,
+        fillOpacity: fillOpacity,
+        weight: (isPlayingThis || inRange) ? 2.5 : 1.5,
+        dashArray: (isPlayingThis || inRange) ? null : '5, 5'
+      }).addTo(leafletMap);
+    } else {
+      leafletPoiCircles[p.id].setStyle({
+        color: circleColor,
+        fillColor: circleColor,
+        fillOpacity: fillOpacity,
+        weight: (isPlayingThis || inRange) ? 2.5 : 1.5,
+        dashArray: (isPlayingThis || inRange) ? null : '5, 5'
+      });
+    }
+  });
+}
+
+function handlePinClick(id) {
+  const p = pois.find(x => x.id === id);
+  if (p) {
+    $('sim').value = p.id;
+    locate(p.lat, p.lng);
+    speak(p.id, true);
+    if (leafletMap) leafletMap.panTo([p.lat, p.lng], { animate: true, duration: 0.6 });
+  }
+}
+window.handlePinClick = handlePinClick;
+
+/* ══════════════════════════════════════════════════════════════
+   5. AUTO-WALK ROUTE SIMULATOR (NỘI SUY MƯỢT & TẠM DỪNG 14S TẠI TRẠM)
+══════════════════════════════════════════════════════════════ */
+let autoWalkPath = [];
+let autoWalkStepIndex = 0;
+let autoWalkIsStationary = false;
+let autoWalkStationaryTimer = null;
+
+function buildInterpolatedWalkPath() {
+  const path = [];
+  const SUBSTEPS_PER_SEGMENT = 32; // Chia quãng đường thành 32 bước nhỏ mượt mà
+
+  for (let i = 0; i < autoWalkRoute.length; i++) {
+    const start = autoWalkRoute[i];
+    const end = autoWalkRoute[(i + 1) % autoWalkRoute.length];
+    
+    for (let step = 0; step < SUBSTEPS_PER_SEGMENT; step++) {
+      const t = step / SUBSTEPS_PER_SEGMENT;
+      path.push({
+        lat: start.lat + (end.lat - start.lat) * t,
+        lng: start.lng + (end.lng - start.lng) * t,
+        targetName: end.name
+      });
+    }
+  }
+  return path;
+}
+
+function toggleAutoWalkRoute() {
+  if (isAutoWalking) {
+    stopAutoWalk();
+    toast('Đã dừng mô phỏng đi bộ', '⏹');
+  } else {
+    isAutoWalking = true;
+    autoWalkPath = buildInterpolatedWalkPath();
+    autoWalkStepIndex = 0;
+    autoWalkIsStationary = false;
+
+    $('autoWalkBtn').innerHTML = '⏹ Dừng mô phỏng';
+    $('autoWalkBtn').style.background = 'var(--accent)';
+    $('autoWalkBtn').style.color = '#FFF';
+    toast('Bắt đầu mô phỏng đi bộ trên bản đồ Google Maps', '🚶');
+
+    // Chạy vòng lặp nội suy mỗi 120ms (tốc độ đi bộ mượt mà ngoài đời)
+    autoWalkTimer = setInterval(stepSmoothWalk, 120);
+  }
+}
+window.toggleAutoWalkRoute = toggleAutoWalkRoute;
+
+function stepSmoothWalk() {
+  if (!isAutoWalking || autoWalkIsStationary) return;
+
+  if (autoWalkStepIndex >= autoWalkPath.length) {
+    autoWalkStepIndex = 0;
+  }
+
+  const curPos = autoWalkPath[autoWalkStepIndex];
+  autoWalkStepIndex++;
+
+  locate(curPos.lat, curPos.lng, true); // true: isSimulatedWalk
+}
+
+function pauseAutoWalkAtCheckpoint(poiName, seconds = 14) {
+  if (!isAutoWalking || autoWalkIsStationary) return;
+  autoWalkIsStationary = true;
+  status(`🚶 [${poiName}]: Tạm dừng ${seconds}s nghe thuyết minh...`);
+
+  if (autoWalkStationaryTimer) clearTimeout(autoWalkStationaryTimer);
+  autoWalkStationaryTimer = setTimeout(() => {
+    autoWalkIsStationary = false;
+    status(`🚶 Tiếp tục lộ trình đi bộ...`);
+  }, seconds * 1000);
+}
+
+function stopAutoWalk() {
+  isAutoWalking = false;
+  autoWalkIsStationary = false;
+  if (autoWalkTimer) clearInterval(autoWalkTimer);
+  if (autoWalkStationaryTimer) clearTimeout(autoWalkStationaryTimer);
+  $('autoWalkBtn').innerHTML = '🚶 Mô phỏng đi bộ (Auto-Walk)';
+  $('autoWalkBtn').style.background = 'transparent';
+  $('autoWalkBtn').style.color = 'var(--emerald)';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   6. GEOFENCE DETECTION & 3-SECOND COUNTDOWN TOAST
+══════════════════════════════════════════════════════════════ */
+function triggerGeofenceTransitionToast(poi, distance) {
+  pendingTransitionPoi = poi;
+  const l = $('lang').value || 'vi';
+  const t = UI_STRINGS[l] || UI_STRINGS.vi;
+  const localizedName = (poi.text && poi.text[l] && poi.text[l][0]) || poi.name;
+
+  const banner = $('geofenceTransitionToast');
+  $('transitionToastName').textContent = localizedName;
+  $('transitionToastMsg').textContent = t.toastTransitionMsg 
+    ? t.toastTransitionMsg(localizedName, formatMeters(distance), 3)
+    : `📍 Bạn đã đến ${localizedName} (Cách ${formatMeters(distance)}) — Tự động phát sau 3s...`;
+  
+  banner.style.display = 'block';
+
+  // Đếm ngược chính xác 3 giây (3000ms)
+  const TOTAL_MS = 3000;
+  const startTime = Date.now();
+  $('transitionToastCountdown').textContent = '3s';
+  $('transitionProgressFill').style.width = '100%';
+
+  if (transitionCountdownTimer) clearInterval(transitionCountdownTimer);
+
+  transitionCountdownTimer = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const remainingMs = Math.max(0, TOTAL_MS - elapsed);
+    const remainingSec = Math.ceil(remainingMs / 1000);
+
+    $('transitionToastCountdown').textContent = `${remainingSec}s`;
+    $('transitionProgressFill').style.width = `${(remainingMs / TOTAL_MS) * 100}%`;
+
+    if (remainingMs <= 0) {
+      clearInterval(transitionCountdownTimer);
+      transitionCountdownTimer = null;
+      confirmGeofencePlay();
+    }
+  }, 80);
+}
+
+function confirmGeofencePlay() {
+  if (transitionCountdownTimer) {
+    clearInterval(transitionCountdownTimer);
+    transitionCountdownTimer = null;
+  }
+  $('geofenceTransitionToast').style.display = 'none';
+
+  if (pendingTransitionPoi) {
+    const targetPoi = pendingTransitionPoi;
+    pendingTransitionPoi = null;
+
+    // QUY TẮC: DỪNG TRIỆT ĐỂ bài cũ trước khi phát bài mới
+    if (window.speechSynthesis) {
+      speechSynthesis.cancel();
+    }
+    isSpeaking = false;
+    currentPlayingId = null;
+    $('narrationFill').style.width = '0%';
+    updateWaveformProgress(0);
+
+    // Kích hoạt phát bài thuyết minh mới của Checkpoint mới
+    speak(targetPoi.id, false);
+    setBottomSheetStage('half');
+  }
+}
+window.confirmGeofencePlay = confirmGeofencePlay;
+
+function dismissGeofenceToast() {
+  if (transitionCountdownTimer) {
+    clearInterval(transitionCountdownTimer);
+    transitionCountdownTimer = null;
+  }
+  $('geofenceTransitionToast').style.display = 'none';
+
+  if (pendingTransitionPoi) {
+    // Đánh dấu thời gian để không hỏi lại khi vẫn đang ở trong vùng này
+    last[pendingTransitionPoi.id] = Date.now();
+    pendingTransitionPoi = null;
+  }
+  toast('Đã bỏ qua điểm tham quan này', '✕');
+}
+window.dismissGeofenceToast = dismissGeofenceToast;
+
+/* ══════════════════════════════════════════════════════════════
+   7. ĐỊNH VỊ GPS VÀ LOGIC GEOFENCE (UC2 BACKEND INTEGRATION)
+══════════════════════════════════════════════════════════════ */
+let playedPoiIds = JSON.parse(sessionStorage.getItem('tmtd-played-poi-ids') || '[]');
+
+let lastNearbyQueryTime = 0;
+async function queryNearbyGeofence(lat, lng) {
+  if (typeof ApiClient === 'undefined') return;
+  const now = Date.now();
+  if (now - lastNearbyQueryTime < 1500) return; // Debounce 1.5s
+  lastNearbyQueryTime = now;
+
+  const lang = $('lang').value || 'vi';
+  try {
+    const res = await ApiClient.fetchNearbyPois({
+      lat,
+      lng,
+      radiusM: 500,
+      language: lang,
+      playedPoiIds
+    });
+
+    if (res.ok) {
+      // 1. Tự động xóa khỏi playedPoiIds nếu du khách rời xa >= 1.5x bán kính
+      if (res.resetPoiIds && res.resetPoiIds.length > 0) {
+        playedPoiIds = playedPoiIds.filter(id => !res.resetPoiIds.includes(id));
+        sessionStorage.setItem('tmtd-played-poi-ids', JSON.stringify(playedPoiIds));
+        console.log('🔄 Reset anti-replay POIs (du khách rời xa >= 1.5x bán kính):', res.resetPoiIds);
+      }
+
+      // 2. Tự động phát thuyết minh nếu vào bán kính kích hoạt và chưa nghe
+      if (res.nextTriggerPoi && $('auto').checked) {
+        const nextPoi = res.nextTriggerPoi;
+        if (!isSpeaking || currentPlayingId !== nextPoi.id) {
+          if (!playedPoiIds.includes(nextPoi.id)) {
+            playedPoiIds.push(nextPoi.id);
+            sessionStorage.setItem('tmtd-played-poi-ids', JSON.stringify(playedPoiIds));
+          }
+          speak(nextPoi.id, false);
+          toast(`🎧 Tự động phát thuyết minh qua GPS: ${nextPoi.name}`, '📍');
+        }
+      }
+    }
+  } catch (err) {
+    console.debug('Lỗi truy vấn nearby geofence:', err);
+  }
+}
+
+function locate(lat, lng, isSimulatedWalk = false) {
+  position = { lat, lng };
+
+  // Sắp xếp các POI theo khoảng cách
+  const cs = pois.map(p => ({
+    ...p,
+    dist: dist(lat, lng, p.lat, p.lng)
+  })).sort((a, b) => a.dist - b.dist);
+
+  const nearest = cs[0];
+  const inRangePoi = cs.find(p => p.dist <= p.radius);
+
+  if (inRangePoi) {
+    status(`📍 Bạn đang ở trong vùng ${inRangePoi.name} (cách ${inRangePoi.dist}m).`);
+    
+    // Nếu phát hiện Checkpoint mới khác với điểm đang phát hoặc vừa rời khỏi
+    if (inRangePoi.id !== currentPlayingId && inRangePoi.id !== currentZonePoiId) {
+      currentZonePoiId = inRangePoi.id;
+
+      // Nếu đang trong chế độ Auto-Walk, tạm dừng bước chân 14 giây tại checkpoint này
+      if (isSimulatedWalk) {
+        pauseAutoWalkAtCheckpoint(inRangePoi.name, 14);
+      }
+
+      if ($('auto').checked) {
+        triggerGeofenceTransitionToast(inRangePoi, inRangePoi.dist);
+      }
+    }
+  } else {
+    currentZonePoiId = null;
+    status(`📡 Vị trí cập nhật. Điểm gần nhất: ${nearest ? nearest.name : ''} (${nearest ? formatMeters(nearest.dist) : ''}).`);
+  }
+
+  // Gọi API Geofence nearby trên máy chủ (UC2)
+  queryNearbyGeofence(lat, lng);
+
+  // Cập nhật vị trí bản đồ mượt mà
+  if (leafletMap) {
+    leafletMap.panTo([lat, lng], { animate: true, duration: 0.35 });
+  }
+
+  render();
+  if (typeof broadcastVisitorPresence === 'function') broadcastVisitorPresence();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   8. 3-STAGE BOTTOM SHEET AUDIO PLAYER & KARAOKE TRANSCRIPT
+══════════════════════════════════════════════════════════════ */
+function toggleBottomSheetStage() {
+  if (bottomSheetStage === 'mini') {
+    setBottomSheetStage('half');
+  } else if (bottomSheetStage === 'half') {
+    setBottomSheetStage('full');
+  } else {
+    setBottomSheetStage('mini');
+  }
+}
+window.toggleBottomSheetStage = toggleBottomSheetStage;
+
+function setBottomSheetStage(stage) {
+  bottomSheetStage = stage;
+  const sheet = $('bottomAudioPlayer');
+  sheet.className = `bottom-player stage-${stage}`;
+  const textEl = $('sheetHandleText');
+  if (stage === 'mini') textEl.textContent = '▲ Chạm để xem kịch bản thuyết minh';
+  else if (stage === 'half') textEl.textContent = '▲ Mở rộng toàn màn hình (chạm để thu nhỏ)';
+  else textEl.textContent = '▼ Thu nhỏ kịch bản';
+}
+
+function initWaveformBars() {
+  const container = $('waveformBars');
+  const heights = [35, 60, 45, 80, 95, 40, 75, 90, 50, 100, 65, 85, 40, 70, 55, 90, 70, 45, 85, 100, 60, 80, 50, 65, 95, 75, 40, 85, 60, 30];
+  container.innerHTML = heights.map((h, i) => `
+    <div class="waveform-bar" style="height:${h}%" data-idx="${i}"></div>
+  `).join('');
+}
+initWaveformBars();
+
+function updateWaveformProgress(pct) {
+  const bars = document.querySelectorAll('.waveform-bar');
+  const total = bars.length;
+  const activeCount = Math.floor((pct / 100) * total);
+  bars.forEach((b, i) => {
+    b.classList.toggle('passed', i <= activeCount);
+    b.classList.toggle('playing', isSpeaking && i === activeCount);
+  });
+}
+
+function seekAudioByWaveform(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const pct = Math.max(0, Math.min(100, (clickX / rect.width) * 100));
+  $('narrationFill').style.width = pct + '%';
+  updateWaveformProgress(pct);
+  toast(`Tua đến ${Math.round(pct)}%`, '⏩');
+}
+window.seekAudioByWaveform = seekAudioByWaveform;
+
+function seekAudioByClick(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const pct = Math.max(0, Math.min(100, (clickX / rect.width) * 100));
+  $('narrationFill').style.width = pct + '%';
+  updateWaveformProgress(pct);
+}
+window.seekAudioByClick = seekAudioByClick;
+
+function renderLiveTranscript(fullText) {
+  const container = $('liveTranscriptBox');
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  if (!fullText) {
+    container.innerHTML = `<span style="font-size:13px;color:var(--text-muted)">${t.playerNoTrack || 'Chưa có kịch bản cho địa điểm này.'}</span>`;
+    return;
+  }
+
+  // Tách văn bản thành từng câu hoàn chỉnh theo dấu chấm, chấm than, hỏi (hỗ trợ cả dấu chấm Á Đông 。！？)
+  const sentences = fullText.match(/[^.!?。！？\n]+[.!?。！？\n]*/g) || [fullText];
+  container.innerHTML = sentences.filter(s => s.trim().length > 0).map((s, idx) => `
+    <div class="transcript-sentence ${idx === 0 ? 'active' : ''}" data-sidx="${idx}" onclick="jumpToSentence(${idx})">
+      ${s.trim()}
+    </div>
+  `).join('');
+}
+
+function jumpToSentence(idx) {
+  document.querySelectorAll('.transcript-sentence').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+  const activeEl = document.querySelector(`.transcript-sentence[data-sidx="${idx}"]`);
+  if (activeEl) {
+    activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    toast(`Đang đọc câu ${idx + 1}`, '📖');
+  }
+}
+window.jumpToSentence = jumpToSentence;
+
+function skipAudio(deltaSec) {
+  const fill = $('narrationFill');
+  const currentPct = parseFloat(fill.style.width) || 0;
+  const newPct = Math.max(0, Math.min(100, currentPct + (deltaSec > 0 ? 15 : -15)));
+  fill.style.width = newPct + '%';
+  updateWaveformProgress(newPct);
+  toast(`${deltaSec > 0 ? '+15s' : '-15s'}`, '⏩');
+}
+window.skipAudio = skipAudio;
+
+function setFastPlaybackRate(rate) {
+  currentPlaybackRate = rate;
+  $('rate').value = rate;
+  document.querySelectorAll('.speed-pills button').forEach(b => {
+    b.classList.toggle('active', parseFloat(b.textContent) === rate);
+  });
+  toast(`Tốc độ đọc: ${rate}x`, '⚡');
+}
+window.setFastPlaybackRate = setFastPlaybackRate;
+
+function toggleCurrentVisited() {
+  if (!currentPlayingId) return;
+  if (!visitedPois.includes(currentPlayingId)) {
+    visitedPois.push(currentPlayingId);
+    save();
+    render();
+    toast('Đã đánh dấu đã tham quan!', '✓');
+  }
+}
+window.toggleCurrentVisited = toggleCurrentVisited;
+
+/* ══════════════════════════════════════════════════════════════
+   9. PHÁT ÂM THANH (WEB SPEECH TTS & RECORD LISTENING EVENT)
+══════════════════════════════════════════════════════════════ */
+function speak(id, manual = false) {
+  const p = pois.find(x => x.id === id);
+  if (!p) return;
+
+  // Nếu đang phát chính POI này và bấm nút thì chuyển sang tạm dừng
+  if (isSpeaking && currentPlayingId === id && manual) {
+    speechSynthesis.cancel();
+    isSpeaking = false;
+    currentPlayingId = null;
+    $('playPauseBtn').textContent = '▶';
+    $('walkGiantBtnIcon').textContent = '▶';
+    $('playerSubStatus').textContent = 'Đã tạm dừng';
+    status(`⏸ Đã tạm dừng: ${p.name}`);
+    render();
+    return;
+  }
+
+  const now = Date.now();
+  const cd = +$('cool').value * 1000;
+  if (!manual && cd && now - (last[id] || 0) < cd) {
+    status(`${p.name} đang trong thời gian chờ (cooldown).`);
+    return;
+  }
+
+  speechSynthesis.cancel();
+  const lang = $('lang').value;
+  const textArr = (p.text && (p.text[lang] || p.text.vi)) || [p.name, p.description || ''];
+  const contentToSpeak = textArr[1] || textArr[0];
+
+  if (!window.SpeechSynthesisUtterance) {
+    toast('Trình duyệt không hỗ trợ phát giọng nói SpeechSynthesis', '⚠️');
+    return;
+  }
+
+  const u = new SpeechSynthesisUtterance(contentToSpeak);
+  const langMap = { vi: 'vi-VN', en: 'en-US', ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN' };
+  u.lang = langMap[lang] || 'vi-VN';
+  u.rate = currentPlaybackRate;
+
+  const voiceIdx = $('voiceSelect').value;
+  if (voiceIdx !== '') {
+    const voices = speechSynthesis.getVoices();
+    if (voices[voiceIdx]) u.voice = voices[voiceIdx];
+  }
+
+  u.onstart = () => {
+    isSpeaking = true;
+    currentPlayingId = p.id;
+    const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+    const locTitle = textArr[0];
+    $('playerTitle').textContent = locTitle;
+    $('playerSubStatus').textContent = manual ? (t.playerManual || 'Đang phát thủ công') : (t.playerAuto || 'Tự động phát qua GPS');
+    $('playPauseBtn').textContent = '⏸';
+    $('walkGiantBtnIcon').textContent = '⏸';
+    $('walkCurrentTitle').textContent = locTitle;
+    $('walkCurrentAddress').textContent = p.address;
+
+    const dVal = position ? dist(position.lat, position.lng, p.lat, p.lng) : null;
+    $('playerDistBadge').textContent = dVal !== null ? `(${formatMeters(dVal)})` : '';
+    $('walkCurrentDist').textContent = dVal !== null ? `${t.badgeNearby || 'Khoảng cách'}: ${formatMeters(dVal)}` : '';
+
+    status(`🔊 ${locTitle}`);
+    renderLiveTranscript(contentToSpeak);
+    simulateProgress(p.duration || 6);
+    render();
+    if (currentViewMode === 'walk') updateWalkModeView();
+  };
+
+  u.onend = () => {
+    isSpeaking = false;
+    currentPlayingId = null;
+    const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+    $('playPauseBtn').textContent = '▶';
+    $('walkGiantBtnIcon').textContent = '▶';
+    $('playerSubStatus').textContent = t.playerFinished || 'Đã phát xong';
+    $('narrationFill').style.width = '100%';
+    updateWaveformProgress(100);
+
+    // Đánh dấu đã nghe xong
+    if (!visitedPois.includes(p.id)) {
+      visitedPois.push(p.id);
+      save();
+    }
+
+    setTimeout(() => {
+      $('narrationFill').style.width = '0%';
+      updateWaveformProgress(0);
+    }, 1200);
+    status(`✅ Đã phát xong: ${p.name}`);
+    render();
+  };
+
+  u.onerror = () => {
+    isSpeaking = false;
+    currentPlayingId = null;
+    $('playPauseBtn').textContent = '▶';
+    $('walkGiantBtnIcon').textContent = '▶';
+    $('playerSubStatus').textContent = 'Lỗi phát âm thanh';
+  };
+
+  last[id] = now;
+  events.unshift({
+    id, name: p.name,
+    mode: manual ? 'MANUAL' : 'AUTO',
+    at: new Date().toLocaleString(),
+    language: lang
+  });
+  save();
+
+  // Ghi nhận sự kiện nghe qua ApiClient (chống trùng lặp 5s, không chặn luồng UI)
+  if (typeof ApiClient !== 'undefined') {
+    ApiClient.recordListeningEvent({
+      poiId: id,
+      mode: manual ? 'MANUAL' : 'AUTO',
+      language: lang,
+      latitude: position ? position.lat : undefined,
+      longitude: position ? position.lng : undefined
+    }).catch(err => console.debug('Ghi nhận sự kiện nghe ngoại tuyến:', err));
+  }
+
+  speechSynthesis.speak(u);
+  toast(`▶ ${p.name} (${lang.toUpperCase()})`, '🔊');
+}
+window.speak = speak;
+
+function togglePlayPause() {
+  if (isSpeaking) {
+    speechSynthesis.cancel();
+    isSpeaking = false;
+    $('playPauseBtn').textContent = '▶';
+    $('walkGiantBtnIcon').textContent = '▶';
+    $('playerSubStatus').textContent = 'Đã tạm dừng';
+    render();
+  } else {
+    const targetId = currentPlayingId || (tour.length ? tour[0] : pois[0]?.id);
+    if (targetId) speak(targetId, true);
+  }
+}
+window.togglePlayPause = togglePlayPause;
+
+function simulateProgress(durationMinutes) {
+  let start = Date.now();
+  let totalMs = (durationMinutes || 5) * 4500; // Mô phỏng tốc độ phù hợp cho bài nói
+  const totalSeconds = Math.round(totalMs / 1000);
+
+  const mm = Math.floor(totalSeconds / 60);
+  const ss = totalSeconds % 60;
+  $('waveTotalTime').textContent = `${mm < 10 ? '0' : ''}${mm}:${ss < 10 ? '0' : ''}${ss}`;
+
+  function tick() {
+    if (!isSpeaking) return;
+    let elapsedMs = Date.now() - start;
+    let pct = Math.min(100, (elapsedMs / totalMs) * 100);
+    $('narrationFill').style.width = pct + '%';
+    updateWaveformProgress(pct);
+
+    const elSec = Math.floor(elapsedMs / 1000);
+    const eMm = Math.floor(elSec / 60);
+    const eSs = elSec % 60;
+    const timeStr = `${eMm < 10 ? '0' : ''}${eMm}:${eSs < 10 ? '0' : ''}${eSs}`;
+    $('waveCurrentTime').textContent = timeStr;
+    $('walkTimeElapsed').textContent = `${timeStr} / ${$('waveTotalTime').textContent}`;
+
+    // Đồng bộ Live Karaoke câu đang đọc theo tiến trình %
+    const sentences = document.querySelectorAll('.transcript-sentence');
+    if (sentences.length > 0) {
+      const activeIdx = Math.min(sentences.length - 1, Math.floor((pct / 100) * sentences.length));
+      sentences.forEach((el, i) => {
+        el.classList.toggle('active', i === activeIdx);
+      });
+    }
+
+    if (pct < 100) requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function status(x) {
+  $('status').innerHTML = `<span>🔔</span> ${x}`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   10. RENDER PROXIMITY CARDS & WALK MODE
+══════════════════════════════════════════════════════════════ */
+function renderProximityCards() {
+  const sorted = [...pois].map(p => ({
+    ...p,
+    distance: position ? dist(position.lat, position.lng, p.lat, p.lng) : Infinity
+  })).sort((a, b) => a.distance - b.distance);
+
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  $('proximityCardsList').innerHTML = sorted.map((p, idx) => {
+    const ci = catInfo[p.cat] || catInfo.culture;
+    const isInside = p.distance <= p.radius;
+    const isPlayingThis = isSpeaking && currentPlayingId === p.id;
+    const textArr = (p.text && (p.text[lang] || p.text.vi)) || [p.name, p.description || ''];
+    const locTitle = textArr[0];
+    const locDesc = textArr[1] || '';
+    const locCat = (t.catNames && t.catNames[p.cat]) || ci.label;
+
+    return `
+      <article class="poi ${isPlayingThis ? 'playing-poi' : ''}">
+        <div class="poi-header">
+          <div class="poi-tags">
+            <span class="tag ${ci.tagClass}">${ci.icon} ${locCat}</span>
+            ${isInside
+              ? `<span class="tag" style="background:#ECFDF5;color:#065F46;border-color:#10B981;font-weight:700;">${t.badgeInZone} (${p.radius}m)</span>`
+              : `<span class="tag">📍 ${t.distAway || 'Cách'} ${formatMeters(p.distance)}</span>`
+            }
+          </div>
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--emerald);font-weight:700;">#${idx + 1} ${t.badgeNearby}</span>
+        </div>
+
+        <h3 class="poi-title">${locTitle}</h3>
+        <div class="poi-address">📍 ${p.address}</div>
+        <p class="poi-narration-preview">${locDesc}</p>
+
+        <div class="poi-actions">
+          <button class="btn-primary" onclick="speak('${p.id}',true)">
+            ${isPlayingThis ? t.btnPause : t.btnListen}
+          </button>
+          <button class="${tour.includes(p.id) ? 'btn-primary' : 'btn-outline'}" onclick="add('${p.id}')">${tour.includes(p.id) ? (t.btnAddedTour || '✓ Đã thêm') : t.btnAddTour}</button>
+          <button onclick="direction('${p.id}')">${t.btnDirections}</button>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+function updateWalkModeView() {
+  const sorted = [...pois].map(p => ({
+    ...p,
+    distance: position ? dist(position.lat, position.lng, p.lat, p.lng) : Infinity
+  })).sort((a, b) => a.distance - b.distance);
+
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+
+  const current = pois.find(p => p.id === currentPlayingId) || sorted[0];
+  const next = sorted.find(p => p.id !== current?.id) || sorted[1];
+
+  if (current) {
+    const curTitle = (current.text && current.text[lang] && current.text[lang][0]) || current.name;
+    $('walkCurrentTitle').textContent = curTitle;
+    $('walkCurrentAddress').textContent = current.address;
+    const curDist = position ? dist(position.lat, position.lng, current.lat, current.lng) : null;
+    $('walkCurrentDist').textContent = curDist !== null ? `${t.badgeNearby}: ${formatMeters(curDist)}` : '';
+  }
+
+  if (next) {
+    const nextTitle = (next.text && next.text[lang] && next.text[lang][0]) || next.name;
+    $('walkNextName').textContent = nextTitle;
+    $('walkNextDist').textContent = `~${formatMeters(next.distance)}`;
+  }
+}
+
+function goToNextPoiInWalk() {
+  const sorted = [...pois].map(p => ({
+    ...p,
+    distance: position ? dist(position.lat, position.lng, p.lat, p.lng) : Infinity
+  })).sort((a, b) => a.distance - b.distance);
+
+  const next = sorted.find(p => p.id !== currentPlayingId) || sorted[1];
+  if (next) {
+    locate(next.lat, next.lng);
+    speak(next.id, true);
+    toast(`Chuyển đến: ${next.name}`, '🚶');
+  }
+}
+window.goToNextPoiInWalk = goToNextPoiInWalk;
+
+/* ══════════════════════════════════════════════════════════════
+   11. RENDER POI LIST & TOUR MANAGEMENT
+══════════════════════════════════════════════════════════════ */
+function render() {
+  const q = $('q').value.toLowerCase();
+  const l = $('lang').value || 'vi';
+  const t = UI_STRINGS[l] || UI_STRINGS.vi;
+  const filtered = pois.filter(p =>
+    (currentTab === 'all' || p.cat === currentTab) &&
+    (((p.text && p.text[l] && p.text[l][0]) || p.name) + (p.address || '')).toLowerCase().includes(q)
+  );
+
+  $('poiList').innerHTML = filtered.map(p => {
+    const ci = catInfo[p.cat] || catInfo.culture;
+    const isFav = favorites.includes(p.id);
+    const isVisited = visitedPois.includes(p.id);
+    const rating = ratings[p.id] || 0;
+    const distVal = position ? dist(position.lat, position.lng, p.lat, p.lng) : null;
+    const distText = distVal !== null ? ` · 📏 ${formatMeters(distVal)}` : '';
+    const textArr = (p.text && (p.text[l] || p.text.vi)) || [p.name, p.description || ''];
+    const locTitle = textArr[0];
+    const locDesc = textArr[1] || '';
+    const locCat = (t.catNames && t.catNames[p.cat]) || ci.label;
+    const isCurrentlyPlaying = isSpeaking && currentPlayingId === p.id;
+
+    return `<article class="poi ${isCurrentlyPlaying ? 'playing-poi' : ''}">
+      <div class="poi-header">
+        <div class="poi-tags">
+          <span class="tag ${ci.tagClass}">${ci.icon} ${locCat}</span>
+          <span class="tag">📍 ${t.badgeRadius} ${p.radius}m · ⭐ ${t.badgePriority} ${p.priority}</span>
+          ${distText ? `<span class="tag" style="background:#ECFDF5;color:#065F46;font-weight:700;">${distText}</span>` : ''}
+          ${isVisited ? `<span class="tag" style="background:#E2E8F0;color:#334155;font-weight:700;">${t.badgeVisited}</span>` : ''}
+        </div>
+        <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFav('${p.id}')" title="${t.favTitle}">${isFav ? '❤️' : '🤍'}</button>
+      </div>
+
+      <h3 class="poi-title">${locTitle}</h3>
+      <div class="poi-address">📍 ${p.address || 'Quận 1, TP. Hồ Chí Minh'}</div>
+      
+      <p class="poi-narration-preview">${locDesc}</p>
+      
+      <div class="stars" onclick="ratePoi(event,'${p.id}')">
+        ${[1,2,3,4,5].map(s => `<span data-s="${s}" class="${s <= rating ? 'filled' : ''}">${s <= rating ? '★' : '☆'}</span>`).join('')}
+      </div>
+
+      <div class="poi-actions">
+        <button class="btn-primary" onclick="speak('${p.id}',true)">
+          ${isCurrentlyPlaying ? t.btnPause : t.btnListen}
+        </button>
+        <button class="${tour.includes(p.id) ? 'btn-primary' : 'btn-outline'}" onclick="add('${p.id}')">${tour.includes(p.id) ? (t.btnAddedTour || '✓ Đã thêm') : t.btnAddTour}</button>
+        <button onclick="direction('${p.id}')" title="Google Maps">${t.btnDirections}</button>
+        <button onclick="sharePoi('${p.id}')">${t.btnShare}</button>
+      </div>
+    </article>`;
+  }).join('') || `<p style="padding:32px 16px;text-align:center;color:var(--text-muted);font-size:16px;">${t.tourEmpty}</p>`;
+
+  renderTour();
+  renderMap();
+  renderFavorites();
+  if (currentViewMode === 'cards') renderProximityCards();
+}
+
+function renderTour() {
+  tour = [...new Set(tour)].filter(id => pois.some(p => p.id === id));
+  const picks = tour.map(id => pois.find(p => p.id === id)).filter(Boolean);
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  
+  $('tour').innerHTML = picks.length
+    ? picks.map((p, i) => {
+        const title = (p.text && p.text[lang] && p.text[lang][0]) || p.name;
+        return `<div class="tour-item">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="tour-num">${i + 1}</span>
+            <span style="font-weight:600">${title}</span>
+          </div>
+          <button class="btn-icon" style="min-width:32px;min-height:32px;font-size:14px" onclick="remove('${p.id}')" title="${t.tourRemoveStop || '✕'}">✕</button>
+        </div>`;
+      }).join('')
+    : `<span style="font-size:13px;color:var(--text-muted)">${t.tourEmpty}</span>`;
+  
+  $('sum').textContent = picks.length && t.tourSummary
+    ? t.tourSummary(picks.length, picks.reduce((n, p) => n + (p.duration || 5), 0), events.filter(e => tour.includes(e.id)).length)
+    : '';
+  recalculateCustomRoute();
+  save();
+}
+
+function renderFavorites() {
+  const favPois = favorites.map(id => pois.find(p => p.id === id)).filter(Boolean);
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  
+  $('favList').innerHTML = favPois.length
+    ? favPois.map(p => {
+        const title = (p.text && p.text[lang] && p.text[lang][0]) || p.name;
+        return `<div class="tour-item">
+          <span style="font-weight:600">${title}</span>
+          <button class="fav-btn active" style="min-width:32px;min-height:32px;font-size:14px" onclick="toggleFav('${p.id}')">❤️</button>
+        </div>`;
+      }).join('')
+    : `<span style="font-size:13px;color:var(--text-muted)">${t.favEmpty}</span>`;
+}
+
+/* ─── Actions & Event Handlers ─── */
+window.add = id => {
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  if (!tour.includes(id)) {
+    tour.push(id);
+    toast(t.toasts ? t.toasts.tourAdded : 'Đã thêm vào lộ trình tour');
+  } else {
+    tour = tour.filter(x => x !== id);
+    toast(t.toasts ? t.toasts.tourRemoved : 'Đã xóa khỏi tour', '🗑');
+  }
+  renderTour();
+  render();
+  if (currentViewMode === 'cards') renderProximityCards();
+};
+window.toggleTour = window.add;
+
+window.remove = id => {
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  tour = tour.filter(x => x !== id);
+  toast(t.toasts ? t.toasts.tourRemoved : 'Đã xóa khỏi tour', '🗑');
+  renderTour();
+  render();
+  if (currentViewMode === 'cards') renderProximityCards();
+};
+
+window.toggleFav = id => {
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  if (favorites.includes(id)) {
+    favorites = favorites.filter(x => x !== id);
+    toast(t.toasts ? t.toasts.favRemoved : 'Đã bỏ yêu thích', '🤍');
+  } else {
+    favorites.push(id);
+    toast(t.toasts ? t.toasts.favAdded : 'Đã lưu vào danh sách yêu thích', '❤️');
+  }
+  save();
+  render();
+  renderFavorites();
+};
+
+window.ratePoi = (e, id) => {
+  const star = e.target.closest('[data-s]');
+  if (star) {
+    const lang = $('lang').value || 'vi';
+    const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+    ratings[id] = parseInt(star.dataset.s);
+    save();
+    render();
+    toast(t.toasts ? t.toasts.rated(ratings[id]) : `Đã đánh giá ${ratings[id]} sao`, '⭐');
+  }
+};
+window.direction = id => {
+  const p = pois.find(x => x.id === id);
+  if (!p) return;
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`, '_blank');
+};
+window.sharePoi = id => {
+  const p = pois.find(x => x.id === id);
+  if (!p) return;
+  const text = `${p.name} — ${p.address}\n${p.text.vi ? p.text.vi[1] : ''}`;
+  if (navigator.share) {
+    navigator.share({ title: p.name, text, url: window.location.href });
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => toast('Đã sao chép nội dung chia sẻ'));
+  }
+};
+
+/* ─── Xuất Dữ Liệu Tham Quan ─── */
+$('exportData').onclick = () => {
+  const data = {
+    events, tour, favorites, visitedPois, ratings,
+    exportedAt: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'geo-audio-saigon-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Đã xuất tệp dữ liệu JSON', '📤');
+};
+
+/* ─── Bảng Quản Trị Admin ─── */
+function admin() {
+  const rows = pois.map(p => {
+    const ci = catInfo[p.cat] || catInfo.culture;
+    return `<div class="tour-item">
+      <div><span class="tag ${ci.tagClass}">${ci.icon}</span> <b>${p.name}</b></div>
+      <div style="display:flex;gap:6px">
+        <button style="min-height:36px;padding:4px 10px;" onclick="editPoi('${p.id}')">✏️ Sửa</button>
+        <button class="btn-danger" style="min-height:36px;padding:4px 10px;" onclick="delPoi('${p.id}')">🗑 Xóa</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  modal('⚙️ Bảng Quản Trị POI Sài Gòn', `
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
+      Quản lý thông tin địa điểm và nội dung thuyết minh đa ngôn ngữ.
+    </p>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button class="btn-primary" style="flex:1;" onclick="editPoi('')">➕ Thêm POI mới</button>
+      <button class="btn-outline" style="flex:1;" onclick="resetData()">🔄 Khôi phục 8 điểm mặc định</button>
+    </div>
+    ${rows}
+  `);
+}
+$('adminBtn').onclick = admin;
+
+window.resetData = () => {
+  if (confirm('Khôi phục toàn bộ danh sách địa điểm về 8 di tích Sài Gòn mặc định?')) {
+    pois = [...base];
+    tour = []; events = []; favorites = []; visitedPois = []; ratings = {};
+    save(); render(); admin();
+    toast('Đã khôi phục dữ liệu ban đầu', '🔄');
+  }
+};
+
+window.delPoi = id => {
+  pois = pois.filter(p => p.id !== id);
+  save(); admin(); render();
+  toast('Đã xóa địa điểm', '🗑');
+};
+
+window.editPoi = id => {
+  const p = pois.find(x => x.id === id) || {
+    id: 'poi-' + Date.now(), name: '', cat: 'culture',
+    address: '', lat: 10.777, lng: 106.695, radius: 50,
+    priority: 0, duration: 5,
+    text: { vi: ['', ''], en: ['', ''], ko: ['', ''], ja: ['', ''], zh: ['', ''] }
+  };
+  modal(id ? '✏️ Chỉnh Sửa POI' : '➕ Thêm Địa Điểm Mới', `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <label>Tên địa điểm<input id="an" value="${p.name}" style="width:100%;margin-top:4px;"></label>
+      <label>Danh mục
+        <select id="acat" style="width:100%;margin-top:4px;">
+          <option value="culture" ${p.cat === 'culture' ? 'selected' : ''}>🏛 Di tích & Lịch sử</option>
+          <option value="temple" ${p.cat === 'temple' ? 'selected' : ''}>⛪ Kiến trúc Tôn giáo</option>
+          <option value="view" ${p.cat === 'view' ? 'selected' : ''}>🌅 Cảnh quan & Đi bộ</option>
+          <option value="food" ${p.cat === 'food' ? 'selected' : ''}>🍜 Ẩm thực & Chợ</option>
+        </select>
+      </label>
+      <label>Địa chỉ<input id="aa" value="${p.address}" style="width:100%;margin-top:4px;"></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label>Vĩ độ (Lat)<input id="alat" value="${p.lat}" type="number" step="0.0001" style="width:100%;margin-top:4px;"></label>
+        <label>Kinh độ (Lng)<input id="alng" value="${p.lng}" type="number" step="0.0001" style="width:100%;margin-top:4px;"></label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <label>Bán kính (m)<input id="ar" value="${p.radius}" type="number" style="width:100%;margin-top:4px;"></label>
+        <label>Ưu tiên<input id="ap" value="${p.priority}" type="number" style="width:100%;margin-top:4px;"></label>
+        <label>Thời lượng (phút)<input id="adur" value="${p.duration}" type="number" style="width:100%;margin-top:4px;"></label>
+      </div>
+      <label>🇻🇳 Nội dung Tiếng Việt<textarea id="at_vi" style="width:100%;height:70px;margin-top:4px;">${(p.text.vi || ['', ''])[1]}</textarea></label>
+      <label>🇬🇧 Nội dung English<textarea id="at_en" style="width:100%;height:60px;margin-top:4px;">${(p.text.en || ['', ''])[1]}</textarea></label>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn-primary" style="flex:1;" onclick="savePoi('${p.id}')">💾 Lưu thay đổi</button>
+        <button class="btn-outline" style="flex:1;" onclick="closeModal()">Đóng</button>
+      </div>
+    </div>
+  `);
+};
+
+window.savePoi = id => {
+  let p = pois.find(x => x.id === id) || {
+    id, text: { vi: ['', ''], en: ['', ''], ko: ['', ''] }
+  };
+  const name = $('an').value;
+  Object.assign(p, {
+    name,
+    cat: $('acat').value,
+    address: $('aa').value,
+    lat: +$('alat').value,
+    lng: +$('alng').value,
+    radius: +$('ar').value,
+    priority: +$('ap').value,
+    duration: +($('adur').value || 5)
+  });
+  p.text.vi = [name, $('at_vi').value];
+  p.text.en = [name, $('at_en').value || $('at_vi').value];
+  if (!pois.some(x => x.id === id)) pois.push(p);
+  save(); admin(); render();
+  updateSimDropdown();
+  toast('Đã lưu địa điểm thành công', '💾');
+};
+
+function updateSimDropdown() {
+  const l = $('lang').value || 'vi';
+  const t = UI_STRINGS[l] || UI_STRINGS.vi;
+  $('sim').innerHTML = `<option value="">${t.simPrompt}</option>` +
+    pois.map(p => {
+      const locName = (p.text && p.text[l] && p.text[l][0]) || p.name;
+      return `<option value="${p.id}">${locName}</option>`;
+    }).join('');
+}
+
+/* ─── Lọc Danh Mục Tabs ─── */
+document.querySelectorAll('#viewTabs button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#viewTabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    render();
+  };
+});
+
+/* ─── Voice Selection ─── */
+function loadVoices() {
+  if (!window.speechSynthesis) return;
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  const voices = speechSynthesis.getVoices();
+  const sel = $('voiceSelect');
+  const curVal = sel.value;
+  sel.innerHTML = `<option value="">${t.defaultVoice || 'Mặc định hệ thống'}</option>`;
+  voices.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${v.name} (${v.lang})`;
+    sel.appendChild(opt);
+  });
+  if (curVal !== '') sel.value = curVal;
+}
+if (window.speechSynthesis) {
+  speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
+}
+
+/* ─── Cài Đặt Sự Kiện Điều Khiển ─── */
+updateSimDropdown();
+
+$('sim').onchange = e => {
+  const p = pois.find(x => x.id === e.target.value);
+  if (p) locate(p.lat, p.lng);
+};
+
+$('realGps').onclick = () => {
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  if (navigator.geolocation) {
+    status(t.toasts ? t.toasts.gpsQuery : '📡 Đang truy vấn vị trí GPS thực tế từ thiết bị...');
+    navigator.geolocation.getCurrentPosition(
+      x => {
+        locate(x.coords.latitude, x.coords.longitude);
+        toast(t.toasts ? t.toasts.gpsSuccess : 'Đã cập nhật vị trí GPS thật', '📡');
+        $('gpsPillText').textContent = 'GPS: ±2m';
+      },
+      () => {
+        status(t.toasts ? t.toasts.gpsFail : '❌ Không thể lấy tín hiệu GPS.');
+        toast(t.toasts ? t.toasts.gpsFail : 'Không thể truy cập quyền GPS', '❌');
+      },
+      { enableHighAccuracy: true, timeout: 6000 }
+    );
+  } else {
+    status('❌ Geolocation API not supported');
+  }
+};
+
+$('q').oninput = render;
+$('lang').onchange = () => { render(); };
+
+$('stop').onclick = () => {
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  isSpeaking = false;
+  currentPlayingId = null;
+  $('playPauseBtn').textContent = '▶';
+  $('walkGiantBtnIcon').textContent = '▶';
+  $('narrationFill').style.width = '0%';
+  updateWaveformProgress(0);
+  $('playerSubStatus').textContent = t.playerStopped || 'Đã dừng thuyết minh';
+  status(t.playerStopped || '⏹ Đã dừng phát thuyết minh.');
+  render();
+  toast(t.toasts ? t.toasts.playerStopped : 'Đã dừng phát', '⏹');
+};
+
+$('clear').onclick = () => {
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  tour = [];
+  renderTour();
+  render();
+  if (currentViewMode === 'cards') renderProximityCards();
+  toast(t.toasts ? t.toasts.tourCleared : 'Đã xóa toàn bộ lộ trình tour', '🗑');
+};
+
+$('start').onclick = () => {
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  index = 0;
+  if (tour.length) { speak(tour[0], true); } 
+  else { status(t.tourEmpty); toast(t.toasts ? t.toasts.tourEmptyWarn : 'Lộ trình tour đang trống', '⚠️'); }
+};
+
+$('next').onclick = () => {
+  if (!tour.length) return status('Lộ trình tour đang trống.');
+  index = (index + 1) % tour.length;
+  speak(tour[index], true);
+};
+
+$('history').onclick = () => {
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  const hm = t.historyModal || {};
+  modal(hm.title || '📜 Lịch Sử Nghe Thuyết Minh', events.length
+    ? `<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">${hm.total ? hm.total(events.length) : `Tổng số lượt đã nghe: <b>${events.length}</b> lượt`}</p>` +
+      events.slice(0, 50).map(e => `<div class="tour-item">
+        <div>
+          <b>${e.name}</b><br>
+          <span style="font-size:12px;color:var(--text-muted)">${e.at} · ${e.mode} · ${hm.langLabel || 'Ngôn ngữ'}: ${e.language.toUpperCase()}</span>
+        </div>
+      </div>`).join('')
+    : `<p style="text-align:center;padding:24px;color:var(--text-muted)">${hm.empty || 'Chưa có lượt nghe nào được ghi nhận.'}</p>`
+  );
+};
+
+$('help').onclick = () => {
+  const lang = $('lang').value || 'vi';
+  const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+  const hm = t.helpModal || {};
+  modal(hm.title || '❓ Hướng Dẫn Sử Dụng GeoAudio Guide', `
+    <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:1.6;">
+      <p>${hm.p1 || ''}</p>
+      <p>${hm.p2 || ''}</p>
+      <p>${hm.p3 || ''}</p>
+      <p>${hm.p4 || ''}</p>
+      <p>${hm.p5 || ''}</p>
+    </div>
+  `);
+};
+
+/* ─── Đồng bộ với Backend qua ApiClient ─── */
+async function syncPOIsFromBackend() {
+  if (typeof ApiClient === 'undefined') return;
+  try {
+    const result = await ApiClient.fetchBootstrapData(base);
+    const badge = $('apiStatusBadge');
+    if (result.ok && Array.isArray(result.pois) && result.pois.length > 0) {
+      // Chỉ gán nếu dữ liệu trả về từ backend là dữ liệu Sài Gòn
+      if (result.pois.some(p => p.id === 'dinh-doc-lap' || p.name.includes('Sài Gòn') || p.name.includes('Độc Lập'))) {
+        pois = result.pois;
+        if (badge) {
+          badge.className = 'api-badge live';
+          badge.textContent = '🟢 Dữ liệu trực tuyến (API)';
+        }
+        render();
+        updateSimDropdown();
+        console.log('✓ Đã đồng bộ POI thành công từ Backend (Live API):', result.pois.length, 'địa điểm');
+      }
+    } else {
+      if (badge) {
+        badge.className = 'api-badge demo';
+        badge.textContent = '🟡 Dữ liệu mẫu (Ngoại tuyến)';
+      }
+      console.log('ℹ Chế độ Ngoại tuyến / Demo Data:', result.error);
+    }
+  } catch (error) {
+    console.warn('Lỗi khi nạp dữ liệu từ Adapter:', error);
+  }
+}
+
+/* ─── Đồng hồ & Thống kê thời gian thực ─── */
+setInterval(updateVisitStats, 1000);
+
+/* ─── Xử Lý QR Deep-Linking qua URL Parameters (?poi=<id>&lang=<code>) ─── */
+function handleQrDeepLinking() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const langParam = urlParams.get('lang');
+  const poiParam = urlParams.get('poi');
+
+  // 1. Tự động chuyển ngôn ngữ nếu có tham số lang
+  if (langParam) {
+    const cleanLang = langParam.trim().toLowerCase();
+    const validLangs = ['vi', 'en', 'ko', 'ja', 'zh'];
+    if (validLangs.includes(cleanLang)) {
+      setQuickLang(cleanLang);
+    }
+  }
+
+  // 2. Tự động định vị, mở Player và kích hoạt thuyết minh nếu có tham số poi
+  if (poiParam) {
+    const targetPoiId = poiParam.trim().toLowerCase();
+    const matchedPoi = pois.find(p =>
+      p.id.toLowerCase() === targetPoiId ||
+      p.id.toLowerCase() === targetPoiId.replace(/_/g, '-')
+    );
+
+    if (matchedPoi) {
+      console.log('✓ Nhận diện QR Deep-Link POI:', matchedPoi.name);
+
+      // Cập nhật vị trí GPS du khách ngay tại điểm di tích quét mã
+      position = { lat: matchedPoi.lat, lng: matchedPoi.lng };
+      $('sim').value = matchedPoi.id;
+
+      // Nâng Bottom Sheet Player lên Nấc 2 (Half-Expanded)
+      setBottomSheetStage('half');
+
+      // Cập nhật giao diện bản đồ và danh sách
+      render();
+
+      // Thử phát tự động Web Speech (nếu trình duyệt cho phép autoplay)
+      try {
+        speak(matchedPoi.id, true);
+      } catch (err) {
+        console.log('Autoplay policy caught, showing unlock banner:', err);
+      }
+
+      // Hiển thị Banner mở khóa âm thanh nổi bật để du khách chạm 1 chạm là nghe ngay (vượt qua Autoplay Policy của iOS/Android)
+      const lang = $('lang').value || 'vi';
+      const t = UI_STRINGS[lang] || UI_STRINGS.vi;
+      const matchedTitle = (matchedPoi.text && matchedPoi.text[lang] && matchedPoi.text[lang][0]) || matchedPoi.name;
+
+      modal(t.qrModalTitle || '📷 Đã Quét Mã QR Di Tích!', `
+        <div style="text-align:center;padding:10px 0;display:flex;flex-direction:column;gap:14px;align-items:center;">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--emerald-subtle);color:var(--emerald);display:grid;place-items:center;font-size:28px;border:2px solid var(--emerald);margin:0 auto;">
+            🏛
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:0.05em;">
+              ${t.qrModalSub || 'Điểm thuyết minh được nhận diện qua QR'}
+            </div>
+            <h2 style="font-size:22px;font-weight:800;color:var(--text);margin-top:2px;">
+              ${matchedTitle}
+            </h2>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px;">
+              📍 ${matchedPoi.address}
+            </div>
+          </div>
+          <button class="btn-primary" style="width:100%;min-height:52px;font-size:16px;border-radius:var(--radius);font-weight:700;" onclick="closeModal();speak('${matchedPoi.id}', true);">
+            ${t.qrModalStart || '▶ BẮT ĐẦU NGHE THUYẾT MINH NGAY'}
+          </button>
+          <button class="btn-outline" style="width:100%;min-height:44px;font-size:13px;" onclick="closeModal()">
+            ${t.qrModalExplore || 'Tự do khám phá trên bản đồ'}
+          </button>
+        </div>
+      `);
+      toast(`📷 Nhận diện QR: ${matchedTitle}`, '✓');
+    } else {
+      console.warn('Không tìm thấy POI khớp với tham số URL ?poi=' + poiParam);
+    }
+  }
+
+  // 3. Tự động kích hoạt vé nếu có tham số ?pass=<code>
+  const passParam = urlParams.get('pass');
+  if (passParam) {
+    console.log('✓ Nhận diện QR Deep-Link Pass Code:', passParam);
+    submitAccessPassActivation(passParam.trim());
+  }
+
+  // 4. Tự động nạp lộ trình Tour nếu có tham số ?tour=<tourId>
+  const tourParam = urlParams.get('tour');
+  if (tourParam) {
+    console.log('✓ Nhận diện QR Deep-Link Tour:', tourParam);
+    setTimeout(() => {
+      applySuggestedTour(tourParam.trim());
+    }, 1000);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   9. UC1: ACCESS PASS MODAL & QUẢN LÝ VÉ THAM QUAN
+══════════════════════════════════════════════════════════════ */
+function openAccessPassModal() {
+  const currentPass = localStorage.getItem('tmtd-access-pass') || 'DEMO-2026';
+  const passExpiry = localStorage.getItem('tmtd-access-pass-expiry');
+  const isActivated = localStorage.getItem('tmtd-access-pass-active') === 'true';
+
+  modal('🎟️ Kích Hoạt Vé Tham Quan (Access Pass)', `
+    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0;">
+      <div style="font-size:13px;color:var(--text-muted);">
+        Quét mã QR vé hoặc nhập mã Access Pass để tải gói dữ liệu thuyết minh chất lượng cao và mở khóa các tour độc quyền.
+      </div>
+
+      <div style="background:var(--bg-subtle);border-radius:var(--radius);padding:14px;border:1.5px solid var(--border);">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px;">Mã Vé Tham Quan:</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="accessPassInput" value="${currentPass}" placeholder="VD: DEMO-2026" style="flex:1;font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);" />
+          <button class="btn-primary" style="white-space:nowrap;padding:0 18px;" onclick="submitAccessPassActivation()">
+            Kích Hoạt
+          </button>
+        </div>
+        <div id="passModalStatus" style="margin-top:10px;font-size:13px;font-weight:600;display:${isActivated ? 'block' : 'none'};color:var(--emerald);">
+          ${isActivated ? `✅ Vé đang hoạt động (${currentPass}). ${passExpiry ? 'Hạn dùng: ' + new Date(passExpiry).toLocaleDateString() : ''}` : ''}
+        </div>
+      </div>
+
+      <div style="font-size:12px;color:var(--text-muted);background:var(--accent-subtle);padding:10px;border-radius:8px;">
+        💡 <b>Mẹo dùng thử:</b> Sử dụng mã vé mặc định <code>DEMO-2026</code> (được cấp sẵn 30 ngày) để trải nghiệm toàn bộ hệ thống ngay lập tức!
+      </div>
+      <button class="btn-outline" style="width:100%;min-height:44px;" onclick="closeModal()">Đóng cửa sổ</button>
+    </div>
+  `);
+}
+window.openAccessPassModal = openAccessPassModal;
+
+async function submitAccessPassActivation(overrideCode = null) {
+  const code = (overrideCode || ($('accessPassInput') ? $('accessPassInput').value : 'DEMO-2026') || 'DEMO-2026').trim();
+  const lang = $('lang').value || 'vi';
+  const statusEl = $('passModalStatus');
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.style.color = 'var(--text-muted)';
+    statusEl.textContent = '⏳ Đang kết nối máy chủ kích hoạt vé...';
+  }
+
+  try {
+    const res = await ApiClient.activateAccessPass(code, lang);
+    if (res.ok) {
+      localStorage.setItem('tmtd-access-pass', code);
+      localStorage.setItem('tmtd-access-pass-active', 'true');
+      if (res.data.accessPass && res.data.accessPass.expiresAt) {
+        localStorage.setItem('tmtd-access-pass-expiry', res.data.accessPass.expiresAt);
+      }
+      if (statusEl) {
+        statusEl.style.color = 'var(--emerald)';
+        statusEl.textContent = `✅ ${res.data.message || 'Kích hoạt thành công!'}`;
+      }
+      toast(`🎟️ Đã kích hoạt vé [${code}] thành công!`, '✓');
+
+      // Nếu có tour package đính kèm, cập nhật POI & Tour
+      if (res.data.package && Array.isArray(res.data.package.pois) && res.data.package.pois.length > 0) {
+        pois = res.data.package.pois.map(ApiClient.normalizePoi).filter(Boolean);
+        render();
+        updateSimDropdown();
+      }
+      loadSuggestedTours();
+    } else {
+      if (statusEl) {
+        statusEl.style.color = 'var(--danger)';
+        statusEl.textContent = `❌ ${res.error || 'Kích hoạt không thành công'}`;
+      }
+      toast(`❌ Kích hoạt vé thất bại: ${res.error}`, '⚠️');
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.style.color = 'var(--danger)';
+      statusEl.textContent = `❌ Lỗi: ${err.message}`;
+    }
+  }
+}
+window.submitAccessPassActivation = submitAccessPassActivation;
+
+/* ══════════════════════════════════════════════════════════════
+   10. UC6: SUGGESTED TOURS & CUSTOM ROUTE METRICS
+══════════════════════════════════════════════════════════════ */
+async function loadSuggestedTours() {
+  if (typeof ApiClient === 'undefined') return;
+  const lang = $('lang').value || 'vi';
+  const container = $('suggestedToursList');
+  if (!container) return;
+
+  try {
+    const res = await ApiClient.fetchSuggestedTours(lang);
+    if (res.ok && res.tours && res.tours.length > 0) {
+      container.innerHTML = res.tours.map(t => `
+        <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div style="font-weight:700;font-size:13px;color:var(--text);">${t.name}</div>
+            <span style="font-size:11px;font-family:var(--font-mono);background:var(--accent-subtle);color:var(--accent);padding:2px 6px;border-radius:4px;font-weight:700;">${t.estimatedMinutes} phút</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);">${t.description || ''}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+            <span style="font-size:11px;color:var(--text-muted);">📍 ${t.stops.length} điểm dừng</span>
+            <button class="btn btn-outline" style="font-size:11px;padding:3px 10px;min-height:28px;" onclick="applySuggestedTour('${t.id}')">
+              ➕ Áp dụng
+            </button>
+          </div>
+        </div>
+      `).join('');
+      window._suggestedToursCache = res.tours;
+    } else {
+      container.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">Không có tour gợi ý trực tuyến.</span>';
+    }
+  } catch (err) {
+    console.debug('Lỗi tải suggested tours:', err);
+  }
+}
+window.loadSuggestedTours = loadSuggestedTours;
+
+function applySuggestedTour(tourId) {
+  const tours = window._suggestedToursCache || [];
+  const found = tours.find(t => t.id === tourId);
+  if (found && found.poiIds && found.poiIds.length > 0) {
+    tour = [...found.poiIds];
+    renderTour();
+    render();
+    toast(`✓ Đã nạp "${found.name}" (${found.poiIds.length} chặng)`, '🧭');
+  }
+}
+window.applySuggestedTour = applySuggestedTour;
+
+async function recalculateCustomRoute() {
+  const box = $('routeMetricsBox');
+  if (!box) return;
+  if (!tour || tour.length === 0) {
+    box.style.display = 'none';
+    return;
+  }
+  const lang = $('lang').value || 'vi';
+  try {
+    const res = await ApiClient.planCustomRoute({ poiIds: tour, language: lang, walkingSpeedKmh: 4 });
+    if (res.ok && res.data) {
+      box.style.display = 'block';
+      $('routeTotalDist').textContent = `${(res.data.totalDistanceM || 0).toLocaleString()} m (~${((res.data.totalDistanceM || 0) / 1000).toFixed(1)} km)`;
+      $('routeTotalTime').textContent = `${res.data.estimatedMinutes || 0} phút (Đi bộ: ${res.data.walkingMinutes || 0}p · Thuyết minh: ${res.data.listeningMinutes || 0}p)`;
+    }
+  } catch (err) {
+    console.debug('Lỗi tính route metrics:', err);
+  }
+}
+window.recalculateCustomRoute = recalculateCustomRoute;
+
+/* ══════════════════════════════════════════════════════════════
+   11. UC4: AI CHATBOT VỚI HƯỚNG DẪN VIÊN ẢO
+══════════════════════════════════════════════════════════════ */
+function toggleAiChat() {
+  const drawer = $('aiChatDrawer');
+  if (!drawer) return;
+  const isHidden = drawer.classList.contains('hidden');
+  if (isHidden) {
+    drawer.classList.remove('hidden');
+    $('chatInput').focus();
+  } else {
+    drawer.classList.add('hidden');
+  }
+}
+window.toggleAiChat = toggleAiChat;
+
+async function sendAiChatMessage(presetText = '') {
+  const input = $('chatInput');
+  const message = presetText || (input ? input.value : '').trim();
+  if (!message) return;
+  if (!presetText && input) input.value = '';
+
+  const history = $('chatMessagesList');
+  if (!history) return;
+
+  // Thêm tin nhắn của du khách
+  const userDiv = document.createElement('div');
+  userDiv.className = 'chat-bubble user';
+  userDiv.textContent = message;
+  history.appendChild(userDiv);
+  history.scrollTop = history.scrollHeight;
+
+  // Hiệu ứng đang trả lời
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'chat-bubble bot typing';
+  typingDiv.textContent = 'Đang suy nghĩ...';
+  history.appendChild(typingDiv);
+  history.scrollTop = history.scrollHeight;
+
+  try {
+    const res = await ApiClient.sendChatMessage(message);
+    if (typingDiv.parentNode) history.removeChild(typingDiv);
+    const botDiv = document.createElement('div');
+    botDiv.className = 'chat-bubble bot';
+    botDiv.innerHTML = `<strong>Hướng dẫn viên AI:</strong> ${res.reply}`;
+    history.appendChild(botDiv);
+    history.scrollTop = history.scrollHeight;
+  } catch (e) {
+    if (typingDiv.parentNode) history.removeChild(typingDiv);
+    const errDiv = document.createElement('div');
+    errDiv.className = 'chat-bubble bot';
+    errDiv.textContent = 'Hiện hướng dẫn viên đang bận, bạn vui lòng thử lại sau.';
+    history.appendChild(errDiv);
+    history.scrollTop = history.scrollHeight;
+  }
+}
+window.sendAiChatMessage = sendAiChatMessage;
+
+/* ─── Real-Time Visitor Presence Telemetry (Định vị & Trạng thái du khách gửi về Admin) ─── */
+const myVisitorId = localStorage.getItem('tmtd-my-visitor-id') || ('VIS-' + Math.floor(1000 + Math.random() * 9000));
+localStorage.setItem('tmtd-my-visitor-id', myVisitorId);
+
+function broadcastVisitorPresence() {
+  const curPoi = pois.find(p => p.id === currentPlayingId) || pois.find(p => position && dist(position.lat, position.lng, p.lat, p.lng) <= p.radius);
+  const curLang = $('lang') ? $('lang').value : 'vi';
+  const curPass = localStorage.getItem('tmtd-access-pass') || '';
+  
+  const presence = {
+    visitorId: myVisitorId,
+    passCode: curPass,
+    language: curLang,
+    currentPoiId: curPoi ? curPoi.id : null,
+    deviceInfo: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
+    latitude: position ? position.lat : null,
+    longitude: position ? position.lng : null,
+    isSpeaking: Boolean(isSpeaking)
+  };
+
+  // Gửi heartbeat thực tế tới máy chủ Backend API
+  if (typeof ApiClient !== 'undefined' && ApiClient.sendHeartbeat) {
+    ApiClient.sendHeartbeat(presence).catch(() => {});
+  }
+
+  // Đồng bộ qua BroadcastChannel cho tab Admin cùng trình duyệt
+  if (typeof BroadcastChannel !== 'undefined') {
+    if (!window.presenceChannel) window.presenceChannel = new BroadcastChannel('geoaudio-presence');
+    window.presenceChannel.postMessage({ type: 'HEARTBEAT', presence });
+  }
+}
+
+// Gửi heartbeat định kỳ mỗi 15 giây
+setInterval(broadcastVisitorPresence, 15000);
+window.broadcastVisitorPresence = broadcastVisitorPresence;
+
+// Khi rời trang / đóng tab: thông báo leave ngay lập tức qua sendBeacon
+window.addEventListener('pagehide', () => {
+  if (typeof ApiClient !== 'undefined' && ApiClient.sendLeave) {
+    ApiClient.sendLeave(myVisitorId);
+  }
+});
+window.addEventListener('beforeunload', () => {
+  if (typeof ApiClient !== 'undefined' && ApiClient.sendLeave) {
+    ApiClient.sendLeave(myVisitorId);
+  }
+});
+
+/* ─── Khởi động lần đầu ─── */
+applyLanguage($('lang').value || 'vi');
+render();
+handleQrDeepLinking();
+syncPOIsFromBackend();
+loadSuggestedTours();
+broadcastVisitorPresence();
+</script>
+</body>
+</html>

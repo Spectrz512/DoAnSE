@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bộ Tạo Mã QR & Vé Tham Quan · GeoAudio Guide Chùa Linh Ứng</title>
+<meta name="description" content="Tạo mã QR cho khách hàng quét truy cập vào ứng dụng thuyết minh tự động GPS Chùa Linh Ứng (Đà Nẵng).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Playfair+Display:wght@700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F4F6F4;
+  --surface: #FFFFFF;
+  --text: #0E1D19;
+  --text-muted: #3D5A50;
+  --accent: #C07F38;
+  --accent-hover: #A76926;
+  --accent-subtle: #FDF6EE;
+  --emerald: #10B981;
+  --emerald-subtle: #ECFDF5;
+  --border: #D2DDD7;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Be Vietnam Pro', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+.container {
+  max-width: 620px;
+  width: 100%;
+}
+.header-brand {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.brand-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+.header-brand h1 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.header-brand p {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  box-shadow: 0 10px 30px rgba(14,29,25,0.06);
+}
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+label .badge-opt {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+select, input[type="text"] {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  font: inherit;
+  font-size: 14px;
+  background: #FFF;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+select:focus, input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(192, 127, 56, 0.15);
+}
+.input-btn-group {
+  display: flex;
+  gap: 8px;
+}
+.input-btn-group input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.2s, transform 0.1s;
+  white-space: nowrap;
+}
+.btn:hover { opacity: 0.92; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent); color: #FFF; }
+.btn-success { background: var(--emerald); color: #FFF; }
+.btn-secondary { background: var(--bg); border: 1.5px solid var(--border); color: var(--text); }
+
+.qr-section {
+  text-align: center;
+  padding-top: 18px;
+  border-top: 1.5px dashed var(--border);
+}
+.qr-frame {
+  background: #FFFFFF;
+  border: 2px dashed var(--accent);
+  border-radius: 16px;
+  padding: 16px;
+  display: inline-block;
+  margin: 14px 0;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+img#qrImage {
+  width: 220px;
+  height: 220px;
+  display: block;
+}
+.url-preview-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-all;
+  margin: 10px 0 16px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.url-preview-box code {
+  flex: 1;
+}
+.btn-copy {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #FFF;
+  cursor: pointer;
+}
+.btn-group-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.btn-open-link {
+  background: linear-gradient(135deg, var(--accent) 0%, #A76926 100%);
+  color: #FFF;
+  padding: 14px;
+  font-size: 15px;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(192, 127, 56, 0.25);
+}
+.status-msg {
+  display: none;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  margin-top: 6px;
+}
+.status-msg.success { display: block; background: var(--emerald-subtle); color: #065F46; border: 1px solid #A7F3D0; }
+.status-msg.error { display: block; background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header-brand">
+    <div class="brand-pill">
+      <span>🛕</span>
+      <span>HỆ THỐNG THUYẾT MINH DI TÍCH LINH ỨNG</span>
+    </div>
+    <h1>Bộ Tạo Mã QR Truy Cập Cho Khách</h1>
+    <p>Tạo mã QR in tại quầy vé hoặc gửi khách quét bằng Camera điện thoại</p>
+  </div>
+
+  <div class="card">
+    <div class="form-grid">
+      <!-- 1. Mã Vé Access Pass -->
+      <div class="form-group">
+        <label for="passCodeInput">
+          <span>🎟️ Mã Vé Access Pass:</span>
+          <span class="badge-opt">Dùng để mở khóa gói thuyết minh</span>
+        </label>
+        <div class="input-btn-group">
+          <input type="text" id="passCodeInput" value="DEMO-2026" placeholder="VD: DEMO-2026" oninput="updateQrCode()">
+          <button type="button" class="btn btn-secondary" onclick="generateNewPassCode()" title="Tạo mã ngẫu nhiên và lưu lên hệ thống">
+            ⚡ Tạo mã mới
+          </button>
+          <button type="button" class="btn btn-success" onclick="activatePassCode()">
+            Kích hoạt
+          </button>
+        </div>
+        <div id="passStatusMsg" class="status-msg"></div>
+      </div>
+
+      <!-- 2. Chọn Tour Tham Quan -->
+      <div class="form-group">
+        <label for="tourSelect">
+          <span>🧭 Chọn Lộ Trình Tour (Gợi ý):</span>
+          <span class="badge-opt">Tự động dẫn đường theo thứ tự</span>
+        </label>
+        <select id="tourSelect" onchange="updateQrCode()">
+          <option value="">-- Tham quan tự do (Không theo tour) --</option>
+        </select>
+      </div>
+
+      <!-- 3. Chọn Điểm Bắt Đầu (POI) -->
+      <div class="form-group">
+        <label for="poiSelect">
+          <span>📍 Điểm Bắt Đầu / Trọng Tâm (POI):</span>
+          <span class="badge-opt">Khách quét mã sẽ tự động mở điểm này</span>
+        </label>
+        <select id="poiSelect" onchange="updateQrCode()">
+          <option value="">-- Mở toàn cảnh Chùa Linh Ứng --</option>
+        </select>
+      </div>
+
+      <!-- 4. Chọn Ngôn Ngữ Mặc Định -->
+      <div class="form-group">
+        <label for="langSelect">
+          <span>🌐 Ngôn Ngữ Thuyết Minh Mặc Định:</span>
+          <span class="badge-opt">5 ngôn ngữ chuẩn hóa</span>
+        </label>
+        <select id="langSelect" onchange="updateQrCode()">
+          <option value="vi">🇻🇳 Tiếng Việt (VI)</option>
+          <option value="en">🇬🇧 English (EN)</option>
+          <option value="ko">🇰🇷 한국어 (KO)</option>
+          <option value="ja">🇯🇵 日本語 (JA)</option>
+          <option value="zh">🇨🇳 中文 (ZH)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Khu vực hiển thị QR Code -->
+    <div class="qr-section">
+      <div class="qr-frame">
+        <img id="qrImage" alt="Mã QR Truy Cập">
+      </div>
+
+      <div class="url-preview-box">
+        <code id="urlPreviewText">...</code>
+        <button class="btn-copy" onclick="copyTargetUrl()">📋 Copy</button>
+      </div>
+
+      <div class="btn-group-actions">
+        <a id="btnOpenTarget" class="btn btn-open-link" href="#" target="_blank">
+          🚀 Mở Trải Nghiệm Khách Hàng (Tab Mới)
+        </a>
+        <button class="btn btn-secondary" onclick="window.print()">
+          🖨️ In Mã QR Này Ra Giấy
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="api-client.js"></script>
+<script>
+let bootstrapData = { pois: [], tours: [] };
+
+async function loadData() {
+  try {
+    const res = await ApiClient.fetchBootstrapData();
+    if (res.ok && res.pois) {
+      bootstrapData = res;
+      populateSelectors();
+    }
+  } catch (e) {
+    console.debug('Lỗi tải bootstrap:', e);
+  }
+  updateQrCode();
+}
+
+function populateSelectors() {
+  const tourSel = document.getElementById('tourSelect');
+  const poiSel = document.getElementById('poiSelect');
+
+  // Tours
+  if (Array.isArray(bootstrapData.tours) && bootstrapData.tours.length > 0) {
+    tourSel.innerHTML = '<option value="">-- Tham quan tự do (Không theo tour) --</option>' +
+      bootstrapData.tours.map(t => `<option value="${t.id}">🧭 ${t.name} (${t.estimatedMinutes} phút · ${t.stops.length} điểm)</option>`).join('');
+  }
+
+  // POIs
+  if (Array.isArray(bootstrapData.pois) && bootstrapData.pois.length > 0) {
+    poiSel.innerHTML = '<option value="">-- Mở toàn cảnh Chùa Linh Ứng --</option>' +
+      bootstrapData.pois.map(p => `<option value="${p.id}">📍 ${p.name}</option>`).join('');
+  }
+}
+
+function getGeneratedUrl() {
+  const pass = (document.getElementById('passCodeInput').value || '').trim();
+  const tour = document.getElementById('tourSelect').value;
+  const poi = document.getElementById('poiSelect').value;
+  const lang = document.getElementById('langSelect').value || 'vi';
+
+  const base = window.location.origin + window.location.pathname.replace('qr.html', 'index.html');
+  const params = new URLSearchParams();
+  if (pass) params.set('pass', pass);
+  if (lang) params.set('lang', lang);
+  if (tour) params.set('tour', tour);
+  if (poi) params.set('poi', poi);
+
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+function updateQrCode() {
+  const targetUrl = getGeneratedUrl();
+  document.getElementById('urlPreviewText').textContent = targetUrl;
+  document.getElementById('btnOpenTarget').href = targetUrl;
+
+  const qrUrl = 'https://quickchart.io/qr?size=400&text=' + encodeURIComponent(targetUrl);
+  document.getElementById('qrImage').src = qrUrl;
+}
+
+async function generateNewPassCode() {
+  const statusEl = document.getElementById('passStatusMsg');
+  statusEl.className = 'status-msg';
+  statusEl.textContent = '⏳ Đang khởi tạo Access Pass trên máy chủ...';
+  statusEl.style.display = 'block';
+
+  const randCode = 'LU-' + Math.floor(100000 + Math.random() * 900000);
+  const selectedTour = document.getElementById('tourSelect').value || null;
+
+  try {
+    const res = await ApiClient.createAccessPass({
+      code: randCode,
+      tourId: selectedTour,
+      expiresInHours: 72
+    });
+
+    if (res.ok && res.data) {
+      document.getElementById('passCodeInput').value = randCode;
+      statusEl.className = 'status-msg success';
+      statusEl.textContent = `✅ Đã cấp mã mới [${randCode}] thành công! Hạn dùng 72 giờ.`;
+      updateQrCode();
+    } else {
+      statusEl.className = 'status-msg error';
+      statusEl.textContent = `❌ ${res.error || 'Không thể tạo mã'}`;
+    }
+  } catch (err) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = `❌ Lỗi: ${err.message}`;
+  }
+}
+
+async function activatePassCode() {
+  const code = (document.getElementById('passCodeInput').value || '').trim();
+  const lang = document.getElementById('langSelect').value || 'vi';
+  const statusEl = document.getElementById('passStatusMsg');
+  statusEl.className = 'status-msg';
+  statusEl.textContent = '⏳ Đang kích hoạt vé...';
+  statusEl.style.display = 'block';
+
+  try {
+    const res = await ApiClient.activateAccessPass(code, lang);
+    if (res.ok) {
+      statusEl.className = 'status-msg success';
+      statusEl.textContent = `✅ ${res.data.message || 'Kích hoạt thành công!'} Mã [${code}] trạng thái: ${res.data.accessPass.status}.`;
+    } else {
+      statusEl.className = 'status-msg error';
+      statusEl.textContent = `❌ ${res.error || 'Kích hoạt thất bại'}`;
+    }
+  } catch (err) {
+    statusEl.className = 'status-msg error';
+    statusEl.textContent = `❌ Lỗi: ${err.message}`;
+  }
+}
+
+function copyTargetUrl() {
+  const text = document.getElementById('urlPreviewText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('✓ Đã sao chép liên kết vào clipboard!');
+  }).catch(() => {
+    prompt('Sao chép liên kết tại đây:', text);
+  });
+}
+
+// Khởi chạy
+loadData();
+</script>
+</body>
+</html>

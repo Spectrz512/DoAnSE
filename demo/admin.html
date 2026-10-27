@@ -1,0 +1,2842 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Heritage Command Center · Quản Trị GeoAudio Guide Sài Gòn</title>
+<meta name="description" content="Trung tâm điều hành và quản trị dữ liệu di tích, vùng địa lý Geofencing và thống kê lượt nghe thuyết minh GPS tại TP.HCM.">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+<!-- Leaflet.js & Google Maps Tiles -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<style>
+/* ─── 1. Design Tokens ─── */
+:root {
+  --bg: #F4F6F4;
+  --bg-subtle: #EAEFEB;
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --border: #D2DDD7;
+  --border-strong: #9CB2A7;
+  
+  --text: #0E1D19;
+  --text-muted: #3D5A50;
+  --text-inverse: #FFFFFF;
+  
+  --accent: #C07F38;          /* Vàng đồng ngói di sản */
+  --accent-hover: #A76926;
+  --accent-subtle: #FDF6EE;
+  
+  --emerald: #10B981;
+  --emerald-subtle: #ECFDF5;
+  --cobalt: #2563EB;
+  --cobalt-subtle: #EFF6FF;
+  --danger: #B52B27;
+  --danger-subtle: #FDF2F2;
+  
+  --shadow-sm: 0 2px 4px rgba(14, 29, 25, 0.05);
+  --shadow-md: 0 4px 16px rgba(14, 29, 25, 0.10);
+  --shadow-lg: 0 10px 30px rgba(14, 29, 25, 0.14);
+  
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-pill: 9999px;
+  
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --transition: 0.25s cubic-bezier(0.2, 0, 0, 1);
+}
+
+[data-theme="dark"] {
+  --bg: #090E17;
+  --bg-subtle: #121A27;
+  --surface: #182232;
+  --surface-elevated: #1F2D42;
+  --border: #26354D;
+  --border-strong: #3B4F70;
+  
+  --text: #F1F5F9;
+  --text-muted: #94A3B8;
+  --text-inverse: #090E17;
+  
+  --accent-subtle: rgba(192, 127, 56, 0.15);
+  --emerald-subtle: rgba(16, 185, 129, 0.15);
+  --cobalt-subtle: rgba(37, 99, 235, 0.15);
+  --danger-subtle: rgba(181, 43, 39, 0.15);
+  
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Header ─── */
+.admin-header {
+  background: var(--surface);
+  border-bottom: 1.5px solid var(--border);
+  padding: 12px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-seal {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, var(--accent) 0%, #8A531C 100%);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #FFF;
+  box-shadow: 0 4px 10px rgba(192, 127, 56, 0.35);
+}
+
+.brand-info h1 {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.brand-info p {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.api-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.api-badge.live {
+  background: var(--emerald-subtle);
+  color: #065F46;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.api-badge.demo {
+  background: var(--accent-subtle);
+  color: #92400E;
+  border-color: rgba(192, 127, 56, 0.3);
+}
+
+[data-theme="dark"] .api-badge.live { color: #34D399; }
+[data-theme="dark"] .api-badge.demo { color: #FBBF24; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all var(--transition);
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #FFFFFF;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn-outline:hover {
+  background: var(--bg-subtle);
+  border-color: var(--accent);
+}
+
+.btn-danger {
+  background: var(--danger-subtle);
+  color: var(--danger);
+  border-color: rgba(181, 43, 39, 0.3);
+}
+.btn-danger:hover {
+  background: var(--danger);
+  color: #FFF;
+}
+
+.btn-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-subtle);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 16px;
+  transition: all var(--transition);
+}
+.btn-icon:hover {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+/* ─── Main Workspace & Tabs ─── */
+.admin-container {
+  flex: 1;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Top Navigation Pills */
+.admin-nav {
+  display: flex;
+  gap: 8px;
+  background: var(--surface);
+  padding: 6px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+
+.nav-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.nav-tab-btn:hover {
+  color: var(--text);
+  background: var(--bg-subtle);
+}
+
+.nav-tab-btn.active {
+  background: var(--accent);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(192, 127, 56, 0.35);
+}
+
+/* Content Sections */
+.tab-section {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+.tab-section.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── 1. Dashboard Analytics ─── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--accent);
+}
+
+.kpi-card:nth-child(2)::after { background: var(--emerald); }
+.kpi-card:nth-child(3)::after { background: var(--cobalt); }
+.kpi-card:nth-child(4)::after { background: #9333EA; }
+
+.kpi-val {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.kpi-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.kpi-icon {
+  font-size: 32px;
+  opacity: 0.85;
+}
+
+.charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .charts-row { grid-template-columns: 1fr; }
+}
+
+.panel-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Bar Chart */
+.bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bar-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bar-track {
+  width: 100%;
+  height: 10px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--emerald) 0%, var(--accent) 100%);
+  transition: width 0.6s ease;
+}
+
+/* Table Styles */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+th {
+  background: var(--bg-subtle);
+  padding: 10px 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg-subtle); }
+
+/* ─── 2. POI & Visual Geofence Editor ─── */
+.editor-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 1000px) {
+  .editor-layout { grid-template-columns: 1fr; }
+}
+
+.poi-sidebar {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 800px;
+  overflow-y: auto;
+}
+
+.poi-card-item {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--bg-subtle);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.poi-card-item:hover {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.poi-card-item.active {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.poi-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.poi-item-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.poi-item-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Leaflet Google Map in Editor */
+#editorMap {
+  width: 100%;
+  height: 380px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+/* Form Controls */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.form-control {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  font: inherit;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.form-control:focus {
+  border-color: var(--accent);
+}
+
+/* Multilingual Tabs in Editor */
+.lang-tab-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+  border-bottom: 1.5px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.lang-tab-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.lang-tab-btn.active {
+  background: var(--accent);
+  color: #FFF;
+  border-color: var(--accent);
+}
+
+/* ─── 3. QR Print Studio ─── */
+.qr-studio-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .qr-studio-grid { grid-template-columns: 1fr; }
+}
+
+.print-standee-card {
+  max-width: 480px;
+  margin: 0 auto;
+  background: #FFFFFF;
+  border: 2px solid #C07F38;
+  border-radius: 20px;
+  padding: 36px 30px;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  color: #0E1D19;
+}
+
+.standee-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #EAEFEB;
+  padding-bottom: 18px;
+}
+
+.standee-logo {
+  width: 54px;
+  height: 54px;
+  background: #C07F38;
+  color: #FFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  box-shadow: 0 4px 12px rgba(192, 127, 56, 0.4);
+}
+
+.standee-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.standee-qr-frame {
+  display: inline-block;
+  padding: 14px;
+  border: 2px dashed #C07F38;
+  border-radius: 16px;
+  background: #FFFFFF;
+  margin: 12px 0 16px 0;
+}
+
+.standee-qr-frame img {
+  width: 220px;
+  height: 220px;
+  display: block;
+}
+
+.standee-instructions {
+  font-size: 14px;
+  color: #3D5A50;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    padding: 0 !important;
+  }
+  .admin-header, .admin-nav, .no-print {
+    display: none !important;
+  }
+  .admin-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .print-standee-card {
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+}
+
+/* ─── 4. Architecture Monitor ─── */
+.arch-diagram {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.arch-node {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.arch-node-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  display: inline-block;
+  width: fit-content;
+}
+
+.arch-node-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.arch-node-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ─── Live Visitor Radar & Heatmap CSS ─── */
+.live-dot-ping {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #10B981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: live-ping 1.6s infinite;
+}
+
+@keyframes live-ping {
+  0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+#radarMap {
+  width: 100%;
+  height: 520px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  overflow: hidden;
+  position: relative;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 20px;
+}
+
+/* Visitor Avatar Pin on Map */
+.visitor-marker-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.visitor-marker-wrap {
+  width: 38px;
+  height: 38px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.visitor-marker-wrap:hover {
+  transform: scale(1.3) translateY(-4px);
+  z-index: 2000 !important;
+}
+
+.visitor-avatar-bubble {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid #2563EB;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  position: relative;
+  z-index: 2;
+  transition: all 0.25s;
+}
+
+.visitor-marker-wrap.speaking .visitor-avatar-bubble {
+  border-color: #10B981;
+  background: #ECFDF5;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.8);
+}
+
+.visitor-marker-wrap.real-user .visitor-avatar-bubble {
+  border-color: #F59E0B;
+  background: #FEF3C7;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.9);
+}
+
+.visitor-pulse-ring {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 2px solid rgba(37, 99, 235, 0.6);
+  background: rgba(37, 99, 235, 0.15);
+  animation: visitor-pulse 2s infinite ease-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.visitor-marker-wrap.speaking .visitor-pulse-ring {
+  border-color: rgba(16, 185, 129, 0.8);
+  background: rgba(16, 185, 129, 0.25);
+  animation: visitor-pulse-speaking 1.4s infinite ease-out;
+}
+
+@keyframes visitor-pulse {
+  0% { transform: scale(0.5); opacity: 0.9; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+@keyframes visitor-pulse-speaking {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+/* Visitor Density Grid */
+.density-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.density-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.density-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.density-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.density-title {
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.density-badge {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-subtle);
+  color: var(--text);
+}
+
+.density-badge.active {
+  background: var(--emerald-subtle);
+  color: #065F46;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.visitor-avatars-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.visitor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+}
+
+.visitor-chip.speaking {
+  background: #ECFDF5;
+  color: #065F46;
+  border-color: #10B981;
+}
+
+/* Activity Ticker Feed */
+.live-stream-box {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.live-stream-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  animation: fadeIn 0.3s ease;
+}
+
+.live-stream-item:last-child {
+  border-bottom: none;
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="admin-header no-print">
+  <div class="brand-wrap">
+    <div class="brand-seal">🏛</div>
+    <div class="brand-info">
+      <h1>Heritage Command Center</h1>
+      <p>Trung Tâm Quản Trị Di Sản & Geofencing GPS Sài Gòn</p>
+    </div>
+  </div>
+
+    <div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg-subtle);padding:4px 8px;border-radius:var(--radius-sm);border:1px solid var(--border);">
+      <span style="font-size:12px;font-weight:700;">🔑 Admin Key:</span>
+      <input type="password" id="adminKeyInput" value="local-admin-key-change-me" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);width:150px;font-family:var(--font-mono);" title="Admin Key dùng cho API bảo mật" onchange="saveAdminKey()" />
+      <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;" onclick="syncAdminDataFromApi()">🔄 Đồng bộ API</button>
+    </div>
+    <span id="livePresenceHeaderBadge" class="api-badge live" style="font-weight:700;box-shadow:0 0 10px rgba(16,185,129,0.3);">
+      <span class="live-dot-ping"></span>
+      <span id="headerVisitorCount">12</span> du khách trực tuyến
+    </span>
+    <span id="apiStatusBadge" class="api-badge live">🟢 Backend API: Sẵn sàng</span>
+    <span id="pingBadge" class="api-badge demo" style="font-family:var(--font-mono)">⚡ 8ms</span>
+    <button class="btn-icon" id="themeToggle" title="Đổi giao diện Tối/Sáng">🌙</button>
+    <a href="index.html" class="btn btn-outline" target="_blank">
+      🎧 Trang Du Khách →
+    </a>
+  </div>
+</header>
+
+<!-- Workspace Container -->
+<div class="admin-container">
+  <!-- Top Nav Pills -->
+  <nav class="admin-nav no-print" aria-label="Phân hệ quản trị">
+    <button class="nav-tab-btn active" onclick="switchAdminTab('dashboard')">
+      📊 Analytics Dashboard
+    </button>
+    <button class="nav-tab-btn" onclick="switchAdminTab('radar')">
+      🛰️ Live Visitor Radar (Du Khách Đang Ở Đâu)
+    </button>
+    <button class="nav-tab-btn" onclick="switchAdminTab('editor')">
+      🗺️ POI & Geofence Editor
+    </button>
+    <button class="nav-tab-btn" onclick="switchAdminTab('qr')">
+      🖨️ QR Print Studio
+    </button>
+    <button class="nav-tab-btn" onclick="switchAdminTab('arch')">
+      🛡️ Backend 3-Tier Architecture
+    </button>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       TAB 1: ANALYTICS DASHBOARD
+  ══════════════════════════════════════════════════════════════ -->
+  <section id="tab-dashboard" class="tab-section active">
+    <!-- 4 KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-val" id="kpiTotalPois">8</div>
+          <div class="kpi-label">Tổng Điểm Di Tích</div>
+        </div>
+        <div class="kpi-icon">🏛️</div>
+      </div>
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-val" id="kpiTotalEvents">0</div>
+          <div class="kpi-label">Lượt Nghe Thuyết Minh</div>
+        </div>
+        <div class="kpi-icon">🎧</div>
+      </div>
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-val" id="kpiTopPoi" style="font-size:18px;">Dinh Độc Lập</div>
+          <div class="kpi-label">Điểm Thu Hút Nhất</div>
+        </div>
+        <div class="kpi-icon">⭐</div>
+      </div>
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-val" id="kpiTopLang" style="font-size:22px;">🇻🇳 VI (70%)</div>
+          <div class="kpi-label">Ngôn Ngữ Phổ Biến</div>
+        </div>
+        <div class="kpi-icon">🌐</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-row">
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>📊 Lượt Nghe Theo Điểm Di Tích</span>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">Dữ liệu thời gian thực</span>
+        </div>
+        <div id="poiListenBars" class="bar-list">
+          <!-- Render động -->
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🌐 Tỷ Lệ 5 Ngôn Ngữ</span>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">VI, EN, KO, JA, ZH</span>
+        </div>
+        <div id="langDistributionBars" class="bar-list">
+          <!-- Render động -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Listening Event Logs -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>📜 Nhật Ký Lượt Nghe Thời Gian Thực (Live Listening Event Logs)</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="exportEventLogs()">📤 Xuất CSV / JSON</button>
+          <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="clearEventLogs()">🗑 Xóa Nhật Ký</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Thời gian</th>
+              <th>Địa điểm di tích</th>
+              <th>Chế độ</th>
+              <th>Ngôn ngữ</th>
+              <th>Tọa độ GPS</th>
+            </tr>
+          </thead>
+          <tbody id="eventLogsTableBody">
+            <!-- Render động -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Live Admin Audit Event Logs (UC3) -->
+    <div class="panel-card" style="margin-top:20px;">
+      <div class="panel-title">
+        <span>🛡️ Nhật Ký Hoạt Động Quản Trị (Audit Event Logs - UC3)</span>
+        <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="loadAdminAuditEvents()">🔄 Tải Lại Audit Logs</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Thời gian</th>
+              <th>Hành động (Action)</th>
+              <th>Thực thể</th>
+              <th>ID Đối tượng</th>
+              <th>Người thực hiện</th>
+              <th>Chi tiết thay đổi</th>
+            </tr>
+          </thead>
+          <tbody id="auditLogsTableBody">
+            <!-- Render động từ GET /api/admin/audit-events -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       TAB RADAR: LIVE VISITOR RADAR (BAO NHIÊU NGƯỜI & Ở ĐÂU)
+  ══════════════════════════════════════════════════════════════ -->
+  <section id="tab-radar" class="tab-section">
+    <!-- 4 Live Presence KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-val" id="radarTotalActive" style="color:var(--emerald);">12</div>
+          <div class="kpi-label">🟢 Du Khách Đang Trực Tuyến</div>
+        </div>
+        <div class="kpi-icon">👥</div>
+      </div>
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-val" id="radarTopHotspot" style="font-size:18px;">Chợ Bến Thành (4)</div>
+          <div class="kpi-label">📍 Điểm Nóng Tập Trung Nhất</div>
+        </div>
+        <div class="kpi-icon">🔥</div>
+      </div>
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-val" id="radarSpeakingCount">5 người</div>
+          <div class="kpi-label">🔊 Đang Nghe Thuyết Minh</div>
+        </div>
+        <div class="kpi-icon">🎧</div>
+      </div>
+      <div class="kpi-card">
+        <div>
+          <div class="kpi-val" id="radarWalkingCount">7 người</div>
+          <div class="kpi-label">🚶 Đang Đi Bộ / Tham Quan</div>
+        </div>
+        <div class="kpi-icon">🚶</div>
+      </div>
+    </div>
+
+    <!-- Live Google Map with Visitors & POIs -->
+    <div class="panel-card" style="margin-bottom:20px;">
+      <div class="panel-title">
+        <span>🛰️ Bản Đồ Vị Trí Du Khách Thời Gian Thực (Google Maps Live Radar)</span>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600;">
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#10B981;border-radius:50%;display:inline-block;"></span> Đang nghe thuyết minh</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#2563EB;border-radius:50%;display:inline-block;"></span> Đang đi bộ</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#F59E0B;border-radius:50%;display:inline-block;"></span> Bạn (Tab du khách)</span>
+        </div>
+      </div>
+      <div id="radarMap"></div>
+      <p style="font-size:12px;color:var(--text-muted);">
+        💡 Click vào bất kỳ icon du khách nào trên bản đồ để xem chi tiết danh tính, ngôn ngữ, tọa độ GPS và thiết bị đang sử dụng!
+      </p>
+    </div>
+
+    <!-- Phân Bố: Du Khách Đang Ở Đâu? -->
+    <div class="panel-card" style="margin-bottom:20px;">
+      <div class="panel-title">
+        <span>📍 Mật Độ Du Khách Tại Các Điểm Di Tích (Du Khách Đang Ở Đâu?)</span>
+        <span style="font-size:12px;color:var(--text-muted);">Tự động nhóm theo vùng bán kính Geofence</span>
+      </div>
+      <div id="densityGrid" class="density-grid">
+        <!-- Render động 8 POIs kèm danh sách du khách đang có mặt -->
+      </div>
+    </div>
+
+    <!-- Live Visitor Telemetry Activity Feed & Roster Table -->
+    <div class="charts-row">
+      <!-- Live Stream Ticker -->
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>⚡ Dòng Hoạt Động Thời Gian Thực (Live Activity Feed)</span>
+          <span class="live-dot-ping"></span>
+        </div>
+        <div id="liveActivityFeed" class="live-stream-box">
+          <!-- Render động các hành động thời gian thực -->
+        </div>
+      </div>
+
+      <!-- Active Visitors Roster Table -->
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>📋 Danh Sách Du Khách Đang Online</span>
+          <span id="rosterCountBadge" class="api-badge live">12 người</span>
+        </div>
+        <div class="table-wrap" style="max-height:240px;overflow-y:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Du khách</th>
+                <th>Vị trí</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="visitorRosterTableBody">
+              <!-- Render động -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════════════════════════════
+       TAB 3: POI & VISUAL GEOFENCE EDITOR
+  ══════════════════════════════════════════════════════════════ -->
+  <section id="tab-editor" class="tab-section">
+    <div class="editor-layout">
+      <!-- Left POI Selector List -->
+      <div class="poi-sidebar">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h3 style="font-size:15px;font-weight:700;">Danh Sách Di Tích (8)</h3>
+          <button class="btn btn-primary" style="font-size:12px;padding:4px 10px;" onclick="createNewPoi()">➕ Thêm mới</button>
+        </div>
+        <input id="poiSearch" class="form-control" placeholder="Tìm theo tên..." oninput="filterPoiList()">
+        <div id="poiSidebarList" style="display:flex;flex-direction:column;gap:8px;">
+          <!-- Render động -->
+        </div>
+      </div>
+
+      <!-- Right Interactive Map & Details Editor -->
+      <div class="panel-card">
+        <div class="panel-title">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="editorFormTitle">✏️ Chỉnh Sửa Địa Điểm & Vùng Geofence</span>
+            <span id="poiStatusBadge" class="api-badge live" style="font-size:11px;">PUBLISHED</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-outline" id="btnToggleStatus" onclick="toggleCurrentPoiStatusLive()" style="font-size:12px;padding:6px 12px;" title="Chuyển đổi trạng thái DRAFT / PUBLISHED trên máy chủ">
+              🔄 Đổi DRAFT / PUBLISHED
+            </button>
+            <button class="btn btn-danger" id="btnDeletePoi" onclick="deleteCurrentPoi()">🗑 Xóa POI</button>
+            <button class="btn btn-primary" onclick="saveCurrentPoi()">💾 Lưu Thay Đổi</button>
+          </div>
+        </div>
+
+        <!-- Google Maps Leaflet Editor -->
+        <div id="editorMap"></div>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
+          💡 <b>Mẹo quản trị:</b> Click chuột bất kỳ đâu trên bản đồ hoặc kéo thả Pin để gán tọa độ GPS chính xác. Kéo thanh trượt bên dưới để chỉnh bán kính Geofence trực quan!
+        </p>
+
+        <!-- Coordinates & Parameters -->
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Mã định danh (ID / Slug)</label>
+            <input id="editId" class="form-control" readonly style="background:var(--bg-subtle)">
+          </div>
+          <div class="form-group">
+            <label>Tên địa điểm (Tiếng Việt)</label>
+            <input id="editName" class="form-control" oninput="updatePinLabelLive()">
+          </div>
+          <div class="form-group">
+            <label>Danh mục di tích</label>
+            <select id="editCat" class="form-control">
+              <option value="culture">🏛 Di tích & Lịch sử</option>
+              <option value="temple">⛪ Kiến trúc Tôn giáo</option>
+              <option value="view">🌅 Cảnh quan & Đi bộ</option>
+              <option value="food">🍜 Ẩm thực & Chợ</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Địa chỉ</label>
+            <input id="editAddress" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Vĩ độ (Lat)</label>
+            <input id="editLat" type="number" step="0.0001" class="form-control" oninput="updatePinPosLive()">
+          </div>
+          <div class="form-group">
+            <label>Kinh độ (Lng)</label>
+            <input id="editLng" type="number" step="0.0001" class="form-control" oninput="updatePinPosLive()">
+          </div>
+          <div class="form-group">
+            <label>Bán kính Geofence: <b id="radiusValueLabel" style="color:var(--accent)">50m</b></label>
+            <input id="editRadius" type="range" min="20" max="150" step="5" class="form-control" oninput="updateRadiusLive(this.value)">
+          </div>
+          <div class="form-group">
+            <label>Độ ưu tiên phát (1-10)</label>
+            <input id="editPriority" type="number" min="1" max="10" class="form-control">
+          </div>
+        </div>
+
+        <!-- 5-Language Narration Content Editor -->
+        <div style="border-top:1.5px solid var(--border);padding-top:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <label style="font-size:13px;font-weight:700;">Nội Dung Thuyết Minh 5 Ngôn Ngữ</label>
+            <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="previewVoiceTTS()">
+              🔊 Nghe Thử TTS
+            </button>
+          </div>
+
+          <div class="lang-tab-bar">
+            <button class="lang-tab-btn active" data-lang="vi" onclick="switchEditorLangTab('vi')">🇻🇳 Tiếng Việt</button>
+            <button class="lang-tab-btn" data-lang="en" onclick="switchEditorLangTab('en')">🇬🇧 English</button>
+            <button class="lang-tab-btn" data-lang="ko" onclick="switchEditorLangTab('ko')">🇰🇷 한국어</button>
+            <button class="lang-tab-btn" data-lang="ja" onclick="switchEditorLangTab('ja')">🇯🇵 日本語</button>
+            <button class="lang-tab-btn" data-lang="zh" onclick="switchEditorLangTab('zh')">🇨🇳 中文</button>
+          </div>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label>Tiêu đề địa điểm (theo ngôn ngữ đã chọn)</label>
+            <input id="editLangTitle" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label>Kịch bản bài thuyết minh chi tiết (Live Transcript)</label>
+            <textarea id="editLangDesc" class="form-control" style="height:110px;line-height:1.6;"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       TAB 3: QR PRINT STUDIO
+  ══════════════════════════════════════════════════════════════ -->
+  <section id="tab-qr" class="tab-section">
+    <div class="qr-studio-grid">
+      <!-- Left Controls -->
+      <div class="panel-card no-print">
+        <div class="panel-title">
+          <span>⚙️ Cấu Hình In Bảng QR & Vé Tham Quan</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label>Mã Access Pass (Vé Tham Quan):</label>
+          <div style="display:flex;gap:8px;">
+            <input id="qrPassCodeInput" class="form-control" value="DEMO-2026" placeholder="DEMO-2026" oninput="renderQrStudio()" style="font-family:var(--font-mono);font-weight:700;text-transform:uppercase;">
+            <button type="button" class="btn btn-outline" style="white-space:nowrap;padding:0 12px;" onclick="generateAdminPassCode()">
+              ⚡ Cấp Mã Mới
+            </button>
+          </div>
+          <span id="qrPassStatusNote" style="font-size:11px;color:var(--text-muted);margin-top:4px;display:block;">Mặc định: DEMO-2026 hoặc bấm cấp mã vé mới cho khách.</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label>Chọn Lộ Trình Tour (Gợi ý):</label>
+          <select id="qrTourSelect" class="form-control" onchange="renderQrStudio()">
+            <option value="">-- Tham quan tự do (Không theo tour) --</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label>Chọn Điểm Di Tích (POI Bắt Đầu):</label>
+          <select id="qrPoiSelect" class="form-control" onchange="renderQrStudio()">
+            <!-- Render động từ danh sách POIs -->
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label>Ngôn Ngữ Mặc Định Khi Quét:</label>
+          <select id="qrLangSelect" class="form-control" onchange="renderQrStudio()">
+            <option value="vi">🇻🇳 Tiếng Việt (VI)</option>
+            <option value="en">🇬🇧 English (EN)</option>
+            <option value="ko">🇰🇷 한국어 (KO)</option>
+            <option value="ja">🇯🇵 日本語 (JA)</option>
+            <option value="zh">🇨🇳 中文 (ZH)</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:18px;">
+          <label>Đường dẫn Deep-Link:</label>
+          <input id="qrDeepLinkUrl" class="form-control" readonly style="font-family:var(--font-mono);font-size:12px;background:var(--bg-subtle)">
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-primary" onclick="window.print()">
+            🖨️ In Bảng QR Di Tích (Chuẩn A4 / A5)
+          </button>
+          <a id="btnTestQrUrl" class="btn btn-outline" target="_blank" href="#">
+            🚀 Mở Kiểm Thử Tab Du Khách
+          </a>
+          <a class="btn btn-outline" target="_blank" href="qr.html">
+            📱 Mở Trang Tạo Mã Độc Lập (qr.html)
+          </a>
+        </div>
+      </div>
+
+      <!-- Right Print Preview (Standee) -->
+      <div>
+        <div class="print-standee-card" id="qrPrintPreview">
+          <div class="standee-header">
+            <div class="standee-logo">🏛</div>
+            <div style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#C07F38;font-weight:800;">
+              Thành Phố Hồ Chí Minh · Di Sản & Du Lịch
+            </div>
+            <h2 class="standee-title" id="standeePoiName">Dinh Độc Lập</h2>
+            <div style="font-size:13px;color:#64748B;" id="standeeAddress">135 Nam Kỳ Khởi Nghĩa, Bến Thành, Quận 1</div>
+          </div>
+
+          <div class="standee-qr-frame">
+            <img id="standeeQrImg" alt="QR Code Di Tích">
+          </div>
+
+          <div class="standee-instructions">
+            📱 <b>Quét mã bằng Camera điện thoại</b><br>
+            để tự động nghe thuyết minh GPS & xem kịch bản đa ngữ
+          </div>
+          <div style="font-size:12px;color:#94A3B8;margin-top:8px;">
+            Scan via smartphone camera for automated GPS audio guide
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       TAB 4: BACKEND 3-TIER ARCHITECTURE & HEALTH CHECK
+  ══════════════════════════════════════════════════════════════ -->
+  <section id="tab-arch" class="tab-section">
+    <!-- Architecture Diagram -->
+    <div class="panel-card" style="margin-bottom:20px;">
+      <div class="panel-title">
+        <span>🛡️ Kiến Trúc Backend 3 Lớp (Presentation - Controller - Service - DAO)</span>
+        <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="checkBackendHealth()">⚡ Kiểm tra kết nối</button>
+      </div>
+
+      <div class="arch-diagram">
+        <div class="arch-node">
+          <span class="arch-node-badge" style="background:#EFF6FF;color:#1D4ED8;">Layer 1: Presentation</span>
+          <div class="arch-node-title">Client Data Adapter</div>
+          <div class="arch-node-desc">File <code>api-client.js</code> kết nối với AbortController (timeout 4s), khử trùng lặp sự kiện nghe 5s.</div>
+          <div style="margin-top:auto;font-size:12px;color:var(--emerald);font-weight:700;">● Active in Browser</div>
+        </div>
+
+        <div class="arch-node">
+          <span class="arch-node-badge" style="background:#ECFDF5;color:#047857;">Layer 2: Controller</span>
+          <div class="arch-node-title">NestJS REST API</div>
+          <div class="arch-node-desc">Các controller <code>/api/pois</code>, <code>/api/listening-events</code>, <code>/api/geo/trigger-candidates</code>.</div>
+          <div id="archControllerStatus" style="margin-top:auto;font-size:12px;color:var(--emerald);font-weight:700;">● Endpoint: :3000/api</div>
+        </div>
+
+        <div class="arch-node">
+          <span class="arch-node-badge" style="background:#FEF3C7;color:#B45309;">Layer 3: Service / BUS</span>
+          <div class="arch-node-title">Geofencing & Narration BUS</div>
+          <div class="arch-node-desc">Nghiệp vụ tính khoảng cách Haversine, chọn lọc POI theo bán kính và ngôn ngữ.</div>
+          <div style="margin-top:auto;font-size:12px;color:var(--emerald);font-weight:700;">● Business Logic Ready</div>
+        </div>
+
+        <div class="arch-node">
+          <span class="arch-node-badge" style="background:#F3E8FF;color:#7E22CE;">Layer 4: Repository / DAO</span>
+          <div class="arch-node-title">Prisma ORM & PostgreSQL</div>
+          <div class="arch-node-desc">Mô hình dữ liệu POI, Narration, ListeningEvent đồng bộ qua <code>prisma/schema.prisma</code>.</div>
+          <div style="margin-top:auto;font-size:12px;color:var(--emerald);font-weight:700;">● Schema v7.10</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions & Data Management -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>🔄 Quản Trị & Khôi Phục Dữ Liệu Hệ Thống</span>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+        Thao tác khôi phục hoặc xuất sao lưu an toàn toàn bộ dữ liệu 8 điểm di tích Sài Gòn và lịch sử nghe:
+      </p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-outline" style="border-color:var(--danger);color:var(--danger);" onclick="resetStandardData()">
+          🔄 Khôi phục 8 Điểm Sài Gòn Gốc (Reset Seed)
+        </button>
+        <button class="btn btn-outline" onclick="exportFullSystemBackup()">
+          📤 Xuất Tệp Sao Lưu Hệ Thống (JSON Backup)
+        </button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Nạp ApiClient -->
+<script src="api-client.js"></script>
+
+<script>
+/* ─── Dữ Liệu 8 Điểm Sài Gòn Chuẩn (5 Ngôn Ngữ) ─── */
+const base = [
+  {
+    id: 'dinh-doc-lap',
+    name: 'Dinh Độc Lập',
+    cat: 'culture',
+    address: '135 Nam Kỳ Khởi Nghĩa, Bến Thành, Quận 1',
+    lat: 10.7770, lng: 106.6953,
+    radius: 50, priority: 10, duration: 6,
+    text: {
+      vi: [
+        'Dinh Độc Lập',
+        'Chào mừng bạn đến với Dinh Độc Lập, di tích lịch sử quốc gia đặc biệt tại trung tâm Thành phố Hồ Chí Minh. Công trình do kiến trúc sư Ngô Viết Thụ thiết kế, kết hợp hài hòa giữa triết lý phương Đông và phong cách hiện đại. Nơi đây từng là nơi làm việc của Tổng thống Việt Nam Cộng hòa và chứng kiến ngày thống nhất đất nước 30 tháng 4 năm 1975. Hãy bước qua cổng chính để chiêm ngưỡng những phòng khánh tiết trang trọng.'
+      ],
+      en: [
+        'Independence Palace',
+        'Welcome to Independence Palace, a special national historical landmark in the heart of Ho Chi Minh City. Designed by architect Ngo Viet Thu, it harmoniously blends Eastern philosophy with modernist architecture. This site witnessed the historic reunification of Vietnam on April 30, 1975. Step inside to admire the grand ceremonial chambers and lush presidential gardens.'
+      ],
+      ko: [
+        '통일궁',
+        '호치민시 중심부에 위치한 특별 국가 역사 유적지인 통일궁에 오신 것을 환영합니다. 건축가 응오 비엣 투가 설계하였으며, 동양 철학과 현대 건축 양식이 조화를 이루고 있습니다. 1975년 4월 30일 베트남 통일의 역사적 현장입니다. 대형 의전실과 아름다운 정원을 감상해 보세요.'
+      ],
+      ja: [
+        '統一会堂',
+        'ホーチミン市中心部に位置する国家特別歴史遺跡、統一会堂へようこそ。建築家ヴォ・ヴィエット・トゥによって設計され、東洋の哲学と現代建築が見事に調和しています。1975年4月30日の歴史的な南北統一の舞台となりました。壮麗な会議室や美しい庭園をご堪能ください。'
+      ],
+      zh: [
+        '统一宫',
+        '欢迎来到位于胡志明市中心的国家级特别历史遗迹——统一宫。这座建筑由建筑大师吴日秋设计，巧妙融合了东方哲学与现代主义风格，见证了1975年4月30日国家统一的历史时刻。'
+      ]
+    }
+  },
+  {
+    id: 'nha-tho-duc-ba',
+    name: 'Nhà thờ Đức Bà Sài Gòn',
+    cat: 'temple',
+    address: '01 Công xã Paris, Bến Nghé, Quận 1',
+    lat: 10.7798, lng: 106.6990,
+    radius: 45, priority: 9, duration: 5,
+    text: {
+      vi: [
+        'Nhà thờ Đức Bà Sài Gòn',
+        'Vương cung Thánh đường Chính tòa Đức Mẹ Vô nhiễm Nguyên tội được xây dựng từ năm 1877 đến 1880. Toàn bộ gạch đỏ xây dựng đều được vận chuyển trực tiếp từ cảng Marseille nước Pháp. Hai tháp chuông cao 58 mét vươn thẳng lên nền trời, là biểu tượng tôn giáo và kiến trúc độc đáo bậc nhất Sài Gòn. Phía trước thánh đường là tượng Đức Mẹ Hòa Bình uy nghiêm.'
+      ],
+      en: [
+        'Notre-Dame Cathedral Basilica of Saigon',
+        'Built between 1877 and 1880, all exterior red bricks were shipped directly from Marseille, France. Its twin bell towers soar 58 meters into the sky, serving as one of Saigon most recognizable architectural and religious icons. In the front courtyard stands the serene marble statue of Our Lady of Peace.'
+      ],
+      ko: [
+        '사이공 노트르담 대성당',
+        '1877년부터 1880년 사이에 건축된 이 성당의 외벽 붉은 벽돌은 전량 프랑스 마르세유에서 직접 운송되었습니다. 58미터 높이의 쌍둥이 종탑은 사이공의 가장 상징적인 종교 및 건축 랜드마크입니다. 성당 앞뜰에는 평화의 성모 마리아상이 모셔져 있습니다.'
+      ],
+      ja: [
+        'サイゴン・ノートルダム大聖堂',
+        '1877年から1880年にかけて建設され、外壁の赤レンガはすべてフランスのマルセイユから運ばれました。高さ58メートルの二塔の鐘楼が空高くそびえ立ち、サイゴン屈指の歴史的建築物です。聖堂の前には平和の聖母マリア像が厳かに佇んでいます。'
+      ],
+      zh: [
+        '西贡圣母大教堂',
+        '建于1877年至1880年间，整座教堂的外墙红砖均由法国马赛直接海运而来。高达58米的一对双钟楼耸立于城市天际线，是西贡最具代表性的宗教与建筑地标。'
+      ]
+    }
+  },
+  {
+    id: 'buu-dien-trung-tam',
+    name: 'Bưu điện Trung tâm Sài Gòn',
+    cat: 'culture',
+    address: '02 Công xã Paris, Bến Nghé, Quận 1',
+    lat: 10.7799, lng: 106.6999,
+    radius: 40, priority: 8, duration: 5,
+    text: {
+      vi: [
+        'Bưu điện Trung tâm Sài Gòn',
+        'Nằm kế bên Nhà thờ Đức Bà, Bưu điện Trung tâm được xây dựng vào cuối thế kỷ 19 theo đồ án của kiến trúc sư Villedieu và Foulhoux. Công trình nổi tiếng với vòm kim loại uốn cong tinh xảo, sàn gạch hoa cổ điển và hai bản đồ lịch sử vẽ tay công phu trên tường sảnh lớn. Nơi đây vẫn phục vụ dịch vụ bưu chính truyền thống cho du khách thập phương.'
+      ],
+      en: [
+        'Saigon Central Post Office',
+        'Located right next to Notre-Dame Cathedral, this grand post office was built in the late 19th century by French architects Villedieu and Foulhoux. It is renowned for its arched metal ceiling, patterned tile floors, and historic hand-painted wall maps. It still functions as an active postal office welcoming guests from around the globe.'
+      ],
+      ko: [
+        '사이공 중앙 우체국',
+        '노트르담 대성당 바로 옆에 위치한 중앙 우체국은 19세기 후반 프랑스 건축가들이 설계했습니다. 웅장한 아치형 철골 천장과 고풍스러운 타일 바닥, 대형 홀 벽면의 수제 역사 지도로 유명합니다.'
+      ],
+      ja: [
+        'サイゴン中央郵便局',
+        'ノートルダム大聖堂のすぐ隣に位置するこの郵便局は、19世紀末に建てられました。美しいアーチ型の鉄骨天井、クラシックなタイルの床、そして大ホールの壁に描かれた歴史的な手描きの地図が見どころです。'
+      ],
+      zh: [
+        '西贡中央邮局',
+        '紧邻圣母大教堂的中央邮局建于19世纪末，由法国著名建筑师设计。高大的弧形金属拱顶、古典花砖地面以及大堂两侧保存完好的巨幅手绘历史地图令人叹为观止。'
+      ]
+    }
+  },
+  {
+    id: 'bao-tang-chung-tich',
+    name: 'Bảo tàng Chứng tích Chiến tranh',
+    cat: 'culture',
+    address: '28 Võ Văn Tần, Phường Võ Thị Sáu, Quận 3',
+    lat: 10.7794, lng: 106.6922,
+    radius: 45, priority: 8, duration: 6,
+    text: {
+      vi: [
+        'Bảo tàng Chứng tích Chiến tranh',
+        'Bảo tàng Chứng tích Chiến tranh là nơi lưu giữ những tư liệu, hiện vật và hình ảnh chân thực về cuộc kháng chiến bảo vệ Tổ quốc. Khuôn viên trưng bày nhiều loại máy bay, xe tăng quân sự và các phòng trưng bày ảnh báo chí quốc tế, truyền tải thông điệp sâu sắc về hòa bình cho nhân loại. Hãy bước đi chậm rãi và giữ trật tự trang nghiêm.'
+      ],
+      en: [
+        'War Remnants Museum',
+        'The War Remnants Museum houses graphic exhibits and military artifacts documenting the realities of war and the quest for peace. The outdoor courtyard features armored vehicles and aircraft, alongside powerful international photography exhibitions conveying deep humanitarian messages.'
+      ],
+      ko: [
+        '전쟁유적박물관',
+        '전쟁의 참상과 평화의 소중함을 증언하는 귀중한 역사 유물과 기록 사진들이 보존된 곳입니다. 야외 전시장에는 군용기와 탱크가 전시되어 있으며, 감동적인 국제 보도사진들이 전시되어 있습니다.'
+      ],
+      ja: [
+        '戦争証跡博物館',
+        '戦争の真実と平和への祈りを伝える貴重な資料や記録写真が展示されています。屋外には戦車や軍用機が並び、世界中の報道写真家による心を打つ作品が展示されています。'
+      ],
+      zh: [
+        '战争遗迹博物馆',
+        '馆内收藏了大量详实的图文资料与实物展品，真实记录了战争的苦难与对和平的渴望。户外展区陈列着重型装甲车与战机，馆内展出多位知名国际战地记者的纪实摄影原作。'
+      ]
+    }
+  },
+  {
+    id: 'nha-hat-thanh-pho',
+    name: 'Nhà hát Thành phố',
+    cat: 'culture',
+    address: '07 Công trường Lam Sơn, Bến Nghé, Quận 1',
+    lat: 10.7767, lng: 106.7032,
+    radius: 40, priority: 7, duration: 5,
+    text: {
+      vi: [
+        'Nhà hát Thành phố',
+        'Khánh thành vào năm 1900, Nhà hát Thành phố được xây dựng theo phong cách kiến trúc Flamboyant rực rỡ của thời kỳ Đệ tam Cộng hòa Pháp. Mặt tiền trang trí các bức phù điêu thiên thần, bên trong là khán phòng sang trọng với âm học xuất sắc phục vụ các buổi hòa nhạc và kịch nghệ đỉnh cao.'
+      ],
+      en: [
+        'Saigon Opera House',
+        'Inaugurated in 1900, the Opera House was built in the ornate Flamboyant style of the French Third Republic. Its facade is adorned with angelic reliefs, housing an acoustically refined auditorium for symphonies, ballets, and contemporary theatrical performances.'
+      ],
+      ko: [
+        '호치민 시립극장 (사이공 오페라 하우스)',
+        '1900년에 완공된 시립극장은 프랑스 제3공화국 시대의 화려한 플랑부아양 양식으로 지어졌습니다. 정면의 천사 부조 조각과 뛰어난 음향을 자랑하는 우아한 공연홀을 갖추고 있습니다.'
+      ],
+      ja: [
+        '市民劇場（サイゴン・オペラハウス）',
+        '1900年に開館したこの劇場は、フランス第三共和政時代の華麗なフランボワイヤン様式で建てられました。ファサードの美しい彫刻と音響に優れた客席が特徴です。'
+      ],
+      zh: [
+        '胡志明市大剧院（西贡歌剧院）',
+        '竣工于1900年，采用法国第三共和国时期华丽的火焰哥特式风格建造。正面雕刻着精美的天使浮雕，剧院内部声学效果卓越，是举办高端交响音乐会与歌剧演出的艺术殿堂。'
+      ]
+    }
+  },
+  {
+    id: 'pho-di-bo-nguyen-hue',
+    name: 'Phố đi bộ Nguyễn Huệ',
+    cat: 'view',
+    address: 'Đại lộ Nguyễn Huệ, Bến Nghé, Quận 1',
+    lat: 10.7738, lng: 106.7047,
+    radius: 55, priority: 8, duration: 5,
+    text: {
+      vi: [
+        'Phố đi bộ Nguyễn Huệ',
+        'Đại lộ đi bộ hiện đại dài 670 mét nối từ Trụ sở UBND Thành phố đến Bến Bạch Đằng bên bờ sông Sài Gòn. Nơi đây từng là kênh đào Chợ Vải xưa, nay trở thành quảng trường văn hóa, lễ hội với hệ thống phun nước nghệ thuật và ánh sáng lung linh rực rỡ về đêm.'
+      ],
+      en: [
+        'Nguyen Hue Walking Street',
+        'A vibrant 670-meter pedestrian boulevard extending from City Hall straight down to the Bach Dang riverfront. Once the historic Grand Canal, it is now the premier public promenade in Saigon featuring musical fountains and festive night illumination.'
+      ],
+      ko: [
+        '응우옌후에 보행자 거리',
+        '호치민 인민위원회 청사부터 사이공강 바익당 선착장까지 670미터에 이르는 번화한 보행자 거리입니다. 과거 운하였던 곳이 현재는 분수대와 야경이 아름다운 시민 광장으로 변모했습니다.'
+      ],
+      ja: [
+        'グエンフエ歩行者天国',
+        '人民委員会庁舎からサイゴン川のバクダン埠頭まで全長670メートルにわたる賑やかな遊歩道です。夜には噴水ショーと美しいイルミネーションで彩られる憩いの広場です。'
+      ],
+      zh: [
+        '阮惠步行街',
+        '长达670米的现代化步行大道，由胡志明市人民委员会大楼笔直延伸至西贡河畔的白藤码头。这里原为古老的运河，如今已是集音乐喷泉、夜景灯光和节庆聚会于一身的城市客厅。'
+      ]
+    }
+  },
+  {
+    id: 'cho-ben-thanh',
+    name: 'Chợ Bến Thành',
+    cat: 'food',
+    address: 'Đường Lê Lợi, Phường Bến Thành, Quận 1',
+    lat: 10.7725, lng: 106.6980,
+    radius: 50, priority: 9, duration: 5,
+    text: {
+      vi: [
+        'Chợ Bến Thành',
+        'Xây dựng từ năm 1912 đến 1914, Chợ Bến Thành với tháp đồng hồ bốn mặt tại cửa Nam là biểu tượng quen thuộc nhất của Sài Gòn. Ngôi chợ quy tụ hàng ngàn gian hàng phong phú từ thủ công mỹ nghệ, lụa là cho đến khu ẩm thực nức tiếng với các món ngon ba miền.'
+      ],
+      en: [
+        'Ben Thanh Market',
+        'Constructed between 1912 and 1914, Ben Thanh Market with its iconic four-sided clock tower at the South Gate is the ultimate symbol of Saigon. It features thousands of vibrant stalls offering souvenirs, handicrafts, and renowned regional street food delicacies.'
+      ],
+      ko: [
+        '벤탄 시장',
+        '1912년에서 1914년 사이에 지어진 벤탄 시장은 남문의 4면 시계탑으로 유명한 호치민의 대표 랜드마크입니다. 공예품, 기념품부터 베트남 각지의 전통 음식까지 다양한 상품을 만날 수 있습니다.'
+      ],
+      ja: [
+        'ベンタイン市場',
+        '1912年から1914年にかけて建設されたベンタイン市場は、南門の4面時計台がホーチミンの象徴となっています。伝統工芸品からお土産、美味しい屋台グルメまで何でも揃う活気ある市場です。'
+      ],
+      zh: [
+        '滨城市场',
+        '建于1912年至1914年间，南门醒目的四面钟楼是胡志明市家喻户晓的城市象征。市场内汇聚数千家商铺，从传统工艺品、手信特产到风味地道的南北越风味小吃应有尽有。'
+      ]
+    }
+  },
+  {
+    id: 'ben-nha-rong',
+    name: 'Bến Nhà Rồng — Bảo tàng Hồ Chí Minh',
+    cat: 'culture',
+    address: '01 Nguyễn Tất Thành, Phường 12, Quận 4',
+    lat: 10.7682, lng: 106.7068,
+    radius: 50, priority: 8, duration: 6,
+    text: {
+      vi: [
+        'Bến Nhà Rồng — Bảo tàng Hồ Chí Minh',
+        'Tọa lạc bên ngã ba sông Sài Gòn, tòa nhà được công ty vận tải Messageries Maritimes xây dựng năm 1863 với hình tượng hai con rồng châu đầu vào mặt trăng trên nóc. Nơi đây gắn liền với sự kiện ngày 5 tháng 6 năm 1911, người thanh niên yêu nước Nguyễn Tất Thành ra đi tìm đường cứu nước.'
+      ],
+      en: [
+        'Dragon Wharf — Ho Chi Minh Museum',
+        'Located by the Saigon River junction, this historic wharf was built in 1863 by Messageries Maritimes, crowned with two dragons facing the moon. It was from this wharf on June 5, 1911 that young patriot Nguyen Tat Thanh set sail on his quest for national independence.'
+      ],
+      ko: [
+        '냐롱 부두 — 호치민 박물관',
+        '사이공 강변에 위치한 냐롱 부두는 1863년에 지어진 서양식 건물로, 지붕 위에 용 두 마리가 마주보고 있는 조각이 특징입니다. 1911년 6월 5일 청년 호치민이 구국의 길을 찾아 출항한 역사적인 장소입니다.'
+      ],
+      ja: [
+        'ニャロン埠頭 — ホーチミン博物館',
+        'サイゴン川のほとりに位置し、1863年にフランスの海運会社によって建設されました。屋根にある二匹の龍の彫像が特徴的で、1911年6月5日にホー・チ・ミン主席が救国の旅に出航した歴史的な港です。'
+      ],
+      zh: [
+        '龙屋港 — 胡志明博物馆',
+        '坐落于西贡河畔，建于1863年，屋顶饰有双龙戏珠雕塑。1911年6月5日，年轻的胡志明主席正是在这个码头登上远洋轮船，开启了探寻民族独立与救国真理的光辉历程。'
+      ]
+    }
+  }
+];
+
+let pois = JSON.parse(localStorage.getItem('tmtd-pois') || 'null') || base;
+// Bảo đảm dữ liệu Sài Gòn
+if (!pois.some(p => p.id === 'dinh-doc-lap')) {
+  pois = JSON.parse(JSON.stringify(base));
+  localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+}
+
+let events = JSON.parse(localStorage.getItem('tmtd-events') || '[]');
+let currentSelectedPoiId = pois[0]?.id || 'dinh-doc-lap';
+let currentEditorLang = 'vi';
+
+/* ─── Khởi Tạo Bản Đồ Leaflet Google Maps Editor ─── */
+let editorMap = null;
+let editorMarker = null;
+let editorCircle = null;
+let editorPoiMarkers = {};
+
+function initEditorMap() {
+  if (editorMap || typeof L === 'undefined') return;
+
+  const currentPoi = pois.find(p => p.id === currentSelectedPoiId) || pois[0];
+  const centerLat = currentPoi ? currentPoi.lat : 10.7760;
+  const centerLng = currentPoi ? currentPoi.lng : 106.7000;
+
+  editorMap = L.map('editorMap', {
+    center: [centerLat, centerLng],
+    zoom: 16,
+    attributionControl: false
+  });
+
+  L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+    maxZoom: 20,
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  }).addTo(editorMap);
+
+  // Click trên bản đồ để di chuyển Marker
+  editorMap.on('click', e => {
+    const lat = parseFloat(e.latlng.lat.toFixed(6));
+    const lng = parseFloat(e.latlng.lng.toFixed(6));
+    document.getElementById('editLat').value = lat;
+    document.getElementById('editLng').value = lng;
+    updatePinPosLive();
+  });
+
+  renderEditorMapElements();
+}
+
+function renderEditorMapElements() {
+  if (!editorMap) return;
+
+  const currentPoi = pois.find(p => p.id === currentSelectedPoiId);
+  if (!currentPoi) return;
+
+  // Xóa các marker phụ cũ
+  Object.values(editorPoiMarkers).forEach(m => editorMap.removeLayer(m));
+  editorPoiMarkers = {};
+
+  // Vẽ các POI khác dạng Pin mờ
+  pois.forEach(p => {
+    if (p.id !== currentPoi.id) {
+      const pinIcon = L.divIcon({
+        className: 'gmap-div-icon',
+        html: `<div style="width:28px;height:28px;background:#64748B;border:2px solid #FFF;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#FFF;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.3)">🏛</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      const m = L.marker([p.lat, p.lng], { icon: pinIcon }).addTo(editorMap);
+      m.on('click', () => selectPoiForEditing(p.id));
+      editorPoiMarkers[p.id] = m;
+    }
+  });
+
+  // Marker và Vòng Geofence của POI đang chỉnh sửa
+  const activeIcon = L.divIcon({
+    className: 'gmap-div-icon',
+    html: `
+      <div class="gmap-marker-wrap active" style="transform:scale(1.15);">
+        <div class="gmap-pin-body" style="background:linear-gradient(135deg, #F59E0B, #C07F38);">
+          <span class="gmap-pin-icon">🏛</span>
+        </div>
+      </div>
+    `,
+    iconSize: [44, 54],
+    iconAnchor: [22, 42]
+  });
+
+  if (!editorMarker) {
+    editorMarker = L.marker([currentPoi.lat, currentPoi.lng], {
+      icon: activeIcon,
+      draggable: true
+    }).addTo(editorMap);
+
+    editorMarker.on('dragend', () => {
+      const pos = editorMarker.getLatLng();
+      document.getElementById('editLat').value = parseFloat(pos.lat.toFixed(6));
+      document.getElementById('editLng').value = parseFloat(pos.lng.toFixed(6));
+      if (editorCircle) editorCircle.setLatLng(pos);
+    });
+  } else {
+    editorMarker.setLatLng([currentPoi.lat, currentPoi.lng]);
+  }
+
+  if (!editorCircle) {
+    editorCircle = L.circle([currentPoi.lat, currentPoi.lng], {
+      radius: currentPoi.radius,
+      color: '#10B981',
+      fillColor: '#10B981',
+      fillOpacity: 0.2,
+      weight: 2
+    }).addTo(editorMap);
+  } else {
+    editorCircle.setLatLng([currentPoi.lat, currentPoi.lng]);
+    editorCircle.setRadius(currentPoi.radius);
+  }
+
+  editorMap.panTo([currentPoi.lat, currentPoi.lng], { animate: true });
+}
+
+function updatePinPosLive() {
+  const lat = parseFloat(document.getElementById('editLat').value);
+  const lng = parseFloat(document.getElementById('editLng').value);
+  if (Number.isFinite(lat) && Number.isFinite(lng) && editorMarker && editorCircle) {
+    editorMarker.setLatLng([lat, lng]);
+    editorCircle.setLatLng([lat, lng]);
+    editorMap.panTo([lat, lng]);
+  }
+}
+
+function updateRadiusLive(val) {
+  document.getElementById('radiusValueLabel').textContent = val + 'm';
+  if (editorCircle) {
+    editorCircle.setRadius(parseInt(val, 10));
+  }
+}
+
+function updatePinLabelLive() {
+  // Cập nhật nhãn trực tiếp
+}
+
+/* ─── Điều Hướng Tab Phân Hệ ─── */
+function switchAdminTab(tabKey) {
+  document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-section').forEach(sec => sec.classList.remove('active'));
+
+  const activeBtn = Array.from(document.querySelectorAll('.nav-tab-btn')).find(b => b.getAttribute('onclick').includes(tabKey));
+  if (activeBtn) activeBtn.classList.add('active');
+
+  const sec = document.getElementById('tab-' + tabKey);
+  if (sec) sec.classList.add('active');
+
+  if (tabKey === 'radar') {
+    setTimeout(() => {
+      initRadarMap();
+      if (radarMap) radarMap.invalidateSize();
+      renderLivePresenceData();
+    }, 100);
+  }
+  if (tabKey === 'editor') {
+    setTimeout(() => {
+      initEditorMap();
+      if (editorMap) editorMap.invalidateSize();
+    }, 100);
+  }
+}
+window.switchAdminTab = switchAdminTab;
+
+/* ─── Dashboard Analytics Logic ─── */
+function renderDashboardAnalytics() {
+  // 1. KPI Cards
+  document.getElementById('kpiTotalPois').textContent = pois.length;
+  document.getElementById('kpiTotalEvents').textContent = events.length;
+
+  // Đếm theo POI
+  const poiCounts = {};
+  pois.forEach(p => { poiCounts[p.id] = 0; });
+  events.forEach(e => {
+    if (poiCounts[e.id] !== undefined) poiCounts[e.id]++;
+    else poiCounts[e.id] = 1;
+  });
+
+  let topPoiId = pois[0]?.id;
+  let maxCount = -1;
+  Object.entries(poiCounts).forEach(([id, cnt]) => {
+    if (cnt > maxCount) {
+      maxCount = cnt;
+      topPoiId = id;
+    }
+  });
+  const topPoi = pois.find(p => p.id === topPoiId) || pois[0];
+  document.getElementById('kpiTopPoi').textContent = topPoi ? topPoi.name : 'Chưa có';
+
+  // Đếm theo ngôn ngữ
+  const langCounts = { vi: 0, en: 0, ko: 0, ja: 0, zh: 0 };
+  events.forEach(e => {
+    const l = (e.language || 'vi').toLowerCase();
+    if (langCounts[l] !== undefined) langCounts[l]++;
+    else langCounts.vi++;
+  });
+  const totalLangs = events.length || 1;
+  let topLang = 'vi';
+  let maxLangCount = -1;
+  Object.entries(langCounts).forEach(([l, cnt]) => {
+    if (cnt > maxLangCount) { maxLangCount = cnt; topLang = l; }
+  });
+  const langFlags = { vi: '🇻🇳 VI', en: '🇬🇧 EN', ko: '🇰🇷 KO', ja: '🇯🇵 JA', zh: '🇨🇳 ZH' };
+  const topPct = Math.round((maxLangCount / totalLangs) * 100);
+  document.getElementById('kpiTopLang').textContent = `${langFlags[topLang]} (${topPct}%)`;
+
+  // 2. Bar Chart Theo POI
+  const maxPoiVal = Math.max(1, ...Object.values(poiCounts));
+  document.getElementById('poiListenBars').innerHTML = pois.map(p => {
+    const cnt = poiCounts[p.id] || 0;
+    const pct = Math.round((cnt / maxPoiVal) * 100);
+    return `
+      <div class="bar-item">
+        <div class="bar-meta">
+          <span>${p.name}</span>
+          <span style="font-family:var(--font-mono)">${cnt} lượt</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 3. Bar Chart Theo Ngôn Ngữ
+  document.getElementById('langDistributionBars').innerHTML = Object.entries(langCounts).map(([l, cnt]) => {
+    const pct = Math.round((cnt / totalLangs) * 100);
+    return `
+      <div class="bar-item">
+        <div class="bar-meta">
+          <span>${langFlags[l]}</span>
+          <span style="font-family:var(--font-mono)">${cnt} (${pct}%)</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%;background:var(--accent);"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 4. Bảng Live Event Logs
+  const tbody = document.getElementById('eventLogsTableBody');
+  if (events.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">Chưa có lượt nghe nào được ghi nhận. Hãy mở tab du khách để thử nghiệm GPS!</td></tr>`;
+  } else {
+    tbody.innerHTML = events.slice(0, 30).map(e => `
+      <tr>
+        <td style="font-family:var(--font-mono);font-size:12px;">${e.at || '--'}</td>
+        <td><b>${e.name}</b></td>
+        <td><span class="api-badge ${e.mode === 'AUTO' ? 'live' : 'demo'}">${e.mode || 'MANUAL'}</span></td>
+        <td><b>${(e.language || 'vi').toUpperCase()}</b></td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${e.latitude ? `${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}` : '--'}</td>
+      </tr>
+    `).join('');
+  }
+}
+
+function exportEventLogs() {
+  const data = JSON.stringify(events, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `listening-events-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearEventLogs() {
+  if (confirm('Bạn có chắc muốn xóa sạch toàn bộ lịch sử nghe thuyết minh?')) {
+    events = [];
+    localStorage.setItem('tmtd-events', JSON.stringify([]));
+    renderDashboardAnalytics();
+  }
+}
+
+/* ─── POI Editor Logic ─── */
+function renderPoiSidebar() {
+  const query = (document.getElementById('poiSearch').value || '').toLowerCase();
+  const filtered = pois.filter(p => (p.name + p.address).toLowerCase().includes(query));
+
+  document.getElementById('poiSidebarList').innerHTML = filtered.map(p => `
+    <div class="poi-card-item ${p.id === currentSelectedPoiId ? 'active' : ''}" onclick="selectPoiForEditing('${p.id}')">
+      <div class="poi-item-header">
+        <span class="poi-item-title">${p.name}</span>
+        <span style="font-family:var(--font-mono);font-size:11px;color:var(--accent);">${p.radius}m</span>
+      </div>
+      <div class="poi-item-sub">📍 ${p.address}</div>
+    </div>
+  `).join('');
+}
+
+function filterPoiList() {
+  renderPoiSidebar();
+}
+
+function selectPoiForEditing(id) {
+  currentSelectedPoiId = id;
+  const p = pois.find(x => x.id === id);
+  if (!p) return;
+
+  document.getElementById('editorFormTitle').textContent = `✏️ Chỉnh Sửa: ${p.name}`;
+  document.getElementById('editId').value = p.id;
+  document.getElementById('editName').value = p.name;
+  document.getElementById('editCat').value = p.cat;
+  document.getElementById('editAddress').value = p.address;
+  document.getElementById('editLat').value = p.lat;
+  document.getElementById('editLng').value = p.lng;
+  document.getElementById('editRadius').value = p.radius;
+  document.getElementById('radiusValueLabel').textContent = p.radius + 'm';
+  document.getElementById('editPriority').value = p.priority;
+
+  const statusBadge = document.getElementById('poiStatusBadge');
+  if (statusBadge) {
+    const st = p.status || 'PUBLISHED';
+    statusBadge.textContent = st;
+    statusBadge.className = `api-badge ${st === 'PUBLISHED' ? 'live' : 'demo'}`;
+  }
+
+  loadLangContentForEditor();
+  renderPoiSidebar();
+  renderEditorMapElements();
+}
+
+async function toggleCurrentPoiStatusLive() {
+  const p = pois.find(x => x.id === currentSelectedPoiId);
+  if (!p) return;
+  const currentSt = p.status || 'PUBLISHED';
+  const nextSt = currentSt === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
+  const adminKey = getAdminKey();
+
+  try {
+    const res = await ApiClient.updatePoiStatus(p.id, nextSt, adminKey);
+    if (res.ok) {
+      p.status = nextSt;
+      const statusBadge = document.getElementById('poiStatusBadge');
+      if (statusBadge) {
+        statusBadge.textContent = nextSt;
+        statusBadge.className = `api-badge ${nextSt === 'PUBLISHED' ? 'live' : 'demo'}`;
+      }
+      localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+      renderPoiSidebar();
+      loadAdminAuditEvents();
+      alert(`✓ Đã đổi trạng thái "${p.name}" sang: ${nextSt}`);
+    } else {
+      alert(`❌ Lỗi cập nhật trạng thái: ${res.error}`);
+    }
+  } catch (err) {
+    alert(`❌ Lỗi kết nối: ${err.message}`);
+  }
+}
+
+function switchEditorLangTab(langCode) {
+  currentEditorLang = langCode;
+  document.querySelectorAll('.lang-tab-bar .lang-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === langCode);
+  });
+  loadLangContentForEditor();
+}
+
+function loadLangContentForEditor() {
+  const p = pois.find(x => x.id === currentSelectedPoiId);
+  if (!p) return;
+  const textArr = (p.text && p.text[currentEditorLang]) || (p.text && p.text.vi) || [p.name, ''];
+  document.getElementById('editLangTitle').value = textArr[0] || '';
+  document.getElementById('editLangDesc').value = textArr[1] || '';
+}
+
+function saveCurrentPoi() {
+  const id = document.getElementById('editId').value;
+  let p = pois.find(x => x.id === id);
+  const isNew = !p;
+
+  if (isNew) {
+    p = { id, text: {} };
+    pois.push(p);
+  }
+
+  p.name = document.getElementById('editName').value;
+  p.cat = document.getElementById('editCat').value;
+  p.address = document.getElementById('editAddress').value;
+  p.lat = parseFloat(document.getElementById('editLat').value);
+  p.lng = parseFloat(document.getElementById('editLng').value);
+  p.radius = parseInt(document.getElementById('editRadius').value, 10);
+  p.priority = parseInt(document.getElementById('editPriority').value, 10) || 5;
+
+  if (!p.text) p.text = {};
+  p.text[currentEditorLang] = [
+    document.getElementById('editLangTitle').value,
+    document.getElementById('editLangDesc').value
+  ];
+
+  // Lưu localStorage
+  localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+
+  // Kích hoạt event storage cho các tab khác
+  window.dispatchEvent(new Event('storage'));
+
+  alert(`✓ Đã lưu thành công địa điểm: ${p.name}!`);
+  renderPoiSidebar();
+  renderEditorMapElements();
+  renderDashboardAnalytics();
+  initQrStudioOptions();
+}
+
+function createNewPoi() {
+  const newId = 'poi-' + Date.now().toString().slice(-4);
+  const defaultPos = editorMap ? editorMap.getCenter() : { lat: 10.7760, lng: 106.7000 };
+
+  const newPoi = {
+    id: newId,
+    name: 'Điểm di tích mới',
+    cat: 'culture',
+    address: 'Quận 1, TP. Hồ Chí Minh',
+    lat: parseFloat(defaultPos.lat.toFixed(6)),
+    lng: parseFloat(defaultPos.lng.toFixed(6)),
+    radius: 50,
+    priority: 5,
+    duration: 5,
+    text: {
+      vi: ['Điểm di tích mới', 'Kịch bản thuyết minh tiếng Việt...'],
+      en: ['New Landmark', 'English audio guide narration...'],
+      ko: ['새로운 명소', '한국어 오디오 가이드...'],
+      ja: ['新しい観光地', '日本語音声ガイド...'],
+      zh: ['新景点', '中文语音讲解...']
+    }
+  };
+
+  pois.push(newPoi);
+  selectPoiForEditing(newId);
+}
+
+function deleteCurrentPoi() {
+  const id = document.getElementById('editId').value;
+  const p = pois.find(x => x.id === id);
+  if (!p) return;
+
+  if (confirm(`Bạn có chắc chắn muốn xóa điểm di tích "${p.name}"?`)) {
+    pois = pois.filter(x => x.id !== id);
+    localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+    window.dispatchEvent(new Event('storage'));
+
+    currentSelectedPoiId = pois[0]?.id;
+    selectPoiForEditing(currentSelectedPoiId);
+    renderDashboardAnalytics();
+    initQrStudioOptions();
+  }
+}
+
+function previewVoiceTTS() {
+  const text = document.getElementById('editLangDesc').value;
+  if (!text) return alert('Vui lòng nhập kịch bản thuyết minh để nghe thử.');
+
+  if (window.speechSynthesis) {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const langMap = { vi: 'vi-VN', en: 'en-US', ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN' };
+    u.lang = langMap[currentEditorLang] || 'vi-VN';
+    speechSynthesis.speak(u);
+  }
+}
+
+/* ─── 3. QR Print Studio Logic ─── */
+async function initQrStudioOptions() {
+  const select = document.getElementById('qrPoiSelect');
+  if (select) {
+    select.innerHTML = '<option value="">-- Mở toàn cảnh Chùa Linh Ứng --</option>' +
+      pois.map(p => `
+        <option value="${p.id}" ${p.id === currentSelectedPoiId ? 'selected' : ''}>${p.name}</option>
+      `).join('');
+  }
+
+  const tourSelect = document.getElementById('qrTourSelect');
+  if (tourSelect && typeof ApiClient !== 'undefined') {
+    try {
+      const res = await ApiClient.fetchSuggestedTours('vi');
+      if (res.ok && res.tours && res.tours.length > 0) {
+        tourSelect.innerHTML = '<option value="">-- Tham quan tự do (Không theo tour) --</option>' +
+          res.tours.map(t => `<option value="${t.id}">🧭 ${t.name} (${t.estimatedMinutes}p · ${t.stops.length} điểm)</option>`).join('');
+      }
+    } catch (e) {}
+  }
+
+  renderQrStudio();
+}
+
+async function generateAdminPassCode() {
+  const noteEl = document.getElementById('qrPassStatusNote');
+  const randCode = 'LU-' + Math.floor(100000 + Math.random() * 900000);
+  const selectedTour = document.getElementById('qrTourSelect')?.value || null;
+
+  if (noteEl) {
+    noteEl.textContent = '⏳ Đang cấp mã vé mới trên máy chủ...';
+    noteEl.style.color = 'var(--text-muted)';
+  }
+
+  try {
+    const res = await ApiClient.createAccessPass({
+      code: randCode,
+      tourId: selectedTour,
+      expiresInHours: 72
+    });
+    if (res.ok) {
+      document.getElementById('qrPassCodeInput').value = randCode;
+      if (noteEl) {
+        noteEl.textContent = `✅ Đã cấp mã mới [${randCode}] thành công! Hạn dùng 72 giờ.`;
+        noteEl.style.color = 'var(--emerald)';
+      }
+      renderQrStudio();
+    } else {
+      if (noteEl) {
+        noteEl.textContent = `❌ ${res.error || 'Lỗi cấp mã'}`;
+        noteEl.style.color = 'var(--danger)';
+      }
+    }
+  } catch (err) {
+    if (noteEl) {
+      noteEl.textContent = `❌ Lỗi: ${err.message}`;
+      noteEl.style.color = 'var(--danger)';
+    }
+  }
+}
+
+function renderQrStudio() {
+  const poiId = document.getElementById('qrPoiSelect')?.value || '';
+  const tourId = document.getElementById('qrTourSelect')?.value || '';
+  const lang = document.getElementById('qrLangSelect')?.value || 'vi';
+  const pass = (document.getElementById('qrPassCodeInput')?.value || '').trim();
+
+  const p = pois.find(x => x.id === poiId) || pois[0];
+
+  const baseOrigin = window.location.origin + window.location.pathname.replace('admin.html', 'index.html');
+  const params = new URLSearchParams();
+  if (pass) params.set('pass', pass);
+  if (lang) params.set('lang', lang);
+  if (tourId) params.set('tour', tourId);
+  if (poiId) params.set('poi', poiId);
+
+  const qs = params.toString();
+  const targetUrl = qs ? `${baseOrigin}?${qs}` : baseOrigin;
+
+  document.getElementById('qrDeepLinkUrl').value = targetUrl;
+  document.getElementById('btnTestQrUrl').href = targetUrl;
+
+  const localizedTitle = (p && p.text && p.text[lang] && p.text[lang][0]) || (p ? p.name : 'Chùa Linh Ứng Bãi Bụt');
+  document.getElementById('standeePoiName').textContent = localizedTitle;
+  document.getElementById('standeeAddress').textContent = (p && p.address) || 'Bãi Bụt, Bán đảo Sơn Trà, TP. Đà Nẵng';
+
+  const qrUrl = 'https://quickchart.io/qr?size=400&text=' + encodeURIComponent(targetUrl);
+  document.getElementById('standeeQrImg').src = qrUrl;
+}
+
+/* ─── 4. Architecture Monitor Logic ─── */
+async function checkBackendHealth() {
+  const badge = document.getElementById('apiStatusBadge');
+  const ping = document.getElementById('pingBadge');
+  const start = Date.now();
+  const baseUrl = (typeof ApiClient !== 'undefined' ? ApiClient.DEFAULT_CONFIG.baseUrl : '/api');
+
+  try {
+    const res = await fetch(`${baseUrl}/pois/bootstrap`, { signal: AbortSignal.timeout(2500) });
+    const ms = Date.now() - start;
+    if (res.ok) {
+      badge.className = 'api-badge live';
+      badge.textContent = '🟢 Backend API: Sẵn sàng';
+      ping.textContent = `⚡ ${ms}ms`;
+      document.getElementById('archControllerStatus').textContent = `● Live (HTTP 200 · ${ms}ms)`;
+      document.getElementById('archControllerStatus').style.color = 'var(--emerald)';
+    } else {
+      throw new Error('API non-200');
+    }
+  } catch (err) {
+    const ms = Date.now() - start;
+    badge.className = 'api-badge demo';
+    badge.textContent = '🟡 Ngoại tuyến (Local Cache)';
+    ping.textContent = `⚡ ${ms}ms`;
+    document.getElementById('archControllerStatus').textContent = `○ Offline (Local Fallback Mode)`;
+    document.getElementById('archControllerStatus').style.color = 'var(--accent)';
+  }
+}
+
+function resetStandardData() {
+  if (confirm('Khôi phục toàn bộ danh sách về 8 điểm di tích Sài Gòn mặc định? Mọi thay đổi thủ công sẽ được làm mới.')) {
+    pois = JSON.parse(JSON.stringify(base));
+    localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+    window.dispatchEvent(new Event('storage'));
+    alert('✓ Đã khôi phục thành công 8 điểm di tích Sài Gòn chuẩn!');
+    location.reload();
+  }
+}
+
+function exportFullSystemBackup() {
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    pois,
+    events,
+    tours: JSON.parse(localStorage.getItem('tmtd-tour') || '[]'),
+    favorites: JSON.parse(localStorage.getItem('tmtd-favs') || '[]')
+  };
+  const data = JSON.stringify(backup, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `geoaudio-saigon-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ─── Theme Toggle ─── */
+function initTheme() {
+  const saved = localStorage.getItem('tmtd-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themeToggle').textContent = saved === 'dark' ? '☀️' : '🌙';
+}
+
+document.getElementById('themeToggle').onclick = () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('tmtd-theme', next);
+  document.getElementById('themeToggle').textContent = next === 'dark' ? '☀️' : '🌙';
+};
+
+
+/* ══════════════════════════════════════════════════════════════
+   LIVE VISITOR RADAR & LOCATION TRACKING LOGIC
+══════════════════════════════════════════════════════════════ */
+let radarMap = null;
+let radarPoiMarkers = {};
+let radarPoiCircles = {};
+let radarVisitorMarkers = {};
+
+// Quản lý danh sách phiên du khách thực tế từ Backend Database (Strictly Zero Fake Data)
+let realActiveVisitorSessions = [];
+let liveActivityLog = [];
+
+const POI_ICONS = {
+  'dinh-doc-lap': '🏛️',
+  'nha-tho-duc-ba': '⛪',
+  'buu-dien-tp': '📮',
+  'buu-dien-trung-tam': '📮',
+  'bao-tang-chung-tich': '🪖',
+  'nha-hat-tp': '🎭',
+  'nha-hat-thanh-pho': '🎭',
+  'pho-di-bo-nguyen-hue': '⛲',
+  'cho-ben-thanh': '🛍️',
+  'ben-nha-rong': '🚢'
+};
+
+const LANG_FLAGS = {
+  vi: '🇻🇳',
+  en: '🇬🇧',
+  ko: '🇰🇷',
+  ja: '🇯🇵',
+  zh: '🇨🇳'
+};
+
+function getActiveVisitorsCombined() {
+  return realActiveVisitorSessions.map(v => {
+    const id = v.visitorId || v.id || 'Khách';
+    const lang = v.language || v.lang || 'vi';
+    const lat = typeof v.latitude === 'number' ? v.latitude : (typeof v.lat === 'number' ? v.lat : null);
+    const lng = typeof v.longitude === 'number' ? v.longitude : (typeof v.lng === 'number' ? v.lng : null);
+    const poi = pois.find(p => p.id === (v.lastActivePoiId || v.currentPoiId));
+    return {
+      id,
+      visitorId: id,
+      name: `Du khách #${id}`,
+      lang,
+      lat,
+      lng,
+      currentPoiId: v.lastActivePoiId || v.currentPoiId || (poi ? poi.id : null),
+      currentPoiName: poi ? poi.name : (v.currentPoiName || 'Đang kết nối hệ thống'),
+      isSpeaking: Boolean(v.isSpeaking),
+      device: v.deviceInfo || v.device || 'Mobile',
+      passCode: v.passCode || '',
+      connectedAt: v.connectedAt,
+      lastSeenAt: v.lastSeenAt,
+      isRealUser: true
+    };
+  });
+}
+
+// Tính khoảng cách Haversine (mét) giữa 2 tọa độ GPS
+function dist(lat1, lon1, lat2, lon2) {
+  const R = 6371e3;
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function initRadarMap() {
+  if (radarMap || typeof L === 'undefined') return;
+
+  radarMap = L.map('radarMap', {
+    center: [10.7760, 106.7000],
+    zoom: 16,
+    scrollWheelZoom: false,
+    attributionControl: false
+  });
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const googleRoadsUrl = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+  const googleHybridUrl = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+
+  L.tileLayer(isDark ? googleHybridUrl : googleRoadsUrl, {
+    maxZoom: 20,
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+  }).addTo(radarMap);
+
+  // Vẽ các POIs & Circles
+  pois.forEach(p => {
+    const pinIcon = L.divIcon({
+      className: 'gmap-div-icon',
+      html: `
+        <div class="gmap-marker-wrap" style="transform:scale(0.9);">
+          <div class="gmap-pin-body">
+            <span class="gmap-pin-icon">${POI_ICONS[p.id] || '🏛'}</span>
+          </div>
+          <div class="gmap-pin-label">${p.name}</div>
+        </div>
+      `,
+      iconSize: [44, 54],
+      iconAnchor: [22, 42]
+    });
+
+    radarPoiMarkers[p.id] = L.marker([p.lat, p.lng], { icon: pinIcon }).addTo(radarMap);
+    radarPoiMarkers[p.id].on('click', () => focusOnHotspot(p.id));
+
+    radarPoiCircles[p.id] = L.circle([p.lat, p.lng], {
+      radius: p.radius,
+      color: '#10B981',
+      fillColor: '#10B981',
+      fillOpacity: 0.12,
+      weight: 1.5,
+      dashArray: '4, 4'
+    }).addTo(radarMap);
+  });
+
+  updateRadarVisitorsOnMap();
+}
+
+function updateRadarVisitorsOnMap() {
+  if (!radarMap) return;
+
+  const visitors = getActiveVisitorsCombined();
+  const validVisitors = visitors.filter(v => v.lat != null && v.lng != null && !isNaN(v.lat) && !isNaN(v.lng));
+  const currentIds = new Set(validVisitors.map(v => v.id));
+
+  // Xóa các visitor marker không còn online
+  Object.keys(radarVisitorMarkers).forEach(id => {
+    if (!currentIds.has(id)) {
+      radarMap.removeLayer(radarVisitorMarkers[id]);
+      delete radarVisitorMarkers[id];
+    }
+  });
+
+  validVisitors.forEach(v => {
+    const flag = LANG_FLAGS[v.lang] || '🌐';
+    const isSpeaking = v.isSpeaking;
+
+    const markerHtml = `
+      <div class="visitor-marker-wrap ${isSpeaking ? 'speaking' : ''} real-user">
+        <div class="visitor-pulse-ring"></div>
+        <div class="visitor-avatar-bubble">
+          ${flag}
+        </div>
+      </div>
+    `;
+
+    const icon = L.divIcon({
+      className: 'visitor-marker-icon',
+      html: markerHtml,
+      iconSize: [38, 38],
+      iconAnchor: [19, 19]
+    });
+
+    const popupHtml = `
+      <div style="font-family:system-ui;padding:4px;min-width:180px;">
+        <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;margin-bottom:4px;">
+          <span>${flag}</span>
+          <span>Du khách #${v.id}</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:6px;">
+          📍 <b>Vị trí:</b> ${v.currentPoiName || 'Đang kết nối'}
+        </div>
+        <div style="font-size:12px;margin-bottom:4px;">
+          ${isSpeaking ? '<b style="color:#059669">🔊 Đang nghe thuyết minh</b>' : '<span style="color:#2563EB">🚶 Đang tham quan</span>'}
+        </div>
+        <div style="font-size:11px;color:#94A3B8;font-family:monospace;">
+          Vé: ${v.passCode || 'N/A'} · Thiết bị: ${v.device || 'Mobile'}
+        </div>
+      </div>
+    `;
+
+    if (!radarVisitorMarkers[v.id]) {
+      const m = L.marker([v.lat, v.lng], { icon, zIndexOffset: 1500 }).addTo(radarMap);
+      m.bindPopup(popupHtml);
+      radarVisitorMarkers[v.id] = m;
+    } else {
+      radarVisitorMarkers[v.id].setLatLng([v.lat, v.lng]);
+      radarVisitorMarkers[v.id].setIcon(icon);
+      radarVisitorMarkers[v.id].setPopupContent(popupHtml);
+    }
+  });
+}
+
+function focusOnHotspot(poiId) {
+  const p = pois.find(x => x.id === poiId);
+  if (p && radarMap) {
+    radarMap.panTo([p.lat, p.lng], { animate: true, duration: 0.5 });
+  }
+}
+window.focusOnHotspot = focusOnHotspot;
+
+function renderLivePresenceData(exactCount) {
+  const visitors = getActiveVisitorsCombined();
+  const totalCount = typeof exactCount === 'number' ? exactCount : visitors.length;
+
+  // 1. Header & KPI
+  document.getElementById('headerVisitorCount').textContent = totalCount;
+  document.getElementById('radarTotalActive').textContent = totalCount;
+  document.getElementById('rosterCountBadge').textContent = `${totalCount} người`;
+
+  const speakingCount = visitors.filter(v => v.isSpeaking).length;
+  const walkingCount = Math.max(0, totalCount - speakingCount);
+  document.getElementById('radarSpeakingCount').textContent = `${speakingCount} người`;
+  document.getElementById('radarWalkingCount').textContent = `${walkingCount} người`;
+
+  // 2. Tính mật độ theo từng POI
+  const poiDensity = {};
+  pois.forEach(p => {
+    poiDensity[p.id] = {
+      poi: p,
+      visitors: []
+    };
+  });
+
+  visitors.forEach(v => {
+    if (v.currentPoiId && poiDensity[v.currentPoiId]) {
+      poiDensity[v.currentPoiId].visitors.push(v);
+    } else if (v.lat != null && v.lng != null) {
+      let closestPoi = null;
+      let minDist = Infinity;
+      pois.forEach(p => {
+        const d = dist(v.lat, v.lng, p.lat, p.lng);
+        if (d < minDist) { minDist = d; closestPoi = p; }
+      });
+      if (closestPoi && minDist <= (closestPoi.radius + 50)) {
+        poiDensity[closestPoi.id].visitors.push(v);
+      }
+    }
+  });
+
+  // Tìm top hotspot
+  let topHotspot = null;
+  let maxHotspotCount = 0;
+  Object.values(poiDensity).forEach(item => {
+    if (item.visitors.length > maxHotspotCount) {
+      maxHotspotCount = item.visitors.length;
+      topHotspot = item.poi;
+    }
+  });
+  document.getElementById('radarTopHotspot').textContent = (totalCount > 0 && topHotspot)
+    ? `${topHotspot.name} (${maxHotspotCount})`
+    : '-- (0)';
+
+  // 3. Render Density Grid Cards
+  document.getElementById('densityGrid').innerHTML = pois.map(p => {
+    const item = poiDensity[p.id] || { visitors: [] };
+    const count = item.visitors.length;
+    const hasActive = count > 0;
+
+    return `
+      <div class="density-card" onclick="focusOnHotspot('${p.id}')">
+        <div class="density-header">
+          <div class="density-title">
+            <span>${POI_ICONS[p.id] || '🏛'}</span>
+            <span>${p.name}</span>
+          </div>
+          <span class="density-badge ${hasActive ? 'active' : ''}">
+            ${count} du khách
+          </span>
+        </div>
+        <div class="visitor-avatars-row">
+          ${item.visitors.map(v => `
+            <span class="visitor-chip ${v.isSpeaking ? 'speaking' : ''}" title="${v.name}: ${v.isSpeaking ? 'Đang nghe thuyết minh' : 'Đang tham quan'}">
+              <span>${LANG_FLAGS[v.lang] || '🌐'}</span>
+              <span>#${v.id}</span>
+              ${v.isSpeaking ? '🔊' : '🚶'}
+            </span>
+          `).join('') || '<span style="font-size:12px;color:var(--text-muted)">Chưa có du khách trong vùng</span>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 4. Render Active Visitors Roster Table
+  const rosterBody = document.getElementById('visitorRosterTableBody');
+  if (visitors.length === 0) {
+    rosterBody.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">
+          👥 Hiện chưa có du khách nào online trong 60 giây qua (0 người).<br>
+          <span style="font-size:11px;">Mở tab <a href="index.html" target="_blank" style="color:var(--accent);text-decoration:underline;">index.html</a> hoặc quét mã QR để bắt đầu phiên truy cập thực tế.</span>
+        </td>
+      </tr>
+    `;
+  } else {
+    rosterBody.innerHTML = visitors.map(v => {
+      const flag = LANG_FLAGS[v.lang] || '🌐';
+      const isSpeaking = v.isSpeaking;
+      const pName = v.currentPoiName || (pois.find(p => p.id === v.currentPoiId)?.name) || 'Đang kết nối';
+
+      return `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span>${flag}</span>
+              <b>#${v.id}</b>
+              ${v.passCode ? `<span style="font-size:10px;background:var(--bg-subtle);padding:1px 4px;border-radius:4px;color:var(--text-muted);">${v.passCode}</span>` : ''}
+            </div>
+          </td>
+          <td style="font-size:12px;">📍 ${pName}</td>
+          <td>
+            ${isSpeaking
+              ? '<span class="api-badge live" style="font-size:11px;">🔊 Đang nghe</span>'
+              : '<span class="api-badge demo" style="font-size:11px;">🚶 Trực tuyến</span>'
+            }
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // 5. Cập nhật dòng hoạt động thời gian thực
+  const feedEl = document.getElementById('liveActivityFeed');
+  if (feedEl) {
+    if (liveActivityLog.length === 0) {
+      feedEl.innerHTML = `
+        <div style="text-align:center;padding:16px;color:var(--text-muted);font-size:12px;">
+          Chưa có hoạt động mới. Dòng tin này hiển thị các sự kiện truy cập và nghe audio thời gian thực từ du khách thật.
+        </div>
+      `;
+    } else {
+      feedEl.innerHTML = liveActivityLog.map(item => `
+        <div class="live-stream-item">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);white-space:nowrap;">${item.time}</span>
+          <span>${item.text}</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  // 6. Cập nhật bản đồ
+  updateRadarVisitorsOnMap();
+}
+
+// Lắng nghe BroadcastChannel từ tab du khách (index.html)
+if (typeof BroadcastChannel !== 'undefined') {
+  const presenceChannel = new BroadcastChannel('geoaudio-presence');
+  presenceChannel.onmessage = e => {
+    if (e.data && e.data.type === 'HEARTBEAT' && e.data.presence) {
+      const p = e.data.presence;
+      const idx = realActiveVisitorSessions.findIndex(x => (x.visitorId || x.id) === p.visitorId);
+      const sessionObj = {
+        visitorId: p.visitorId,
+        passCode: p.passCode,
+        language: p.language,
+        lastActivePoiId: p.currentPoiId,
+        deviceInfo: p.deviceInfo,
+        latitude: p.latitude,
+        longitude: p.longitude,
+        isSpeaking: p.isSpeaking,
+        lastSeenAt: new Date().toISOString()
+      };
+      if (idx >= 0) {
+        realActiveVisitorSessions[idx] = { ...realActiveVisitorSessions[idx], ...sessionObj };
+      } else {
+        realActiveVisitorSessions.unshift(sessionObj);
+      }
+
+      const poiName = pois.find(poi => poi.id === p.currentPoiId)?.name || 'Hệ thống';
+      const flag = LANG_FLAGS[p.language] || '🌐';
+      liveActivityLog.unshift({
+        time: new Date().toLocaleTimeString('vi-VN').slice(0, 5),
+        text: `${flag} Du khách <b>#${p.visitorId}</b> vừa cập nhật vị trí tại <b>${poiName}</b>`
+      });
+      if (liveActivityLog.length > 20) liveActivityLog.pop();
+
+      renderLivePresenceData();
+    }
+  };
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   ADMIN API SYNC, AUDIT EVENTS & STATS (UC3 & UC7)
+══════════════════════════════════════════════════════════════ */
+function getAdminKey() {
+  const input = document.getElementById('adminKeyInput');
+  return (input ? input.value : '') || localStorage.getItem('tmtd-admin-key') || 'local-admin-key-change-me';
+}
+
+function saveAdminKey() {
+  const key = getAdminKey();
+  localStorage.setItem('tmtd-admin-key', key);
+  console.log('✓ Đã lưu Admin Key');
+}
+
+async function syncAdminDataFromApi() {
+  if (typeof ApiClient === 'undefined') return;
+  const adminKey = getAdminKey();
+
+  try {
+    const res = await ApiClient.fetchAdminStats(adminKey);
+    if (res.ok && res.stats) {
+      const s = res.stats;
+      // 0. Đồng bộ Real Active Visitors từ cơ sở dữ liệu
+      if (Array.isArray(s.activeVisitorSessions)) {
+        realActiveVisitorSessions = s.activeVisitorSessions;
+      }
+      renderLivePresenceData(typeof s.activeVisitorsCount === 'number' ? s.activeVisitorsCount : realActiveVisitorSessions.length);
+
+      // 1. KPIs
+      document.getElementById('kpiTotalPois').textContent = `${s.totalPois || 0} (${s.publishedPois || 0} Pub · ${s.draftPois || 0} Draft)`;
+      document.getElementById('kpiTotalEvents').textContent = `${s.totalListeningEvents || 0} (Auto: ${s.byMode?.AUTO || 0} · Manual: ${s.byMode?.MANUAL || 0})`;
+      if (s.topPois && s.topPois.length > 0) {
+        document.getElementById('kpiTopPoi').textContent = `${s.topPois[0].name || s.topPois[0].poiId} (${s.topPois[0]._count?.poiId || s.topPois[0].count || 0})`;
+      }
+
+      // 2. Ngôn ngữ (5 ngôn ngữ)
+      if (s.byLanguage) {
+        const langFlags = { vi: '🇻🇳 VI', en: '🇬🇧 EN', ko: '🇰🇷 KO', ja: '🇯🇵 JA', zh: '🇨🇳 ZH' };
+        const total = Object.values(s.byLanguage).reduce((a, b) => a + b, 0) || 1;
+        document.getElementById('langDistributionBars').innerHTML = Object.entries(s.byLanguage).map(([l, cnt]) => {
+          const pct = Math.round((cnt / total) * 100);
+          return `
+            <div class="bar-item">
+              <div class="bar-meta">
+                <span>${langFlags[l] || l.toUpperCase()}</span>
+                <span style="font-family:var(--font-mono)">${cnt} (${pct}%)</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${pct}%;background:var(--accent);"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 3. Danh sách recentEvents
+      if (Array.isArray(s.recentEvents) && s.recentEvents.length > 0) {
+        const tbody = document.getElementById('eventLogsTableBody');
+        tbody.innerHTML = s.recentEvents.map(e => `
+          <tr>
+            <td style="font-family:var(--font-mono);font-size:12px;">${new Date(e.createdAt).toLocaleString('vi-VN')}</td>
+            <td><b>${(e.poi && e.poi.name) || e.poiId}</b></td>
+            <td><span class="api-badge ${e.mode === 'AUTO' ? 'live' : 'demo'}">${e.mode || 'MANUAL'}</span></td>
+            <td><b>${(e.language || 'vi').toUpperCase()}</b></td>
+            <td style="font-family:var(--font-mono);font-size:12px;">${e.latitude ? `${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}` : '--'}</td>
+          </tr>
+        `).join('');
+      }
+
+      console.log('✓ Đã đồng bộ Dashboard Stats từ API thành công.');
+    }
+  } catch (err) {
+    console.debug('Lỗi đồng bộ Admin Stats:', err);
+  }
+
+  loadAdminAuditEvents();
+}
+
+async function loadAdminAuditEvents() {
+  if (typeof ApiClient === 'undefined') return;
+  const adminKey = getAdminKey();
+  const tbody = document.getElementById('auditLogsTableBody');
+  if (!tbody) return;
+
+  try {
+    const res = await ApiClient.fetchAuditEvents(adminKey);
+    if (res.ok && Array.isArray(res.audits)) {
+      if (res.audits.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:18px;">Chưa có sự kiện kiểm toán (Audit Event) nào. Hãy thử đổi trạng thái POI!</td></tr>`;
+      } else {
+        tbody.innerHTML = res.audits.map(a => `
+          <tr>
+            <td style="font-family:var(--font-mono);font-size:12px;">${new Date(a.createdAt).toLocaleString('vi-VN')}</td>
+            <td><span class="api-badge live">${a.action}</span></td>
+            <td><b>${a.entityType}</b></td>
+            <td><code style="font-size:11px;background:var(--bg-subtle);padding:2px 6px;border-radius:4px;">${a.entityId}</code></td>
+            <td>${a.actor || 'admin'}</td>
+            <td style="font-size:12px;color:var(--text-muted);max-width:240px;word-break:break-word;">${a.metadata || '--'}</td>
+          </tr>
+        `).join('');
+      }
+    }
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger);padding:12px;">Lỗi tải Audit Logs: ${err.message}</td></tr>`;
+  }
+}
+
+/* ─── Khởi Động Lần Đầu ─── */
+initTheme();
+const savedKey = localStorage.getItem('tmtd-admin-key');
+if (savedKey && document.getElementById('adminKeyInput')) {
+  document.getElementById('adminKeyInput').value = savedKey;
+}
+renderDashboardAnalytics();
+renderPoiSidebar();
+selectPoiForEditing(currentSelectedPoiId);
+initQrStudioOptions();
+checkBackendHealth();
+syncAdminDataFromApi();
+loadAdminAuditEvents();
+renderLivePresenceData(0);
+setInterval(syncAdminDataFromApi, 3000);
+</script>
+</body>
+</html>

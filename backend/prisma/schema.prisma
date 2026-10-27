@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Language {
+  vi
+  en
+  ko
+  ja
+  zh
+}
+
+enum PassStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum ListeningMode {
+  AUTO
+  MANUAL
+}
+
+enum PoiStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Poi {
+  id               String           @id @default(cuid())
+  name             String
+  description      String
+  latitude         Float
+  longitude        Float
+  category         String
+  address          String?
+  activationRadius Int              @default(50)
+  priority         Int              @default(0)
+  imageUrl         String?
+  status           PoiStatus        @default(PUBLISHED)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  narrations       Narration[]
+  listeningEvents  ListeningEvent[]
+  tourStops        TourStop[]
+}
+
+model Narration {
+  id              String   @id @default(cuid())
+  poiId           String
+  language        Language
+  title           String
+  content         String
+  audioUrl        String?
+  durationSeconds Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  poi             Poi      @relation(fields: [poiId], references: [id], onDelete: Cascade)
+
+  @@unique([poiId, language])
+}
+
+model Tour {
+  id               String     @id @default(cuid())
+  name             String
+  description      String?
+  isSuggested      Boolean    @default(false)
+  estimatedMinutes Int        @default(0)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  stops            TourStop[]
+}
+
+model TourStop {
+  id       String @id @default(cuid())
+  tourId   String
+  poiId    String
+  position Int
+  tour     Tour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  poi      Poi    @relation(fields: [poiId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, position])
+  @@unique([tourId, poiId])
+}
+
+model ListeningEvent {
+  id        String        @id @default(cuid())
+  visitorId String?
+  poiId     String
+  language  Language
+  mode      ListeningMode
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime      @default(now())
+  poi       Poi           @relation(fields: [poiId], references: [id], onDelete: Cascade)
+
+  @@index([visitorId, createdAt])
+}
+
+model AccessPass {
+  id          String     @id @default(cuid())
+  code        String     @unique
+  tourId      String?
+  status      PassStatus @default(ACTIVE)
+  expiresAt   DateTime?
+  activatedAt DateTime?
+  deviceInfo  String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  actor      String   @default("admin")
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model VisitorSession {
+  visitorId       String    @id
+  passCode        String?
+  language        Language  @default(vi)
+  deviceInfo      String?
+  lastActivePoiId String?
+  latitude        Float?
+  longitude       Float?
+  isSpeaking      Boolean   @default(false)
+  connectedAt     DateTime  @default(now())
+  lastSeenAt      DateTime  @default(now())
+  isActive        Boolean   @default(true)
+
+  @@index([lastSeenAt, isActive])
+}
