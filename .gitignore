@@ -18,6 +18,8 @@ coverage/
 backups/
 *.dump
 *.sql
+# Migration của Prisma là một phần của mã nguồn, phải được commit
+!backend/prisma/migrations/**/*.sql
 
 # OS and IDE
 .DS_Store

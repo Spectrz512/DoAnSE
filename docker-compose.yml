@@ -26,6 +26,7 @@ services:
       JWT_SECRET: local-development-secret-change-me
       ADMIN_API_KEY: local-admin-key-change-me
       PORT: 3000
+      SEED_ON_START: "true"
       SERVER_LAN_IP: ${SERVER_LAN_IP:-}
     ports:
       - "3000:3000"
