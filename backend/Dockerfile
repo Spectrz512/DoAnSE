@@ -18,5 +18,8 @@ COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma7.config.ts ./prisma7.config.ts
+ENV SEED_ON_START=false
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx tsx prisma/seed.ts && node dist/main.js"]
+# 1) migrate deploy: chỉ áp dụng các migration chưa chạy, không xóa dữ liệu
+# 2) seed dữ liệu mẫu chỉ khi SEED_ON_START=true (seed ghi đè nội dung POI về bản mẫu)
+CMD ["sh", "-c", "npx prisma migrate deploy && if [ \"$SEED_ON_START\" = \"true\" ]; then npx tsx prisma/seed.ts; fi && exec node dist/main.js"]
