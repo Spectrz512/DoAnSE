@@ -10,6 +10,7 @@ node_modules/
 # Build outputs
 dist/
 coverage/
+*.tsbuildinfo
 
 # Logs
 *.log
@@ -26,3 +27,12 @@ backups/
 Thumbs.db
 .vscode/
 .idea/
+.claude/
+.windsurf/
+skills-lock.json
+
+.agents/
+.claude/
+.windsurf/
+skills-lock.json
+

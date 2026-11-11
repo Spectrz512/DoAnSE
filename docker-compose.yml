@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgis/postgis:16-3.4-alpine
     container_name: da_cnpm-db-1
     environment:
       POSTGRES_DB: linh_ung

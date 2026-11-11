@@ -21,16 +21,23 @@
       if (window.API_BASE_URL && typeof window.API_BASE_URL === 'string') {
         return window.API_BASE_URL.trim().replace(/\/+$/, '');
       }
+      const host = window.location.hostname || 'localhost';
       if (window.location.protocol === 'file:') {
         return 'http://localhost:3000/api';
       }
       const port = window.location.port;
-      // Nếu mở qua VS Code Live Server hoặc Vite dev standalone không có proxy
-      if (port === '5500' || port === '3001' || port === '5173') {
-        return 'http://localhost:3000/api';
+      // Khi mở trực tiếp qua cổng 3000
+      if (port === '3000') {
+        return '/api';
       }
-      // Khi chạy qua Nginx (port 8080, 80, 443, ngrok, hoặc IP LAN)
-      return `${window.location.origin}/api`;
+      // Nếu mở qua VS Code Live Server hoặc dev standalone độc lập không có Nginx
+      if (port === '5500' || port === '3001' || port === '5173') {
+        return `http://${host}:3000/api`;
+      }
+      // Khi chạy qua Nginx (cổng 8080, 80, 443, IP LAN, ngrok):
+      // Ưu tiên tuyệt đối đường dẫn tương đối /api để mọi request đi qua Nginx Reverse Proxy
+      // Giúp thiết bị di động LAN chỉ cần kết nối duy nhất cổng 8080, tránh bị firewall chặn port 3000
+      return '/api';
     }
     if (typeof process !== 'undefined' && process.env && process.env.API_BASE_URL) {
       return String(process.env.API_BASE_URL).trim().replace(/\/+$/, '');
@@ -42,8 +49,11 @@
   const DEFAULT_CONFIG = {
     baseUrl: resolveBaseUrl(),
     timeoutMs: 5000,
-    supportedLanguages: ['vi', 'en', 'ko', 'ja', 'zh'],
-    dedupWindowMs: 5000 // Chống gửi trùng sự kiện nghe trong 5 giây
+    supportedLanguages: [
+      'vi', 'en', 'zh', 'zh_TW', 'ja', 'ko', 'th', 'lo', 'km', 'id',
+      'ms', 'fil', 'hi', 'ar', 'ru', 'pt', 'it', 'fr', 'de', 'es'
+    ],
+    dedupWindowMs: 4000 // Chống gửi trùng sự kiện nghe trong 4 giây
   };
 
   // Trạng thái vận hành của Adapter
@@ -104,15 +114,28 @@
           headers
         });
       } catch (networkErr) {
-        // Nếu gọi qua đường dẫn tương đối bị lỗi mạng và đang không ở localhost:3000, thử fallback về localhost:3000/api
-        if (state.baseUrl !== 'http://localhost:3000/api' && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-          url = `http://localhost:3000/api${cleanEndpoint}`;
-          response = await fetch(url, {
-            ...options,
-            signal: controller.signal,
-            headers
-          });
-          state.baseUrl = 'http://localhost:3000/api';
+        // Fallback thông minh 2 chiều giữa Nginx /api và http://${host}:3000/api
+        if (typeof window !== 'undefined' && window.location.protocol !== 'file:') {
+          const host = window.location.hostname || 'localhost';
+          const isDirect3000 = state.baseUrl.includes(':3000');
+          const fallbackBase = isDirect3000 ? '/api' : `http://${host}:3000/api`;
+
+          if (fallbackBase !== state.baseUrl) {
+            try {
+              const fallbackUrl = `${fallbackBase}${cleanEndpoint}`;
+              response = await fetch(fallbackUrl, {
+                ...options,
+                signal: controller.signal,
+                headers
+              });
+              state.baseUrl = fallbackBase;
+              console.log(`[ApiClient] Fallback kết nối thành công: ${state.baseUrl}`);
+            } catch (_) {
+              throw networkErr;
+            }
+          } else {
+            throw networkErr;
+          }
         } else {
           throw networkErr;
         }
@@ -482,6 +505,144 @@
     }
   }
 
+  // Quản lý phiên nghe trực tiếp (Listening Session Lifecycle)
+  async function startListeningSession({ visitorId, poiId, language = 'vi', mode = 'AUTO', status = 'PLAYING' }) {
+    if (!visitorId || !poiId) return { ok: false };
+    try {
+      const data = await safeFetch('/listening-events/session/start', {
+        method: 'POST',
+        body: JSON.stringify({
+          visitorId: String(visitorId),
+          poiId: String(poiId),
+          language: normalizeLanguage(language),
+          mode: mode === 'MANUAL' ? 'MANUAL' : 'AUTO',
+          status: status === 'PREPARING' ? 'PREPARING' : 'PLAYING'
+        })
+      });
+      return { ok: true, session: data };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async function updateListeningSession({ visitorId, poiId, durationSeconds = 0, status = 'PLAYING', errorMessage }) {
+    if (!visitorId || !poiId) return { ok: false };
+    try {
+      const data = await safeFetch('/listening-events/session/progress', {
+        method: 'POST',
+        body: JSON.stringify({
+          visitorId: String(visitorId),
+          poiId: String(poiId),
+          durationSeconds: Math.round(durationSeconds),
+          status,
+          ...(errorMessage ? { errorMessage } : {})
+        })
+      });
+      return { ok: true, session: data };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async function endListeningSession({ visitorId, poiId, durationSeconds = 0, status = 'COMPLETED', errorMessage }) {
+    if (!visitorId || !poiId) return { ok: false };
+    try {
+      const data = await safeFetch('/listening-events/session/end', {
+        method: 'POST',
+        body: JSON.stringify({
+          visitorId: String(visitorId),
+          poiId: String(poiId),
+          durationSeconds: Math.round(durationSeconds),
+          status: status === 'ERROR' ? 'ERROR' : 'COMPLETED',
+          ...(errorMessage ? { errorMessage } : {})
+        })
+      });
+      return { ok: true, event: data };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  // Ghi nhận lượt truy cập (Page Visit & QR Scan Access Event)
+  async function recordAccessEvent({ visitorId, language = 'vi', poiId, source = 'DIRECT', deviceType, path }) {
+    if (!visitorId) return { ok: false };
+    try {
+      const data = await safeFetch('/access-events', {
+        method: 'POST',
+        body: JSON.stringify({
+          visitorId: String(visitorId),
+          language: normalizeLanguage(language),
+          ...(poiId ? { poiId: String(poiId) } : {}),
+          source: source || 'DIRECT',
+          deviceType: deviceType || (typeof navigator !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'),
+          path: path || (typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')
+        })
+      });
+      return { ok: true, data };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  // Danh mục 20 ngôn ngữ chuẩn
+  async function fetchLanguages() {
+    try {
+      const data = await safeFetch('/languages');
+      if (Array.isArray(data) && data.length > 0) {
+        return { ok: true, languages: data };
+      }
+    } catch (e) {}
+    // Fallback 20 ngôn ngữ
+    return {
+      ok: true,
+      languages: [
+        { code: 'vi', nameVi: 'Tiếng Việt', nameEn: 'Vietnamese', nativeName: 'Tiếng Việt', flagEmoji: '🇻🇳', isAvailable: true, sortOrder: 1 },
+        { code: 'en', nameVi: 'Tiếng Anh', nameEn: 'English', nativeName: 'English', flagEmoji: '🇬🇧', isAvailable: true, sortOrder: 2 },
+        { code: 'zh', nameVi: 'Tiếng Trung (Giản thể)', nameEn: 'Chinese (Simplified)', nativeName: '中文（简体）', flagEmoji: '🇨🇳', isAvailable: true, sortOrder: 3 },
+        { code: 'zh_TW', nameVi: 'Tiếng Trung (Phồn thể)', nameEn: 'Chinese (Traditional)', nativeName: '中文（繁體）', flagEmoji: '🇹🇼', isAvailable: false, sortOrder: 4 },
+        { code: 'ja', nameVi: 'Tiếng Nhật', nameEn: 'Japanese', nativeName: '日本語', flagEmoji: '🇯🇵', isAvailable: true, sortOrder: 5 },
+        { code: 'ko', nameVi: 'Tiếng Hàn', nameEn: 'Korean', nativeName: '한국어', flagEmoji: '🇰🇷', isAvailable: true, sortOrder: 6 },
+        { code: 'th', nameVi: 'Tiếng Thái', nameEn: 'Thai', nativeName: 'ภาษาไทย', flagEmoji: '🇹🇭', isAvailable: false, sortOrder: 7 },
+        { code: 'lo', nameVi: 'Tiếng Lào', nameEn: 'Lao', nativeName: 'ພາສາລາວ', flagEmoji: '🇱🇦', isAvailable: false, sortOrder: 8 },
+        { code: 'km', nameVi: 'Tiếng Khmer', nameEn: 'Khmer', nativeName: 'ភាសាខ្មែរ', flagEmoji: '🇰🇭', isAvailable: false, sortOrder: 9 },
+        { code: 'id', nameVi: 'Tiếng Indonesia', nameEn: 'Indonesian', nativeName: 'Bahasa Indonesia', flagEmoji: '🇮🇩', isAvailable: false, sortOrder: 10 },
+        { code: 'ms', nameVi: 'Tiếng Malaysia', nameEn: 'Malay', nativeName: 'Bahasa Melayu', flagEmoji: '🇲🇾', isAvailable: false, sortOrder: 11 },
+        { code: 'fil', nameVi: 'Tiếng Philippines', nameEn: 'Filipino', nativeName: 'Wikang Filipino', flagEmoji: '🇵🇭', isAvailable: false, sortOrder: 12 },
+        { code: 'hi', nameVi: 'Tiếng Hindi', nameEn: 'Hindi', nativeName: 'हिन्दी', flagEmoji: '🇮🇳', isAvailable: false, sortOrder: 13 },
+        { code: 'ar', nameVi: 'Tiếng Ả Rập', nameEn: 'Arabic', nativeName: 'العربية', flagEmoji: '🇸🇦', isAvailable: false, sortOrder: 14 },
+        { code: 'ru', nameVi: 'Tiếng Nga', nameEn: 'Russian', nativeName: 'Русский', flagEmoji: '🇷🇺', isAvailable: false, sortOrder: 15 },
+        { code: 'pt', nameVi: 'Tiếng Bồ Đào Nha', nameEn: 'Portuguese', nativeName: 'Português', flagEmoji: '🇵🇹', isAvailable: false, sortOrder: 16 },
+        { code: 'it', nameVi: 'Tiếng Ý', nameEn: 'Italian', nativeName: 'Italiano', flagEmoji: '🇮🇹', isAvailable: false, sortOrder: 17 },
+        { code: 'fr', nameVi: 'Tiếng Pháp', nameEn: 'French', nativeName: 'Français', flagEmoji: '🇫🇷', isAvailable: false, sortOrder: 18 },
+        { code: 'de', nameVi: 'Tiếng Đức', nameEn: 'German', nativeName: 'Deutsch', flagEmoji: '🇩🇪', isAvailable: false, sortOrder: 19 },
+        { code: 'es', nameVi: 'Tiếng Tây Ban Nha', nameEn: 'Spanish', nativeName: 'Español', flagEmoji: '🇪🇸', isAvailable: false, sortOrder: 20 },
+      ]
+    };
+  }
+
+  // Kiểm thử tải / Mô phỏng nhân đôi lượt nghe (Dev / Load Testing Simulation)
+  async function simulateDoubleEvents(limit = 20) {
+    try {
+      const data = await safeFetch('/listening-events/simulate-double', {
+        method: 'POST',
+        body: JSON.stringify({ limit: Number(limit) || 20 })
+      });
+      return { ok: true, data };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  // Thống kê truy cập
+  async function fetchAccessStats(days = 7) {
+    try {
+      const data = await safeFetch(`/access-events/stats?days=${days}`);
+      return { ok: true, data };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
   // ==========================================
   // UC6: TOURS & CUSTOM ROUTE
   // ==========================================
@@ -608,6 +769,18 @@
     }
   }
 
+  /**
+   * Lấy danh sách địa chỉ IPv4 LAN thực tế của máy chủ Backend
+   */
+  async function fetchNetworkInfo() {
+    try {
+      const data = await safeFetch('/system/network-info');
+      return { ok: true, data };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  }
+
   const ApiClient = {
     setBaseUrl,
     resolveBaseUrl,
@@ -626,11 +799,20 @@
     fetchNearbyPois,
     fetchGeoCandidates,
     recordListeningEvent,
+    startListeningSession,
+    updateListeningSession,
+    endListeningSession,
+    recordAccessEvent,
+    fetchLanguages,
     fetchSuggestedTours,
     planCustomRoute,
     sendChatMessage,
-    // Admin Methods
+    // Network & System Info
+    fetchNetworkInfo,
+    // Admin & Simulation Methods
     fetchAdminStats,
+    fetchAccessStats,
+    simulateDoubleEvents,
     fetchAuditEvents,
     updatePoiStatus,
     savePoi,

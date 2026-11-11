@@ -1,34 +1,54 @@
 # Kiến trúc backend — Hồ Chí Minh GPS Guide
 
-## Quyết định cho MVP
+## 1. Quyết định kiến trúc cho MVP
 
-API dùng NestJS, PostgreSQL/PostGIS và Prisma. Hệ thống tách theo ba lớp trong từng module:
+Hệ thống xây dựng trên nền tảng **NestJS**, **PostgreSQL (kèm PostGIS)** và **Prisma ORM**. Hệ thống tuân thủ chặt chẽ kiến trúc 3 lớp (3-Tier Architecture) được mô-đun hóa:
 
-| Lớp | Trách nhiệm | Ví dụ trong mã |
+| Lớp | Trách nhiệm | Thành phần trong mã |
 |---|---|---|
-| Presentation | HTTP, DTO, xác thực, mã trạng thái | `poi.controller.ts`, `dto/` |
-| Business | Quy tắc nghiệp vụ, điều phối use case | `poi.service.ts` |
-| Data access | Truy vấn/ghi dữ liệu, không chứa HTTP | `poi.repository.ts`, Prisma |
+| **Presentation Layer** | Tiếp nhận HTTP/REST, xác thực DTO, phân quyền (Guards), chuẩn hóa mã HTTP response. | `*.controller.ts`, `dto/` |
+| **Business Logic Layer** | Xử lý quy tắc nghiệp vụ, điều phối Use Case, giải thuật geofence, logic chống phát lặp. | `*.service.ts` |
+| **Data Access Layer** | Thực hiện truy vấn/ghi dữ liệu, bọc các truy vấn PostGIS thuần, không chứa mã HTTP. | `*.repository.ts`, Prisma Client |
 
-Luồng gọi: `Controller → Service → Repository → PostgreSQL/PostGIS`.
+Luồng dữ liệu chuẩn: `Client Request → Controller → Service → Repository → PostgreSQL/PostGIS`.
 
-## Geofence và chống phát lặp
+## 2. Geofence, Đồng bộ dữ liệu & Chống phát lặp
 
-Client gửi vị trí hiện tại tới `GET /api/v1/pois/nearby`. API chỉ trả POI published nằm trong `radiusM`; client sẽ tự quyết định phát audio khi khoảng cách nhỏ hơn `triggerRadiusM`. Để không phát liên tục, client phải giữ `playedPoiIds` trong phiên và chỉ mở lại sau khi rời bán kính tối thiểu 1.5 lần `triggerRadiusM`. Việc này tránh gọi API liên tục và tuân theo PRD: dữ liệu tour được tải một lần sau khi mở phiên.
+- **Chiến lược Geofencing:**
+  - *Chế độ theo Tour (Khuyên dùng):* Sau khi kích hoạt vé, Client gọi `GET /api/v1/tours/:id/package` để tải trọn gói dữ liệu POI. Toàn bộ việc tính toán khoảng cách và kích hoạt thuyết minh được thực hiện **cục bộ trên Client** nhằm tiết kiệm pin, băng thông và hạn chế gọi API liên tục.
+  - *Chế độ Khám phá tự do (Online):* Client gửi vị trí định kỳ tới `GET /api/v1/pois/nearby`. Tầng Service lọc các POI published trong bán kính tìm kiếm.
+- **Cơ chế Hysteresis (Chống phát lặp / Chống rung GPS):** Client giữ danh sách `playedPoiIds` trong phiên. POI chỉ được đưa vào trạng thái sẵn sàng phát tự động lần tiếp theo khi người dùng di chuyển ra xa tối thiểu **1.5 lần `triggerRadiusM`**.
+- **Tối ưu hóa PostGIS:** Sử dụng `ST_DWithin` và `ST_DistanceSphere` qua `prisma.$queryRaw`. Các bảng chứa vị trí địa lý được đánh chỉ mục không gian (Spatial GIST Index) trên kiểu dữ liệu `geography(Point, 4326)` để đảm bảo độ trễ truy vấn thấp khi dữ liệu tăng trưởng.
 
-PostGIS được dùng qua `ST_DWithin`/`ST_DistanceSphere`; khi số POI lớn, migration tiếp theo sẽ thêm cột `geography(Point,4326)` có GIST index. MVP giữ latitude/longitude rõ ràng để người mới dễ quản trị và kiểm thử.
+## 3. Quản lý Tệp tĩnh & Media Streaming
 
-## Bảo mật và dữ liệu cá nhân
+- **Lưu trữ:** Ở giai đoạn MVP, file âm thanh thuyết minh (.mp3) và hình ảnh được lưu trữ tại Local Directory, phục vụ trực tiếp qua Nginx Static Cache hoặc NestJS ServeStatic.
+- **Trừu tượng hóa (Abstraction):** Tầng Service tương tác với tệp thông qua `StorageService` interface, cho phép dễ dàng chuyển đổi sang Object Storage (MinIO / AWS S3) trong tương lai mà không phải sửa logic nghiệp vụ.
+- **Streaming:** Máy chủ web hỗ trợ HTTP Range Requests (`206 Partial Content`) để du khách có thể tua hoặc phát mượt mà trên thiết bị di động.
 
-- JWT bảo vệ API tạo POI; mật khẩu được bcrypt hash.
-- Không lưu lịch sử vị trí thô ở MVP. Chỉ lưu event ẩn danh khi người dùng đồng ý analytics.
-- Audio và hình ảnh cần đặt trong object storage/CDN ở giai đoạn triển khai.
+## 4. Bảo mật, Quyền riêng tư & Phục hồi
 
-## Lộ trình module
+- Xác thực Admin bằng JWT; mật khẩu quản trị được băm bằng `bcrypt`.
+- Không lưu vết lịch sử GPS thô (raw telemetry) của người dùng để bảo vệ quyền riêng tư; chỉ ghi nhận các sự kiện nghe (`ListeningEvent`: POI ID, chế độ AUTO/MANUAL, thời lượng) phục vụ thống kê.
+- Xử lý lỗi linh hoạt (Graceful Degradation): Nếu GPS mất tín hiệu hoặc module AI/TTS bị lỗi mạng, Client tự động chuyển về chế độ phát thủ công (Fallback).
 
-1. Hoàn tất POI + translations + geofence, tour route và access pass/QR (đã khởi tạo).
-2. Payment webhook.
-3. Hàng đợi dịch/TTS, object storage và cache Redis.
-4. RAG: nội dung đã duyệt → chunks/embeddings → chatbot có trích dẫn nguồn.
-5. Event analytics, health check, dashboard monitoring.
+## 5. Quy trình Tích hợp và Triển khai Liên tục (CI/CD)
 
+Pipeline được tự động hóa qua GitHub Actions:
+1. **CI (Kiểm tra chất lượng):**
+   - Linting & Formatting (`eslint`, `prettier`).
+   - Kiểm tra tính hợp lệ của Prisma Schema (`prisma validate`).
+   - Chạy bộ kiểm thử tự động (Unit Test cho các Service tính toán khoảng cách và logic vé).
+   - Kiểm tra biên dịch TypeScript (`nest build`).
+2. **CD (Triển khai):**
+   - Đóng gói Docker Image ứng dụng.
+   - Chạy lệnh migration cơ sở dữ liệu (`prisma migrate deploy`).
+   - Khởi động lại container phía sau Nginx Reverse Proxy mà không làm gián đoạn các kết nối đang nghe audio.
+
+## 6. Lộ trình phát triển Module
+
+1. Core POIs + Translations + Tour Routing + Access Pass/QR.
+2. Quản trị Media Streaming và Cơ chế Tải gói Tour ngoại tuyến (Offline Pack).
+3. Telemetry Event Analytics, Health Check (`/health`), Dashboard Quản trị.
+4. Tích hợp AI Guide RAG: Nội dung POI đã duyệt → Embeddings Vector Store → Trợ lý giải đáp có trích dẫn nguồn.
+5. Cổng thanh toán (Payment Webhook) và Tự động hóa sinh giọng nói (TTS Service).

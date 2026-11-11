@@ -395,24 +395,143 @@ button:active {
   border: 1px solid var(--border);
 }
 
-/* Lang pills in Header */
-.lang-pills {
-  display: flex;
-  gap: 4px;
-}
-.lang-pill-btn {
-  min-width: 38px;
-  min-height: 38px;
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: var(--radius-sm);
+/* Unified Language Selector Trigger */
+.lang-selector-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
   background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
-.lang-pill-btn.active {
+.lang-selector-trigger:hover {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  transform: translateY(-1px);
+}
+.lang-chevron {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Language Picker Modal Grid */
+.lang-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.lang-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: left;
+}
+.lang-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.lang-card.active {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.lang-card-flag {
+  font-size: 26px;
+  line-height: 1;
+}
+.lang-card-info {
+  flex: 1;
+  min-width: 0;
+}
+.lang-card-native {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lang-card-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lang-badge-avail {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--emerald);
+  background: var(--emerald-subtle);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.lang-badge-updating {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.lang-search-box {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: var(--font-body);
+  background: var(--surface);
+  color: var(--text);
+  margin-bottom: 12px;
+  outline: none;
+}
+.lang-search-box:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+.lang-filter-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.lang-filter-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lang-filter-btn.active {
   background: var(--accent);
   color: #FFF;
-  border-color: var(--accent-hover);
+  border-color: var(--accent);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1535,22 +1654,35 @@ article.poi.playing-poi {
           <span>🔊 Tự động: BẬT</span>
         </button>
 
-        <!-- Quick Lang VI, EN, KO, JA, ZH -->
-        <div class="lang-pills">
-          <button class="lang-pill-btn active" data-lang="vi" onclick="setQuickLang('vi')">VI</button>
-          <button class="lang-pill-btn" data-lang="en" onclick="setQuickLang('en')">EN</button>
-          <button class="lang-pill-btn" data-lang="ko" onclick="setQuickLang('ko')">KO</button>
-          <button class="lang-pill-btn" data-lang="ja" onclick="setQuickLang('ja')">JA</button>
-          <button class="lang-pill-btn" data-lang="zh" onclick="setQuickLang('zh')">ZH</button>
-        </div>
+        <!-- Unified Language Selector Trigger (20 Languages) -->
+        <button class="lang-selector-trigger" id="langSelectorTriggerBtn" onclick="openLanguagePickerModal()" title="Chọn ngôn ngữ thuyết minh (20 ngôn ngữ)">
+          <span id="currentLangFlag">🇻🇳</span>
+          <span id="currentLangLabel">Tiếng Việt (VI)</span>
+          <span class="lang-chevron">▾</span>
+        </button>
 
-        <!-- Hidden Select giữ 100% tương thích mã nguồn cũ -->
+        <!-- Hidden Select giữ 100% tương thích mã nguồn cũ với đủ 20 ngôn ngữ -->
         <select id="lang" class="hidden-select" title="Ngôn ngữ thuyết minh">
           <option value="vi" selected>🇻🇳 Tiếng Việt</option>
           <option value="en">🇬🇧 English</option>
-          <option value="ko">🇰🇷 한국어</option>
+          <option value="zh">🇨🇳 中文 (简体)</option>
+          <option value="zh_TW">🇹🇼 中文 (繁體)</option>
           <option value="ja">🇯🇵 日本語</option>
-          <option value="zh">🇨🇳 中文</option>
+          <option value="ko">🇰🇷 한국어</option>
+          <option value="th">🇹🇭 ภาษาไทย</option>
+          <option value="lo">🇱🇦 ພາສາລາວ</option>
+          <option value="km">🇰🇭 ភាសាខ្មែរ</option>
+          <option value="id">🇮🇩 Bahasa Indonesia</option>
+          <option value="ms">🇲🇾 Bahasa Melayu</option>
+          <option value="fil">🇵🇭 Wikang Filipino</option>
+          <option value="hi">🇮🇳 हिन्दी</option>
+          <option value="ar">🇸🇦 العربية</option>
+          <option value="ru">🇷🇺 Русский</option>
+          <option value="pt">🇵🇹 Português</option>
+          <option value="it">🇮🇹 Italiano</option>
+          <option value="fr">🇫🇷 Français</option>
+          <option value="de">🇩🇪 Deutsch</option>
+          <option value="es">🇪🇸 Español</option>
         </select>
 
         <!-- Sunlight Mode & Dark Mode -->
@@ -3177,21 +3309,145 @@ window.applyLanguage = applyLanguage;
 
 
 /* ─── Ngôn ngữ Nhanh (Pills VI, EN, KO, JA, ZH) ─── */
+/* ─── DANH MỤC 20 NGÔN NGỮ CHUẨN HOÁ HỆ THỐNG ─── */
+const ALL_20_LANGUAGES = [
+  { code: 'vi', nameVi: 'Tiếng Việt', nameEn: 'Vietnamese', nativeName: 'Tiếng Việt', flag: '🇻🇳', isAvailable: true },
+  { code: 'en', nameVi: 'Tiếng Anh', nameEn: 'English', nativeName: 'English', flag: '🇬🇧', isAvailable: true },
+  { code: 'zh', nameVi: 'Tiếng Trung (Giản thể)', nameEn: 'Chinese (Simplified)', nativeName: '中文（简体）', flag: '🇨🇳', isAvailable: true },
+  { code: 'zh_TW', nameVi: 'Tiếng Trung (Phồn thể)', nameEn: 'Chinese (Traditional)', nativeName: '中文（繁體）', flag: '🇹🇼', isAvailable: false },
+  { code: 'ja', nameVi: 'Tiếng Nhật', nameEn: 'Japanese', nativeName: '日本語', flag: '🇯🇵', isAvailable: true },
+  { code: 'ko', nameVi: 'Tiếng Hàn', nameEn: 'Korean', nativeName: '한국어', flag: '🇰🇷', isAvailable: true },
+  { code: 'th', nameVi: 'Tiếng Thái', nameEn: 'Thai', nativeName: 'ภาษาไทย', flag: '🇹🇭', isAvailable: false },
+  { code: 'lo', nameVi: 'Tiếng Lào', nameEn: 'Lao', nativeName: 'ພາສາລາວ', flag: '🇱🇦', isAvailable: false },
+  { code: 'km', nameVi: 'Tiếng Khmer', nameEn: 'Khmer', nativeName: 'ភាសាខ្មែរ', flag: '🇰🇭', isAvailable: false },
+  { code: 'id', nameVi: 'Tiếng Indonesia', nameEn: 'Indonesian', nativeName: 'Bahasa Indonesia', flag: '🇮🇩', isAvailable: false },
+  { code: 'ms', nameVi: 'Tiếng Malaysia', nameEn: 'Malay', nativeName: 'Bahasa Melayu', flag: '🇲🇾', isAvailable: false },
+  { code: 'fil', nameVi: 'Tiếng Philippines', nameEn: 'Filipino', nativeName: 'Wikang Filipino', flag: '🇵🇭', isAvailable: false },
+  { code: 'hi', nameVi: 'Tiếng Hindi', nameEn: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳', isAvailable: false },
+  { code: 'ar', nameVi: 'Tiếng Ả Rập', nameEn: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', isAvailable: false },
+  { code: 'ru', nameVi: 'Tiếng Nga', nameEn: 'Russian', nativeName: 'Русский', flag: '🇷🇺', isAvailable: false },
+  { code: 'pt', nameVi: 'Tiếng Bồ Đào Nha', nameEn: 'Portuguese', nativeName: 'Português', flag: '🇵🇹', isAvailable: false },
+  { code: 'it', nameVi: 'Tiếng Ý', nameEn: 'Italian', nativeName: 'Italiano', flag: '🇮🇹', isAvailable: false },
+  { code: 'fr', nameVi: 'Tiếng Pháp', nameEn: 'French', nativeName: 'Français', flag: '🇫🇷', isAvailable: false },
+  { code: 'de', nameVi: 'Tiếng Đức', nameEn: 'German', nativeName: 'Deutsch', flag: '🇩🇪', isAvailable: false },
+  { code: 'es', nameVi: 'Tiếng Tây Ban Nha', nameEn: 'Spanish', nativeName: 'Español', flag: '🇪🇸', isAvailable: false },
+];
+
+let currentLangFilter = 'all';
+
 function setQuickLang(code) {
-  document.querySelectorAll('.lang-pill-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.lang === code);
-  });
-  $('lang').value = code;
-  const flagMap = { vi: '🇻🇳 VI', en: '🇬🇧 EN', ko: '🇰🇷 KO', ja: '🇯🇵 JA', zh: '🇨🇳 ZH' };
-  $('playerLangBadge').textContent = flagMap[code] || code.toUpperCase();
-  applyLanguage(code);
-  render();
-  renderTour();
-  renderFavorites();
-  updateSimDropdown();
-  toast(`Language: ${code.toUpperCase()}`, '🌐');
+  const cleanCode = String(code || 'vi').trim();
+  const langObj = ALL_20_LANGUAGES.find(l => l.code === cleanCode) || ALL_20_LANGUAGES[0];
+
+  $('lang').value = langObj.code;
+  if ($('currentLangFlag')) $('currentLangFlag').textContent = langObj.flag;
+  if ($('currentLangLabel')) $('currentLangLabel').textContent = `${langObj.nativeName} (${langObj.code.toUpperCase()})`;
+  if ($('playerLangBadge')) $('playerLangBadge').textContent = `${langObj.flag} ${langObj.code.toUpperCase()}`;
+
+  // Kiểm tra khả dụng theo Yêu Cầu 3
+  if (langObj.isAvailable) {
+    applyLanguage(langObj.code);
+    render();
+    renderTour();
+    renderFavorites();
+    updateSimDropdown();
+    toast(`🌐 Ngôn ngữ: ${langObj.nativeName} (${langObj.code.toUpperCase()})`, langObj.flag);
+  } else {
+    // Không phát audio giả, thông báo lịch sự và hiển thị nội dung tiếng Việt/Anh
+    applyLanguage('vi');
+    render();
+    renderTour();
+    renderFavorites();
+    updateSimDropdown();
+    toast(`⏳ Bản thuyết minh [${langObj.nativeName}] đang được cập nhật. Tạm thời sử dụng tiếng Việt/Anh.`, 'ℹ️');
+  }
 }
 window.setQuickLang = setQuickLang;
+
+function openLanguagePickerModal() {
+  const currentLang = $('lang') ? $('lang').value : 'vi';
+
+  const modalHtml = `
+    <div style="padding:4px 0;">
+      <input type="text" id="langModalSearch" class="lang-search-box" placeholder="🔍 Tìm kiếm theo tên ngôn ngữ hoặc mã..." oninput="filterLanguagesInModal()">
+      <div class="lang-filter-pills">
+        <button class="lang-filter-btn active" id="filterLangAll" onclick="setModalLangTab('all')">Tất cả (20)</button>
+        <button class="lang-filter-btn" id="filterLangAvail" onclick="setModalLangTab('avail')">✓ Có sẵn thuyết minh (5)</button>
+        <button class="lang-filter-btn" id="filterLangUpdating" onclick="setModalLangTab('updating')">⏳ Đang cập nhật (15)</button>
+      </div>
+      <div id="langPickerGrid" class="lang-picker-grid">
+        ${renderLanguageGridHtml(ALL_20_LANGUAGES, currentLang, 'all', '')}
+      </div>
+    </div>
+  `;
+
+  modal('🌐 Danh Sách 20 Ngôn Ngữ Thuyết Minh', modalHtml);
+}
+window.openLanguagePickerModal = openLanguagePickerModal;
+
+function renderLanguageGridHtml(langs, activeCode, filter, keyword) {
+  let filtered = langs;
+  if (filter === 'avail') filtered = filtered.filter(l => l.isAvailable);
+  if (filter === 'updating') filtered = filtered.filter(l => !l.isAvailable);
+
+  if (keyword) {
+    const kw = keyword.toLowerCase().trim();
+    filtered = filtered.filter(l =>
+      l.code.toLowerCase().includes(kw) ||
+      l.nativeName.toLowerCase().includes(kw) ||
+      l.nameVi.toLowerCase().includes(kw) ||
+      l.nameEn.toLowerCase().includes(kw)
+    );
+  }
+
+  if (filtered.length === 0) {
+    return `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-muted);">Không tìm thấy ngôn ngữ phù hợp.</div>`;
+  }
+
+  return filtered.map(l => {
+    const isAct = l.code === activeCode;
+    return `
+      <div class="lang-card ${isAct ? 'active' : ''}" onclick="selectLanguageFromModal('${l.code}')">
+        <div class="lang-card-flag">${l.flag}</div>
+        <div class="lang-card-info">
+          <div class="lang-card-native">${l.nativeName}</div>
+          <div class="lang-card-sub">${l.nameVi} · ${l.code.toUpperCase()}</div>
+        </div>
+        <div>
+          ${l.isAvailable
+            ? '<span class="lang-badge-avail">✓ Có sẵn</span>'
+            : '<span class="lang-badge-updating">⏳ Đang cập nhật</span>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectLanguageFromModal(code) {
+  closeModal();
+  setQuickLang(code);
+}
+window.selectLanguageFromModal = selectLanguageFromModal;
+
+function setModalLangTab(tab) {
+  currentLangFilter = tab;
+  ['all', 'avail', 'updating'].forEach(t => {
+    const btn = $(`filterLang${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  filterLanguagesInModal();
+}
+window.setModalLangTab = setModalLangTab;
+
+function filterLanguagesInModal() {
+  const kw = $('langModalSearch') ? $('langModalSearch').value : '';
+  const currentLang = $('lang') ? $('lang').value : 'vi';
+  const grid = $('langPickerGrid');
+  if (grid) {
+    grid.innerHTML = renderLanguageGridHtml(ALL_20_LANGUAGES, currentLang, currentLangFilter, kw);
+  }
+}
+window.filterLanguagesInModal = filterLanguagesInModal;
 
 
 /* ─── Danh mục (Categories) ─── */
@@ -3831,6 +4087,10 @@ window.toggleCurrentVisited = toggleCurrentVisited;
    9. PHÁT ÂM THANH (WEB SPEECH TTS & RECORD LISTENING EVENT)
 ══════════════════════════════════════════════════════════════ */
 function speak(id, manual = false) {
+  unlockMobileAudio();
+  if (window.speechSynthesis && speechSynthesis.paused) {
+    speechSynthesis.resume();
+  }
   const p = pois.find(x => x.id === id);
   if (!p) return;
 
@@ -3894,6 +4154,17 @@ function speak(id, manual = false) {
     status(`🔊 ${locTitle}`);
     renderLiveTranscript(contentToSpeak);
     simulateProgress(p.duration || 6);
+
+    // Bắt đầu phiên nghe trực tiếp trên Backend
+    if (typeof ApiClient !== 'undefined' && ApiClient.startListeningSession) {
+      ApiClient.startListeningSession({
+        visitorId: myVisitorId,
+        poiId: p.id,
+        language: lang,
+        status: 'PLAYING'
+      }).catch(() => {});
+    }
+
     render();
     if (currentViewMode === 'walk') updateWalkModeView();
   };
@@ -3914,6 +4185,16 @@ function speak(id, manual = false) {
       save();
     }
 
+    // Kết thúc phiên nghe thành công trên Backend
+    if (typeof ApiClient !== 'undefined' && ApiClient.endListeningSession) {
+      ApiClient.endListeningSession({
+        visitorId: myVisitorId,
+        poiId: p.id,
+        durationSeconds: Math.round(p.duration * 60 || 120),
+        status: 'COMPLETED'
+      }).catch(() => {});
+    }
+
     setTimeout(() => {
       $('narrationFill').style.width = '0%';
       updateWaveformProgress(0);
@@ -3922,12 +4203,23 @@ function speak(id, manual = false) {
     render();
   };
 
-  u.onerror = () => {
+  u.onerror = (e) => {
     isSpeaking = false;
     currentPlayingId = null;
     $('playPauseBtn').textContent = '▶';
     $('walkGiantBtnIcon').textContent = '▶';
     $('playerSubStatus').textContent = 'Lỗi phát âm thanh';
+
+    // Ghi nhận lỗi phiên nghe trên Backend
+    if (typeof ApiClient !== 'undefined' && ApiClient.endListeningSession) {
+      ApiClient.endListeningSession({
+        visitorId: myVisitorId,
+        poiId: p.id,
+        durationSeconds: 0,
+        status: 'ERROR',
+        errorMessage: (e && e.error) || 'Lỗi phát SpeechSynthesis'
+      }).catch(() => {});
+    }
   };
 
   last[id] = now;
@@ -4443,25 +4735,138 @@ $('sim').onchange = e => {
   if (p) locate(p.lat, p.lng);
 };
 
+/* ─── Mở Khóa Âm Thanh & Web Speech Cho Thiết Bị Di Động (iOS / Android Autoplay Policy) ─── */
+let isMobileAudioUnlocked = false;
+function unlockMobileAudio() {
+  if (isMobileAudioUnlocked) return;
+  isMobileAudioUnlocked = true;
+  try {
+    if (window.speechSynthesis) {
+      const dummyUtterance = new SpeechSynthesisUtterance(' ');
+      dummyUtterance.volume = 0.01;
+      dummyUtterance.rate = 2;
+      speechSynthesis.speak(dummyUtterance);
+    }
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) {
+      const dummyCtx = new AudioCtx();
+      if (dummyCtx.state === 'suspended') {
+        dummyCtx.resume();
+      }
+    }
+    console.log('🔊 Đã mở khóa hệ sinh thái âm thanh di động');
+  } catch (e) {
+    console.warn('Lỗi mở khóa âm thanh di động:', e);
+  }
+}
+['touchstart', 'touchend', 'click'].forEach(evtType => {
+  document.addEventListener(evtType, unlockMobileAudio, { once: true, passive: true });
+});
+window.unlockMobileAudio = unlockMobileAudio;
+
+/* ─── Tọa độ Fallback an toàn & Xử lý Chặn GPS trên HTTP LAN ─── */
+function getFallbackCoordinates() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const poiParam = urlParams.get('poi');
+  if (poiParam) {
+    const targetPoiId = poiParam.trim().toLowerCase();
+    const matchedPoi = pois.find(p =>
+      p.id.toLowerCase() === targetPoiId ||
+      p.id.toLowerCase() === targetPoiId.replace(/_/g, '-')
+    );
+    if (matchedPoi) {
+      return { lat: matchedPoi.lat, lng: matchedPoi.lng, poiName: matchedPoi.name, isPoi: true };
+    }
+  }
+  return { lat: 10.7785, lng: 106.6980, poiName: 'Trung tâm Sài Gòn', isPoi: false };
+}
+
+function handleGpsFailure(err, userTriggered = false) {
+  const fb = getFallbackCoordinates();
+  locate(fb.lat, fb.lng);
+
+  if ($('gpsPillText')) {
+    $('gpsPillText').textContent = 'GPS: Mô phỏng (LAN)';
+  }
+
+  const isHttpInsecure = typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  const reason = (isHttpInsecure || (err && (err.code === 1 || String(err.message).toLowerCase().includes('secure'))))
+    ? 'Trình duyệt điện thoại hạn chế GPS qua HTTP LAN (Insecure Origin).'
+    : 'Không thể nhận tín hiệu GPS từ thiết bị.';
+
+  const msg = `${reason} Ứng dụng đã tự động định vị tại ${fb.poiName}.`;
+  status(`📍 ${msg}`);
+
+  if (userTriggered) {
+    toast(`📍 Dùng GPS mô phỏng (${fb.poiName}) - Bật Auto-Walk để trải nghiệm đi bộ`, 'ℹ️');
+  }
+
+  if (typeof broadcastVisitorPresence === 'function') {
+    broadcastVisitorPresence();
+  }
+}
+
+function initLanGpsDetection() {
+  const isSecure = (typeof window !== 'undefined' && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasPoi = Boolean(urlParams.get('poi'));
+
+  // Nếu người dùng mở qua liên kết QR ?poi=... thì handleQrDeepLinking đã định vị chính xác
+  if (hasPoi) {
+    if ($('gpsPillText')) $('gpsPillText').textContent = 'GPS: Điểm QR';
+    return;
+  }
+
+  // Nếu chạy trên thiết bị di động kết nối HTTP LAN, tự động kích hoạt GPS mô phỏng an toàn
+  if (!isSecure) {
+    const fb = getFallbackCoordinates();
+    locate(fb.lat, fb.lng);
+    if ($('gpsPillText')) $('gpsPillText').textContent = 'GPS: Mô phỏng (LAN)';
+    console.log('📱 Kích hoạt vị trí mô phỏng HTTP LAN:', fb);
+    return;
+  }
+
+  // Nếu ở Secure Context (HTTPS hoặc localhost máy chủ), thử đọc GPS thực tế
+  if (navigator.geolocation && navigator.geolocation.getCurrentPosition) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        locate(pos.coords.latitude, pos.coords.longitude);
+        if ($('gpsPillText')) $('gpsPillText').textContent = 'GPS: ±2m (Live)';
+      },
+      err => {
+        console.debug('GPS không khả dụng lúc khởi động, dùng vị trí mô phỏng:', err.message);
+        handleGpsFailure(err, false);
+      },
+      { timeout: 4000, maximumAge: 60000 }
+    );
+  }
+}
+
 $('realGps').onclick = () => {
   const lang = $('lang').value || 'vi';
   const t = UI_STRINGS[lang] || UI_STRINGS.vi;
-  if (navigator.geolocation) {
+  const isSecure = (typeof window !== 'undefined' && (window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'));
+
+  if (!isSecure) {
+    handleGpsFailure({ code: 1, message: 'Insecure Origin HTTP' }, true);
+    return;
+  }
+
+  if (navigator.geolocation && navigator.geolocation.getCurrentPosition) {
     status(t.toasts ? t.toasts.gpsQuery : '📡 Đang truy vấn vị trí GPS thực tế từ thiết bị...');
     navigator.geolocation.getCurrentPosition(
       x => {
         locate(x.coords.latitude, x.coords.longitude);
         toast(t.toasts ? t.toasts.gpsSuccess : 'Đã cập nhật vị trí GPS thật', '📡');
-        $('gpsPillText').textContent = 'GPS: ±2m';
+        if ($('gpsPillText')) $('gpsPillText').textContent = 'GPS: ±2m (Live)';
       },
-      () => {
-        status(t.toasts ? t.toasts.gpsFail : '❌ Không thể lấy tín hiệu GPS.');
-        toast(t.toasts ? t.toasts.gpsFail : 'Không thể truy cập quyền GPS', '❌');
+      err => {
+        handleGpsFailure(err, true);
       },
       { enableHighAccuracy: true, timeout: 6000 }
     );
   } else {
-    status('❌ Geolocation API not supported');
+    handleGpsFailure({ message: 'Geolocation API not supported' }, true);
   }
 };
 
@@ -4636,7 +5041,7 @@ function handleQrDeepLinking() {
               📍 ${matchedPoi.address}
             </div>
           </div>
-          <button class="btn-primary" style="width:100%;min-height:52px;font-size:16px;border-radius:var(--radius);font-weight:700;" onclick="closeModal();speak('${matchedPoi.id}', true);">
+          <button class="btn-primary" style="width:100%;min-height:52px;font-size:16px;border-radius:var(--radius);font-weight:700;" onclick="unlockMobileAudio();closeModal();speak('${matchedPoi.id}', true);">
             ${t.qrModalStart || '▶ BẮT ĐẦU NGHE THUYẾT MINH NGAY'}
           </button>
           <button class="btn-outline" style="width:100%;min-height:44px;font-size:13px;" onclick="closeModal()">
@@ -4926,12 +5331,31 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
+function logVisitorAccessEvent() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const poiParam = urlParams.get('poi');
+  const source = poiParam ? 'QR' : (urlParams.get('tour') ? 'TOUR' : 'DIRECT');
+  const curLang = $('lang') ? $('lang').value : 'vi';
+
+  if (typeof ApiClient !== 'undefined' && ApiClient.recordAccessEvent) {
+    ApiClient.recordAccessEvent({
+      visitorId: myVisitorId,
+      language: curLang,
+      poiId: poiParam || undefined,
+      source: source,
+      path: window.location.pathname + window.location.search
+    }).catch(() => {});
+  }
+}
+
 /* ─── Khởi động lần đầu ─── */
 applyLanguage($('lang').value || 'vi');
 render();
 handleQrDeepLinking();
 syncPOIsFromBackend();
 loadSuggestedTours();
+initLanGpsDetection();
+logVisitorAccessEvent();
 broadcastVisitorPresence();
 </script>
 </body>

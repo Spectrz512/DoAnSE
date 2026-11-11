@@ -327,6 +327,89 @@ body {
 .kpi-card:nth-child(2)::after { background: var(--emerald); }
 .kpi-card:nth-child(3)::after { background: var(--cobalt); }
 .kpi-card:nth-child(4)::after { background: #9333EA; }
+.kpi-card.accent::after { background: var(--accent); }
+.kpi-card.emerald::after { background: var(--emerald); }
+.kpi-card.cobalt::after { background: var(--cobalt); }
+.kpi-card.purple::after { background: #9333EA; }
+.kpi-card.amber::after { background: #F59E0B; }
+.kpi-card.teal::after { background: #0D9488; }
+.kpi-card.rose::after { background: #E11D48; }
+.kpi-card.indigo::after { background: #4F46E5; }
+.kpi-card.slate::after { background: #64748B; }
+
+.kpi-grid-9 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.status-pill-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.status-pill:hover {
+  transform: translateY(-1px);
+}
+.status-pill .pill-val {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 800;
+}
+.status-pill.playing { background: #ECFDF5; border-color: #10B981; color: #065F46; }
+.status-pill.preparing { background: #EFF6FF; border-color: #3B82F6; color: #1E40AF; }
+.status-pill.completed { background: #F8FAFC; border-color: #94A3B8; color: #334155; }
+.status-pill.error { background: #FEF2F2; border-color: #EF4444; color: #991B1B; }
+
+.filter-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.filter-row select, .filter-row input {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.filter-row select:focus, .filter-row input:focus {
+  border-color: var(--accent);
+}
+
+.badge-live-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulse-green 1.5s infinite;
+}
+@keyframes pulse-green {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
 
 .kpi-val {
   font-family: var(--font-mono);
@@ -987,65 +1070,255 @@ tr:hover td { background: var(--bg-subtle); }
        TAB 1: ANALYTICS DASHBOARD
   ══════════════════════════════════════════════════════════════ -->
   <section id="tab-dashboard" class="tab-section active">
-    <!-- 4 KPI Cards -->
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div>
-          <div class="kpi-val" id="kpiTotalPois">8</div>
-          <div class="kpi-label">Tổng Điểm Di Tích</div>
-        </div>
-        <div class="kpi-icon">🏛️</div>
+    <!-- Dashboard Top Bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+      <div>
+        <h2 style="font-family:var(--font-display);font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px;">
+          <span class="badge-live-pulse"></span>
+          Trung Tâm Giám Sát & Điều Hành Thời Gian Thực
+        </h2>
+        <p style="font-size:13px;color:var(--text-muted);">
+          Bao quát 100% dữ liệu: Lượt truy cập, phiên nghe trực tiếp, 20 ngôn ngữ và 8 điểm di tích Sài Gòn.
+        </p>
       </div>
-      <div class="kpi-card">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <select id="dashboardTimeRange" class="filter-row" style="margin-bottom:0;" onchange="syncAdminDataFromApi()">
+          <option value="today">📅 Hôm nay (24h)</option>
+          <option value="7d" selected>📅 7 ngày gần nhất</option>
+          <option value="30d">📅 30 ngày qua</option>
+          <option value="all">📅 Toàn thời gian</option>
+        </select>
+        <button class="btn btn-outline" onclick="syncAdminDataFromApi()">🔄 Làm mới</button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         NHÓM A — THỐNG KÊ TỔNG QUAN (9 KPI CARDS CHÍNH XÁC)
+    ══════════════════════════════════════════════════════════════ -->
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);">
+      📌 NHÓM A — THỐNG KÊ TỔNG QUAN HỆ THỐNG
+    </div>
+    <div class="kpi-grid-9">
+      <!-- KPI 1: Tổng lượt truy cập -->
+      <div class="kpi-card accent">
+        <div>
+          <div class="kpi-val" id="kpiTotalVisits">0</div>
+          <div class="kpi-label">Tổng Lượt Truy Cập</div>
+        </div>
+        <div class="kpi-icon">🚪</div>
+      </div>
+
+      <!-- KPI 2: Lượt truy cập hôm nay -->
+      <div class="kpi-card emerald">
+        <div>
+          <div class="kpi-val" id="kpiTodayVisits">0</div>
+          <div class="kpi-label">Truy Cập Hôm Nay</div>
+        </div>
+        <div class="kpi-icon">📅</div>
+      </div>
+
+      <!-- KPI 3: Tổng lượt nghe thuyết minh -->
+      <div class="kpi-card cobalt">
         <div>
           <div class="kpi-val" id="kpiTotalEvents">0</div>
-          <div class="kpi-label">Lượt Nghe Thuyết Minh</div>
+          <div class="kpi-label">Tổng Lượt Nghe</div>
         </div>
         <div class="kpi-icon">🎧</div>
       </div>
-      <div class="kpi-card">
+
+      <!-- KPI 4: Phiên nghe đang hoạt động -->
+      <div class="kpi-card purple">
         <div>
-          <div class="kpi-val" id="kpiTopPoi" style="font-size:18px;">Dinh Độc Lập</div>
-          <div class="kpi-label">Điểm Thu Hút Nhất</div>
+          <div class="kpi-val" id="kpiActiveSessions" style="color:#9333EA;">0</div>
+          <div class="kpi-label">Phiên Nghe Đang Chạy</div>
         </div>
-        <div class="kpi-icon">⭐</div>
+        <div class="kpi-icon">📡</div>
       </div>
-      <div class="kpi-card">
+
+      <!-- KPI 5: Số người nghe đồng thời -->
+      <div class="kpi-card amber">
         <div>
-          <div class="kpi-val" id="kpiTopLang" style="font-size:22px;">🇻🇳 VI (70%)</div>
-          <div class="kpi-label">Ngôn Ngữ Phổ Biến</div>
+          <div class="kpi-val" id="kpiConcurrentListeners" style="color:#D97706;">0</div>
+          <div class="kpi-label">Người Nghe Đồng Thời</div>
+        </div>
+        <div class="kpi-icon">👥</div>
+      </div>
+
+      <!-- KPI 6: Phiên chuẩn bị / tải nội dung -->
+      <div class="kpi-card teal">
+        <div>
+          <div class="kpi-val" id="kpiPreparingSessions" style="color:#0D9488;">0</div>
+          <div class="kpi-label">Phiên Tải / Chuẩn Bị</div>
+        </div>
+        <div class="kpi-icon">⏳</div>
+      </div>
+
+      <!-- KPI 7: Tổng số địa điểm -->
+      <div class="kpi-card slate">
+        <div>
+          <div class="kpi-val" id="kpiTotalPois">8</div>
+          <div class="kpi-label">Tổng Số Địa Điểm</div>
+        </div>
+        <div class="kpi-icon">🏛️</div>
+      </div>
+
+      <!-- KPI 8: Tổng số bài thuyết minh -->
+      <div class="kpi-card indigo">
+        <div>
+          <div class="kpi-val" id="kpiTotalNarrations">65</div>
+          <div class="kpi-label">Bài Thuyết Minh</div>
+        </div>
+        <div class="kpi-icon">📜</div>
+      </div>
+
+      <!-- KPI 9: Tổng số ngôn ngữ hỗ trợ -->
+      <div class="kpi-card rose">
+        <div>
+          <div class="kpi-val" id="kpiTotalLanguages">20</div>
+          <div class="kpi-label">Ngôn Ngữ Hỗ Trợ</div>
         </div>
         <div class="kpi-icon">🌐</div>
       </div>
     </div>
 
-    <!-- Charts Row -->
+    <!-- ══════════════════════════════════════════════════════════════
+         NHÓM B — TRẠNG THÁI NGHE TRỰC TIẾP (LIVE MONITORING)
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="panel-card" style="margin-bottom:22px;">
+      <div class="panel-title">
+        <span>🎧 NHÓM B — THEO DÕI HOẠT ĐỘNG NGHE TRỰC TIẾP (LIVE SESSIONS)</span>
+        <span style="font-size:12px;color:var(--text-muted);font-weight:500;">
+          Phân biệt rõ: Lượt nghe tích lũy vs Người nghe đồng thời tại thời điểm thực
+        </span>
+      </div>
+
+      <!-- 4 Trạng Thái Phiên Nghe (Status Pills) -->
+      <div class="status-pill-group">
+        <div class="status-pill playing" onclick="filterLiveSessionsByStatus('PLAYING')">
+          <span>🔊 Đang Nghe:</span>
+          <span class="pill-val" id="statusPlayingCount">0</span>
+        </div>
+        <div class="status-pill preparing" onclick="filterLiveSessionsByStatus('PREPARING')">
+          <span>⏳ Chuẩn Bị / Tải Nội Dung:</span>
+          <span class="pill-val" id="statusPreparingCount">0</span>
+        </div>
+        <div class="status-pill completed" onclick="filterLiveSessionsByStatus('COMPLETED')">
+          <span>✅ Đã Hoàn Thành:</span>
+          <span class="pill-val" id="statusCompletedCount">0</span>
+        </div>
+        <div class="status-pill error" onclick="filterLiveSessionsByStatus('ERROR')">
+          <span>⚠️ Gặp Lỗi / Gián Đoạn:</span>
+          <span class="pill-val" id="statusErrorCount">0</span>
+        </div>
+        <div class="status-pill" onclick="filterLiveSessionsByStatus('')" style="margin-left:auto;">
+          <span>Tất cả trạng thái</span>
+        </div>
+      </div>
+
+      <!-- Filter Bar for Live Sessions -->
+      <div class="filter-row">
+        <select id="sessionFilterPoi" onchange="renderLiveListeningSessionsTable()">
+          <option value="">-- Tất cả địa điểm --</option>
+        </select>
+        <select id="sessionFilterLang" onchange="renderLiveListeningSessionsTable()">
+          <option value="">-- Tất cả 20 ngôn ngữ --</option>
+        </select>
+        <select id="sessionFilterStatus" onchange="renderLiveListeningSessionsTable()">
+          <option value="">-- Tất cả trạng thái --</option>
+          <option value="PLAYING">Đang nghe (PLAYING)</option>
+          <option value="PREPARING">Đang chuẩn bị (PREPARING)</option>
+          <option value="COMPLETED">Đã hoàn thành (COMPLETED)</option>
+          <option value="ERROR">Gặp lỗi (ERROR)</option>
+        </select>
+        <input type="text" id="sessionSearchInput" placeholder="🔍 Tìm theo Session ID / Visitor..." oninput="renderLiveListeningSessionsTable()" style="min-width:220px;" />
+      </div>
+
+      <!-- Live Sessions Table -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Bắt đầu</th>
+              <th>Mã phiên / Du khách</th>
+              <th>Địa điểm di tích</th>
+              <th>Ngôn ngữ</th>
+              <th>Trạng thái</th>
+              <th>Thời lượng nghe</th>
+              <th>Cập nhật gần nhất</th>
+            </tr>
+          </thead>
+          <tbody id="liveSessionsTableBody">
+            <tr>
+              <td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">
+                Đang tải dữ liệu phiên nghe trực tiếp...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         THỐNG KÊ LƯỢT TRUY CẬP & PHÂN TÍCH (VISITOR ANALYTICS)
+    ══════════════════════════════════════════════════════════════ -->
     <div class="charts-row">
+      <!-- Biểu đồ xu hướng 7 ngày -->
       <div class="panel-card">
         <div class="panel-title">
-          <span>📊 Lượt Nghe Theo Điểm Di Tích</span>
-          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">Dữ liệu thời gian thực</span>
+          <span>📈 Xu Hướng Lượt Truy Cập (7 Ngày Gần Nhất)</span>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">Dữ liệu thật từ AccessEvent</span>
         </div>
-        <div id="poiListenBars" class="bar-list">
+        <div id="visitTrendBars" class="bar-list">
           <!-- Render động -->
         </div>
       </div>
 
+      <!-- Phân bổ nguồn truy cập (QR vs Tour vs Direct) -->
       <div class="panel-card">
         <div class="panel-title">
-          <span>🌐 Tỷ Lệ 5 Ngôn Ngữ</span>
-          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">VI, EN, KO, JA, ZH</span>
+          <span>🎯 Nguồn Truy Cập (Traffic Source)</span>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">QR Code / Tour / Trực tiếp</span>
         </div>
-        <div id="langDistributionBars" class="bar-list">
+        <div id="visitSourceBars" class="bar-list">
           <!-- Render động -->
         </div>
       </div>
     </div>
 
-    <!-- Live Listening Event Logs -->
-    <div class="panel-card">
+    <!-- Charts Row 2: Ngôn ngữ & Thiết bị -->
+    <div class="charts-row">
+      <!-- Phân bố ngôn ngữ du khách -->
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>🌐 Cơ Cấu Ngôn Ngữ Được Lựa Chọn (20 Ngôn Ngữ)</span>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">Từ lượt nghe & truy cập</span>
+        </div>
+        <div id="langDistributionBars" class="bar-list">
+          <!-- Render động -->
+        </div>
+      </div>
+
+      <!-- Phân bố thiết bị truy cập & Top POI -->
+      <div class="panel-card">
+        <div class="panel-title">
+          <span>📱 Thiết Bị & Điểm Di Tích Nổi Bật</span>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">Mobile vs Desktop</span>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">LOẠI THIẾT BỊ:</div>
+          <div id="deviceDistributionBars" class="bar-list" style="margin-bottom:16px;"></div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px;">TOP ĐỊA ĐIỂM ĐƯỢC QUAN TÂM NHẤT:</div>
+          <div id="topPoiBars" class="bar-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         NHẬT KÝ SỰ KIỆN NGHE THỜI GIAN THỰC (LISTENING EVENT LOGS)
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="panel-card" style="margin-bottom:22px;">
       <div class="panel-title">
-        <span>📜 Nhật Ký Lượt Nghe Thời Gian Thực (Live Listening Event Logs)</span>
+        <span>📜 Nhật Ký Lượt Nghe Thời Gian Thực (Listening Event Logs)</span>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="exportEventLogs()">📤 Xuất CSV / JSON</button>
           <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="clearEventLogs()">🗑 Xóa Nhật Ký</button>
@@ -1069,8 +1342,31 @@ tr:hover td { background: var(--bg-subtle); }
       </div>
     </div>
 
+    <!-- ══════════════════════════════════════════════════════════════
+         MÔI TRƯỜNG KIỂM THỬ TẢI / MÔ PHỎNG DỮ LIỆU (DEV SIMULATION TOOLKIT)
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="panel-card" style="margin-bottom:22px;border:1.5px dashed var(--accent);background:var(--accent-subtle);">
+      <div class="panel-title">
+        <span>⚡ Công Cụ Kiểm Thử Tải / Nhân Đôi Lượt Nghe Thử Nghiệm (Dev Load Testing)</span>
+        <span class="api-badge demo">Môi trường Dev / Staging</span>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">
+        <b>Lưu ý nghiệp vụ bắt buộc:</b> Chức năng này phục vụ kiểm thử tải, kiểm tra hiệu năng cơ sở dữ liệu và xác minh thuật toán thống kê.
+        Mỗi lần mô phỏng được giới hạn an toàn tối đa 20 lượt nghe. Không được sử dụng trên môi trường Production để làm sai lệch số liệu thực tế của du khách.
+      </p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="triggerSimulateDoubleEvents(20)">
+          ⚡ Nhân Đôi 20 Lượt Nghe Thử Nghiệm
+        </button>
+        <button class="btn btn-outline" onclick="triggerSimulateDoubleEvents(10)">
+          ⚡ Mô Phỏng 10 Lượt Nghe Nhanh
+        </button>
+        <span id="simulationStatusMsg" style="font-size:12px;font-weight:600;color:var(--text-muted);"></span>
+      </div>
+    </div>
+
     <!-- Live Admin Audit Event Logs (UC3) -->
-    <div class="panel-card" style="margin-top:20px;">
+    <div class="panel-card">
       <div class="panel-title">
         <span>🛡️ Nhật Ký Hoạt Động Quản Trị (Audit Event Logs - UC3)</span>
         <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="loadAdminAuditEvents()">🔄 Tải Lại Audit Logs</button>
@@ -1316,6 +1612,17 @@ tr:hover td { background: var(--bg-subtle); }
       <div class="panel-card no-print">
         <div class="panel-title">
           <span>⚙️ Cấu Hình In Bảng QR & Vé Tham Quan</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;background:var(--accent-subtle);padding:12px;border-radius:var(--radius-sm);border:1px solid rgba(192,127,56,0.3);">
+          <label style="color:var(--accent);font-weight:700;">🌐 Địa Chỉ IP Mạng LAN (Cho Điện Thoại Quét QR):</label>
+          <div style="display:flex;gap:8px;">
+            <input id="qrLanOriginInput" class="form-control" placeholder="http://192.168.1.x:8080" oninput="onAdminLanOriginChanged()" style="font-family:var(--font-mono);font-size:13px;">
+            <select id="qrLanPresetSelect" class="form-control" onchange="onAdminLanPresetSelected()" style="max-width:160px;font-size:12px;">
+              <option value="">-- Gợi ý IP --</option>
+            </select>
+          </div>
+          <span id="qrLanDetectedBadge" style="font-size:11px;color:var(--text-muted);margin-top:4px;display:block;">Tự động nhận diện qua API Backend. Điện thoại cùng Wi-Fi sẽ kết nối qua địa chỉ này.</span>
         </div>
 
         <div class="form-group" style="margin-bottom:14px;">
@@ -2195,7 +2502,69 @@ async function initQrStudioOptions() {
     } catch (e) {}
   }
 
+  // Tự động nhận diện IP LAN từ Backend
+  await initAdminLanInfo();
+
   renderQrStudio();
+}
+
+async function initAdminLanInfo() {
+  const originInput = document.getElementById('qrLanOriginInput');
+  const presetSelect = document.getElementById('qrLanPresetSelect');
+  const badge = document.getElementById('qrLanDetectedBadge');
+  if (!originInput || !presetSelect) return;
+
+  const saved = localStorage.getItem('tmtd-lan-origin');
+  const currentHost = window.location.hostname;
+  const currentPort = window.location.port || '8080';
+  const defaultFallback = (currentHost && currentHost !== 'localhost' && currentHost !== '127.0.0.1')
+    ? `${window.location.protocol}//${currentHost}:${currentPort}`
+    : `http://localhost:${currentPort}`;
+
+  let detectedPrimary = '';
+  const options = [];
+
+  try {
+    const netRes = await ApiClient.fetchNetworkInfo();
+    if (netRes.ok && netRes.data) {
+      const d = netRes.data;
+      if (d.addresses && d.addresses.length > 0) {
+        d.addresses.forEach(ip => {
+          options.push({ label: `📱 Wi-Fi: ${ip}:${d.webPort || 8080}`, url: `http://${ip}:${d.webPort || 8080}` });
+        });
+      }
+      if (d.primaryIp && d.primaryIp !== 'localhost') {
+        detectedPrimary = `http://${d.primaryIp}:${d.webPort || 8080}`;
+      }
+    }
+  } catch (e) {}
+
+  options.push({ label: `💻 Máy này: localhost:${currentPort}`, url: `http://localhost:${currentPort}` });
+
+  presetSelect.innerHTML = '<option value="">-- Chọn IP Gợi Ý --</option>' +
+    options.map(opt => `<option value="${opt.url}">${opt.label}</option>`).join('');
+
+  const chosen = saved || detectedPrimary || defaultFallback;
+  originInput.value = chosen;
+  if (badge && detectedPrimary) {
+    badge.textContent = `✓ Đã phát hiện IP LAN: ${detectedPrimary.replace('http://', '')} (sẵn sàng cho điện thoại)`;
+    badge.style.color = 'var(--emerald)';
+  }
+}
+
+function onAdminLanOriginChanged() {
+  const val = (document.getElementById('qrLanOriginInput')?.value || '').trim();
+  if (val) localStorage.setItem('tmtd-lan-origin', val);
+  renderQrStudio();
+}
+
+function onAdminLanPresetSelected() {
+  const sel = document.getElementById('qrLanPresetSelect');
+  if (sel && sel.value) {
+    document.getElementById('qrLanOriginInput').value = sel.value;
+    localStorage.setItem('tmtd-lan-origin', sel.value);
+    renderQrStudio();
+  }
 }
 
 async function generateAdminPassCode() {
@@ -2243,7 +2612,8 @@ function renderQrStudio() {
 
   const p = pois.find(x => x.id === poiId) || pois[0];
 
-  const baseOrigin = window.location.origin + window.location.pathname.replace('admin.html', 'index.html');
+  const lanOrigin = (document.getElementById('qrLanOriginInput')?.value || '').trim().replace(/\/+$/, '') || window.location.origin;
+  const baseOrigin = `${lanOrigin}/index.html`;
   const params = new URLSearchParams();
   if (pass) params.set('pass', pass);
   if (lang) params.set('lang', lang);
@@ -2729,38 +3099,213 @@ function saveAdminKey() {
   console.log('✓ Đã lưu Admin Key');
 }
 
+let currentLiveListeningSessions = [];
+let all20LanguagesList = [];
+
+// Khởi tạo các bộ lọc địa điểm và ngôn ngữ cho bảng Live Listening Sessions
+function initLiveSessionFilters() {
+  const poiSelect = document.getElementById('sessionFilterPoi');
+  if (poiSelect && poiSelect.options.length <= 1) {
+    pois.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name;
+      poiSelect.appendChild(opt);
+    });
+  }
+
+  const langSelect = document.getElementById('sessionFilterLang');
+  if (langSelect && langSelect.options.length <= 1 && typeof ApiClient !== 'undefined') {
+    ApiClient.fetchLanguages().then(res => {
+      if (res.ok && Array.isArray(res.languages)) {
+        all20LanguagesList = res.languages;
+        all20LanguagesList.forEach(l => {
+          const opt = document.createElement('option');
+          opt.value = l.code;
+          opt.textContent = `${l.flag || '🌐'} ${l.nativeName} (${l.code.toUpperCase()})`;
+          langSelect.appendChild(opt);
+        });
+      }
+    }).catch(() => {});
+  }
+}
+
+function filterLiveSessionsByStatus(status) {
+  const statusSelect = document.getElementById('sessionFilterStatus');
+  if (statusSelect) {
+    statusSelect.value = status;
+    renderLiveListeningSessionsTable();
+  }
+}
+window.filterLiveSessionsByStatus = filterLiveSessionsByStatus;
+
+function renderLiveListeningSessionsTable() {
+  const tbody = document.getElementById('liveSessionsTableBody');
+  if (!tbody) return;
+
+  const filterPoi = (document.getElementById('sessionFilterPoi')?.value || '').trim();
+  const filterLang = (document.getElementById('sessionFilterLang')?.value || '').trim();
+  const filterStatus = (document.getElementById('sessionFilterStatus')?.value || '').trim();
+  const searchQ = (document.getElementById('sessionSearchInput')?.value || '').toLowerCase().trim();
+
+  let filtered = currentLiveListeningSessions.slice();
+
+  if (filterPoi) {
+    filtered = filtered.filter(s => s.poiId === filterPoi);
+  }
+  if (filterLang) {
+    filtered = filtered.filter(s => s.language === filterLang);
+  }
+  if (filterStatus) {
+    filtered = filtered.filter(s => s.status === filterStatus);
+  }
+  if (searchQ) {
+    filtered = filtered.filter(s =>
+      (s.id && s.id.toLowerCase().includes(searchQ)) ||
+      (s.visitorId && s.visitorId.toLowerCase().includes(searchQ)) ||
+      (s.poi && s.poi.name && s.poi.name.toLowerCase().includes(searchQ))
+    );
+  }
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center;padding:28px;color:var(--text-muted);">
+          Không có phiên nghe nào khớp với bộ lọc hiện tại. (Trạng thái: 0)
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const statusBadges = {
+    PLAYING: '<span class="api-badge live">🔊 ĐANG NGHE</span>',
+    PREPARING: '<span class="api-badge demo" style="color:#2563EB;border-color:rgba(37,99,235,0.3)">⏳ CHUẨN BỊ</span>',
+    COMPLETED: '<span class="api-badge" style="background:#F1F5F9;color:#475569;border-color:#CBD5E1">✅ KẾT THÚC</span>',
+    ERROR: '<span class="api-badge" style="background:#FEF2F2;color:#B91C1C;border-color:rgba(185,28,28,0.3)">⚠️ LỖI</span>'
+  };
+
+  tbody.innerHTML = filtered.map(s => {
+    const poiName = (s.poi && s.poi.name) || pois.find(p => p.id === s.poiId)?.name || s.poiId || '--';
+    const langFlag = LANG_FLAGS[s.language] || '🌐';
+    const startTimeStr = s.startedAt ? new Date(s.startedAt).toLocaleTimeString('vi-VN') : '--';
+    const updatedTimeStr = s.lastHeartbeatAt ? new Date(s.lastHeartbeatAt).toLocaleTimeString('vi-VN') : '--';
+    const durationMin = s.durationSeconds ? `${Math.floor(s.durationSeconds / 60)}p ${s.durationSeconds % 60}s` : '0s';
+
+    return `
+      <tr>
+        <td style="font-family:var(--font-mono);font-size:12px;">${startTimeStr}</td>
+        <td>
+          <div style="font-weight:700;font-size:13px;">${s.visitorId || 'Khách vãng lai'}</div>
+          <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-muted);">${s.id.slice(0, 14)}...</div>
+        </td>
+        <td><b>${poiName}</b></td>
+        <td><span>${langFlag}</span> <b>${(s.language || 'vi').toUpperCase()}</b></td>
+        <td>${statusBadges[s.status] || s.status}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${durationMin}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">${updatedTimeStr}</td>
+      </tr>
+    `;
+  }).join('');
+}
+window.renderLiveListeningSessionsTable = renderLiveListeningSessionsTable;
+
+// Kích hoạt mô phỏng nhân đôi lượt nghe (Chỉ dùng cho thử nghiệm tải)
+async function triggerSimulateDoubleEvents(count = 20) {
+  const statusMsg = document.getElementById('simulationStatusMsg');
+  if (statusMsg) statusMsg.textContent = '⏳ Đang khởi tạo mô phỏng tải...';
+  const adminKey = getAdminKey();
+
+  try {
+    const res = await ApiClient.simulateDoubleEvents(count, adminKey);
+    if (res.ok) {
+      if (statusMsg) {
+        statusMsg.style.color = 'var(--emerald)';
+        statusMsg.textContent = `✓ Đã mô phỏng thành công ${res.count || count} lượt nghe thử nghiệm!`;
+      }
+      await syncAdminDataFromApi();
+    } else {
+      if (statusMsg) {
+        statusMsg.style.color = 'var(--danger)';
+        statusMsg.textContent = `❌ Lỗi: ${res.error}`;
+      }
+    }
+  } catch (err) {
+    if (statusMsg) {
+      statusMsg.style.color = 'var(--danger)';
+      statusMsg.textContent = `❌ Lỗi kết nối: ${err.message}`;
+    }
+  }
+}
+window.triggerSimulateDoubleEvents = triggerSimulateDoubleEvents;
+
 async function syncAdminDataFromApi() {
   if (typeof ApiClient === 'undefined') return;
   const adminKey = getAdminKey();
+  initLiveSessionFilters();
 
   try {
     const res = await ApiClient.fetchAdminStats(adminKey);
     if (res.ok && res.stats) {
       const s = res.stats;
+
       // 0. Đồng bộ Real Active Visitors từ cơ sở dữ liệu
       if (Array.isArray(s.activeVisitorSessions)) {
         realActiveVisitorSessions = s.activeVisitorSessions;
       }
       renderLivePresenceData(typeof s.activeVisitorsCount === 'number' ? s.activeVisitorsCount : realActiveVisitorSessions.length);
 
-      // 1. KPIs
-      document.getElementById('kpiTotalPois').textContent = `${s.totalPois || 0} (${s.publishedPois || 0} Pub · ${s.draftPois || 0} Draft)`;
-      document.getElementById('kpiTotalEvents').textContent = `${s.totalListeningEvents || 0} (Auto: ${s.byMode?.AUTO || 0} · Manual: ${s.byMode?.MANUAL || 0})`;
-      if (s.topPois && s.topPois.length > 0) {
-        document.getElementById('kpiTopPoi').textContent = `${s.topPois[0].name || s.topPois[0].poiId} (${s.topPois[0]._count?.poiId || s.topPois[0].count || 0})`;
-      }
+      // 1. NHÓM A — 9 KPI Cards
+      document.getElementById('kpiTotalVisits').textContent = (s.totalVisits || 0).toLocaleString();
+      document.getElementById('kpiTodayVisits').textContent = (s.todayVisits || 0).toLocaleString();
+      document.getElementById('kpiTotalEvents').textContent = (s.totalListeningEvents || 0).toLocaleString();
+      document.getElementById('kpiActiveSessions').textContent = s.activeListeningSessionsCount || 0;
+      document.getElementById('kpiConcurrentListeners').textContent = s.concurrentListenersCount || 0;
+      document.getElementById('kpiPreparingSessions').textContent = s.preparingSessionsCount || 0;
+      document.getElementById('kpiTotalPois').textContent = `${s.totalPois || 0} (${s.publishedPois || 0} Pub)`;
+      document.getElementById('kpiTotalNarrations').textContent = s.totalNarrations || 0;
+      document.getElementById('kpiTotalLanguages').textContent = `${s.totalLanguages || 20} (${s.availableLanguagesCount || 5} Audio)`;
 
-      // 2. Ngôn ngữ (5 ngôn ngữ)
-      if (s.byLanguage) {
-        const langFlags = { vi: '🇻🇳 VI', en: '🇬🇧 EN', ko: '🇰🇷 KO', ja: '🇯🇵 JA', zh: '🇨🇳 ZH' };
-        const total = Object.values(s.byLanguage).reduce((a, b) => a + b, 0) || 1;
-        document.getElementById('langDistributionBars').innerHTML = Object.entries(s.byLanguage).map(([l, cnt]) => {
-          const pct = Math.round((cnt / total) * 100);
+      // 2. NHÓM B — Trạng thái phiên nghe trực tiếp
+      document.getElementById('statusPlayingCount').textContent = s.playingSessionsCount || 0;
+      document.getElementById('statusPreparingCount').textContent = s.preparingSessionsCount || 0;
+      document.getElementById('statusCompletedCount').textContent = s.completedSessionsCount || 0;
+      document.getElementById('statusErrorCount').textContent = s.errorSessionsCount || 0;
+
+      // Bảng phiên nghe trực tiếp
+      currentLiveListeningSessions = Array.isArray(s.liveListeningSessions) ? s.liveListeningSessions : [];
+      renderLiveListeningSessionsTable();
+
+      // 3. Phân tích lượt truy cập 7 ngày qua (visitTrendBars)
+      if (Array.isArray(s.visitsByDate)) {
+        const maxV = Math.max(...s.visitsByDate.map(d => d.count), 1);
+        document.getElementById('visitTrendBars').innerHTML = s.visitsByDate.map(d => {
+          const pct = Math.round((d.count / maxV) * 100);
           return `
             <div class="bar-item">
               <div class="bar-meta">
-                <span>${langFlags[l] || l.toUpperCase()}</span>
-                <span style="font-family:var(--font-mono)">${cnt} (${pct}%)</span>
+                <span>${d.date}</span>
+                <span style="font-family:var(--font-mono);font-weight:700;">${d.count} lượt</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${Math.max(pct, d.count > 0 ? 5 : 0)}%;background:var(--emerald);"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 4. Phân bổ nguồn truy cập (visitSourceBars)
+      if (Array.isArray(s.visitsBySource)) {
+        const totalSrc = s.visitsBySource.reduce((a, b) => a + b.count, 0) || 1;
+        document.getElementById('visitSourceBars').innerHTML = s.visitsBySource.map(item => {
+          const pct = Math.round((item.count / totalSrc) * 100);
+          const labels = { QR: '📱 Quét Mã QR Code', TOUR: '🧭 Theo Lộ Trình Tour', DIRECT: '🌐 Trực Tiếp / Tìm Kiếm' };
+          return `
+            <div class="bar-item">
+              <div class="bar-meta">
+                <span>${labels[item.source] || item.source}</span>
+                <span style="font-family:var(--font-mono)">${item.count} (${pct}%)</span>
               </div>
               <div class="bar-track">
                 <div class="bar-fill" style="width:${pct}%;background:var(--accent);"></div>
@@ -2770,18 +3315,88 @@ async function syncAdminDataFromApi() {
         }).join('');
       }
 
-      // 3. Danh sách recentEvents
-      if (Array.isArray(s.recentEvents) && s.recentEvents.length > 0) {
+      // 5. Cơ cấu ngôn ngữ (20 ngôn ngữ)
+      if (s.byLanguage) {
+        const total = Object.values(s.byLanguage).reduce((a, b) => a + b, 0) || 1;
+        const entries = Object.entries(s.byLanguage);
+        if (entries.length === 0) {
+          document.getElementById('langDistributionBars').innerHTML = `
+            <div style="font-size:12px;color:var(--text-muted);padding:8px 0;">Chưa ghi nhận dữ liệu ngôn ngữ.</div>
+          `;
+        } else {
+          document.getElementById('langDistributionBars').innerHTML = entries.map(([l, cnt]) => {
+            const pct = Math.round((cnt / total) * 100);
+            const flag = LANG_FLAGS[l] || '🌐';
+            return `
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span>${flag} ${l.toUpperCase()}</span>
+                  <span style="font-family:var(--font-mono)">${cnt} (${pct}%)</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:${pct}%;background:var(--cobalt);"></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      // 6. Thiết bị truy cập & Top POI
+      if (Array.isArray(s.visitsByDevice) && document.getElementById('deviceDistributionBars')) {
+        const totalDev = s.visitsByDevice.reduce((a, b) => a + b.count, 0) || 1;
+        document.getElementById('deviceDistributionBars').innerHTML = s.visitsByDevice.map(dev => {
+          const pct = Math.round((dev.count / totalDev) * 100);
+          return `
+            <div class="bar-item">
+              <div class="bar-meta">
+                <span>${dev.deviceType === 'Mobile' ? '📱 Mobile' : '💻 Desktop'}</span>
+                <span style="font-family:var(--font-mono)">${dev.count} (${pct}%)</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${pct}%;background:#9333EA;"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if (Array.isArray(s.topVisitedPois) && document.getElementById('topPoiBars')) {
+        const maxPoiCnt = Math.max(...s.topVisitedPois.map(p => p.count), 1);
+        document.getElementById('topPoiBars').innerHTML = s.topVisitedPois.slice(0, 5).map(poi => {
+          const pct = Math.round((poi.count / maxPoiCnt) * 100);
+          return `
+            <div class="bar-item">
+              <div class="bar-meta">
+                <span>🏛️ ${poi.name || poi.poiId}</span>
+                <span style="font-family:var(--font-mono)">${poi.count} lượt</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${pct}%;background:var(--accent);"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 7. Danh sách recentEvents (Listening Events)
+      if (Array.isArray(s.recentEvents)) {
         const tbody = document.getElementById('eventLogsTableBody');
-        tbody.innerHTML = s.recentEvents.map(e => `
-          <tr>
-            <td style="font-family:var(--font-mono);font-size:12px;">${new Date(e.createdAt).toLocaleString('vi-VN')}</td>
-            <td><b>${(e.poi && e.poi.name) || e.poiId}</b></td>
-            <td><span class="api-badge ${e.mode === 'AUTO' ? 'live' : 'demo'}">${e.mode || 'MANUAL'}</span></td>
-            <td><b>${(e.language || 'vi').toUpperCase()}</b></td>
-            <td style="font-family:var(--font-mono);font-size:12px;">${e.latitude ? `${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}` : '--'}</td>
-          </tr>
-        `).join('');
+        if (tbody) {
+          if (s.recentEvents.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--text-muted);">Chưa có lượt nghe nào.</td></tr>`;
+          } else {
+            tbody.innerHTML = s.recentEvents.map(e => `
+              <tr>
+                <td style="font-family:var(--font-mono);font-size:12px;">${new Date(e.createdAt).toLocaleString('vi-VN')}</td>
+                <td><b>${(e.poi && e.poi.name) || e.poiId}</b></td>
+                <td><span class="api-badge ${e.mode === 'AUTO' ? 'live' : 'demo'}">${e.mode || 'MANUAL'}</span></td>
+                <td><b>${(e.language || 'vi').toUpperCase()}</b></td>
+                <td style="font-family:var(--font-mono);font-size:12px;">${e.latitude ? `${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}` : '--'}</td>
+              </tr>
+            `).join('');
+          }
+        }
       }
 
       console.log('✓ Đã đồng bộ Dashboard Stats từ API thành công.');
