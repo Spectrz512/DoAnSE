@@ -1,5 +1,5 @@
 # Nhiệm vụ: Tách TranslationRepository & API Tour Package Offline (UC8)
-**Giao cho:** Trung (Translation & Tour Package)  
+**Giao cho:** Trần Lê Trung (Dev)  
 **Dự án:** Hồ Chí Minh GPS Audio Guide (`DA_CNPM`)  
 **Mục tiêu:** Đưa Translation module về chuẩn 3 lớp nghiêm ngặt (tách Repository khỏi Service) và xây dựng endpoint tải trọn gói dữ liệu Tour ngoại tuyến (`GET /api/tours/:id/package`).
 

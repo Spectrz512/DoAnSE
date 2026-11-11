@@ -1,5 +1,5 @@
 # Nhiệm vụ: Hạ tầng PostGIS, Routing & Health Check
-**Giao cho:** Lê Tấn Phát (Hạ tầng & Core)  
+**Giao cho:** Lê Tấn Phát (Lead)  
 **Dự án:** Hồ Chí Minh GPS Audio Guide (`DA_CNPM`)  
 **Mục tiêu:** Nâng cấp truy vấn không gian PostGIS có fallback an toàn, cố định routing không làm gãy giao diện demo, và hoàn thiện health check kiểm tra kết nối database thực tế.
 

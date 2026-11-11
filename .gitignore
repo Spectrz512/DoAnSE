@@ -36,3 +36,12 @@ skills-lock.json
 .windsurf/
 skills-lock.json
 
+
+# IDE & Build Cache
+.agents/
+.claude/
+.windsurf/
+skills-lock.json
+dist/
+*.tsbuildinfo
+

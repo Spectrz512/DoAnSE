@@ -1,5 +1,5 @@
 # Nhiệm vụ: AI Chatbot RAG Knowledge & Rate Limiting (UC4)
-**Giao cho:** Như Phát (AI Chatbot RAG & Rate Limit)  
+**Giao cho:** Như Phát (Dev)  
 **Dự án:** Hồ Chí Minh GPS Audio Guide (`DA_CNPM`)  
 **Mục tiêu:** Nâng cấp AI Chatbot từ câu trả lời mock tĩnh sang cơ chế Retrieval-Augmented Generation (RAG) tra cứu từ kho dữ liệu POI đã được duyệt (`status: PUBLISHED`), đồng thời áp dụng `RateLimitGuard` để chặn spam kỹ thuật (20 req/phút).
 
