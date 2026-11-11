@@ -1,5 +1,11 @@
 node_modules
-# Keep environment variables out of version control
+dist/
+*.tsbuildinfo
 .env
-
+.env.*
+!.env.example
 /generated/prisma
+.agents/
+.claude/
+.windsurf/
+skills-lock.json

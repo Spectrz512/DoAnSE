@@ -12,6 +12,21 @@ enum Language {
   ko
   ja
   zh
+  zh_TW
+  th
+  lo
+  km
+  id
+  ms
+  fil
+  hi
+  ar
+  ru
+  pt
+  it
+  fr
+  de
+  es
 }
 
 enum PassStatus {
@@ -25,28 +40,65 @@ enum ListeningMode {
   MANUAL
 }
 
+enum ListeningStatus {
+  PREPARING
+  PLAYING
+  COMPLETED
+  ERROR
+  PAUSED
+}
+
+enum AccessSource {
+  QR
+  DIRECT
+  MAP
+  TOUR
+}
+
 enum PoiStatus {
   DRAFT
   PUBLISHED
 }
 
+model LanguageCatalog {
+  code        String   @id
+  nameVi      String
+  nameEn      String
+  nativeName  String
+  flagEmoji   String
+  isAvailable Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isAvailable])
+  @@index([sortOrder])
+}
+
 model Poi {
-  id               String           @id @default(cuid())
-  name             String
-  description      String
-  latitude         Float
-  longitude        Float
-  category         String
-  address          String?
-  activationRadius Int              @default(50)
-  priority         Int              @default(0)
-  imageUrl         String?
-  status           PoiStatus        @default(PUBLISHED)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  narrations       Narration[]
-  listeningEvents  ListeningEvent[]
-  tourStops        TourStop[]
+  id                String             @id @default(cuid())
+  name              String
+  description       String
+  latitude          Float
+  longitude         Float
+  category          String
+  address           String?
+  activationRadius  Int                @default(50)
+  priority          Int                @default(0)
+  imageUrl          String?
+  status            PoiStatus          @default(PUBLISHED)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  narrations        Narration[]
+  listeningEvents   ListeningEvent[]
+  listeningSessions ListeningSession[]
+  accessEvents      AccessEvent[]
+  tourStops         TourStop[]
+  qrCodes           QrCode[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([category])
 }
 
 model Narration {
@@ -62,6 +114,8 @@ model Narration {
   poi             Poi      @relation(fields: [poiId], references: [id], onDelete: Cascade)
 
   @@unique([poiId, language])
+  @@index([language])
+  @@index([poiId])
 }
 
 model Tour {
@@ -73,6 +127,8 @@ model Tour {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
   stops            TourStop[]
+
+  @@index([isSuggested])
 }
 
 model TourStop {
@@ -85,20 +141,90 @@ model TourStop {
 
   @@unique([tourId, position])
   @@unique([tourId, poiId])
+  @@index([tourId])
+  @@index([poiId])
 }
 
 model ListeningEvent {
-  id        String        @id @default(cuid())
-  visitorId String?
-  poiId     String
-  language  Language
-  mode      ListeningMode
-  latitude  Float?
-  longitude Float?
-  createdAt DateTime      @default(now())
-  poi       Poi           @relation(fields: [poiId], references: [id], onDelete: Cascade)
+  id              String          @id @default(cuid())
+  visitorId       String?
+  poiId           String
+  language        Language
+  mode            ListeningMode
+  status          ListeningStatus @default(COMPLETED)
+  latitude        Float?
+  longitude       Float?
+  durationSeconds Int?            @default(0)
+  startedAt       DateTime        @default(now())
+  endedAt         DateTime?
+  errorMessage    String?
+  createdAt       DateTime        @default(now())
+  poi             Poi             @relation(fields: [poiId], references: [id], onDelete: Cascade)
 
+  @@index([poiId, createdAt])
+  @@index([language, createdAt])
+  @@index([status])
   @@index([visitorId, createdAt])
+  @@index([startedAt])
+}
+
+model ListeningSession {
+  id              String          @id @default(cuid())
+  visitorId       String
+  poiId           String
+  language        Language
+  mode            ListeningMode   @default(AUTO)
+  status          ListeningStatus @default(PLAYING)
+  startedAt       DateTime        @default(now())
+  lastHeartbeatAt DateTime        @default(now())
+  endedAt         DateTime?
+  durationSeconds Int             @default(0)
+  errorMessage    String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  poi             Poi             @relation(fields: [poiId], references: [id], onDelete: Cascade)
+
+  @@index([visitorId])
+  @@index([status])
+  @@index([lastHeartbeatAt, status])
+  @@index([poiId])
+}
+
+model AccessEvent {
+  id         String       @id @default(cuid())
+  visitorId  String
+  ipAddress  String?
+  userAgent  String?
+  deviceType String?      @default("Mobile")
+  language   Language     @default(vi)
+  poiId      String?
+  source     AccessSource @default(DIRECT)
+  path       String?
+  createdAt  DateTime     @default(now())
+  poi        Poi?         @relation(fields: [poiId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([visitorId])
+  @@index([poiId])
+  @@index([language])
+  @@index([source])
+}
+
+model QrCode {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  targetPoiId   String?
+  targetTourId  String?
+  defaultLang   Language  @default(vi)
+  label         String?
+  scanCount     Int       @default(0)
+  lastScannedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  poi           Poi?      @relation(fields: [targetPoiId], references: [id], onDelete: SetNull)
+
+  @@index([targetPoiId])
+  @@index([code])
 }
 
 model AccessPass {
@@ -111,6 +237,9 @@ model AccessPass {
   deviceInfo  String?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+
+  @@index([status])
+  @@index([expiresAt])
 }
 
 model AuditEvent {

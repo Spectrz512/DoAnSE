@@ -111,6 +111,27 @@ export class PoiRepository {
     return this.prisma.poi.delete({ where: { id } });
   }
 
+  findPublishedForKnowledge(query?: string) {
+    return this.prisma.poi.findMany({
+      where: {
+        status: PoiStatus.PUBLISHED,
+        ...(query
+          ? {
+              OR: [
+                { name: { contains: query, mode: 'insensitive' } },
+                { address: { contains: query, mode: 'insensitive' } },
+                { description: { contains: query, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      include: {
+        narrations: true,
+      },
+      orderBy: [{ priority: 'desc' }, { name: 'asc' }],
+      take: 5,
+    });
+  }
 
   async findNearby(
     lat: number,
@@ -118,6 +139,86 @@ export class PoiRepository {
     radiusM = 500,
     language: Language = Language.vi,
   ): Promise<NearbyPoiCandidate[]> {
+    // 1. Thử truy vấn không gian trực tiếp qua PostGIS (ST_DWithin & ST_DistanceSphere)
+    try {
+      type RawSpatialPoi = {
+        id: string;
+        name: string;
+        description: string;
+        latitude: number;
+        longitude: number;
+        category: string;
+        address: string | null;
+        activationRadius: number;
+        priority: number;
+        imageUrl: string | null;
+        distanceM: number;
+        narrationId: string | null;
+        narrationLang: string | null;
+        narrationTitle: string | null;
+        narrationContent: string | null;
+        narrationAudioUrl: string | null;
+        narrationDuration: number | null;
+      };
+
+      const rawResults = await this.prisma.$queryRaw<RawSpatialPoi[]>`
+        SELECT 
+          p.id, p.name, p.description, p.latitude, p.longitude, p.category, p.address,
+          p."activationRadius", p.priority, p."imageUrl",
+          ROUND(CAST(ST_DistanceSphere(ST_MakePoint(p.longitude, p.latitude), ST_MakePoint(${lng}, ${lat})) AS numeric), 2) AS "distanceM",
+          n.id AS "narrationId",
+          n.language AS "narrationLang",
+          n.title AS "narrationTitle",
+          n.content AS "narrationContent",
+          n."audioUrl" AS "narrationAudioUrl",
+          n."durationSeconds" AS "narrationDuration"
+        FROM "Poi" p
+        LEFT JOIN "Narration" n ON n."poiId" = p.id AND n.language = ${language}::"Language"
+        WHERE p.status = 'PUBLISHED'
+          AND ST_DWithin(
+            ST_MakePoint(p.longitude, p.latitude)::geography,
+            ST_MakePoint(${lng}, ${lat})::geography,
+            ${radiusM}
+          )
+        ORDER BY p.priority DESC, "distanceM" ASC
+      `;
+
+      if (rawResults && Array.isArray(rawResults)) {
+        return rawResults.map((r) => {
+          const triggerRadiusM = Number(r.activationRadius);
+          const distanceM = Number(r.distanceM);
+          return {
+            id: r.id,
+            name: r.name,
+            description: r.description,
+            latitude: Number(r.latitude),
+            longitude: Number(r.longitude),
+            category: r.category,
+            address: r.address,
+            activationRadius: triggerRadiusM,
+            priority: Number(r.priority),
+            imageUrl: r.imageUrl,
+            distanceM,
+            triggerRadiusM,
+            resetRadiusM: Math.round(triggerRadiusM * 1.5 * 100) / 100,
+            narration: r.narrationId
+              ? {
+                  id: r.narrationId,
+                  language: (r.narrationLang as Language) || language,
+                  title: r.narrationTitle || '',
+                  content: r.narrationContent || '',
+                  audioUrl: r.narrationAudioUrl,
+                  durationSeconds: r.narrationDuration ? Number(r.narrationDuration) : null,
+                }
+              : null,
+          };
+        });
+      }
+    } catch {
+      // 2. Hybrid Fallback: Nếu môi trường cơ sở dữ liệu chưa có extension PostGIS hoặc unit test mock
+    }
+
+    // Fallback: Haversine in-memory calculation
     const pois = await this.prisma.poi.findMany({
       where: { status: PoiStatus.PUBLISHED },
       include: {

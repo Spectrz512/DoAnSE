@@ -663,6 +663,72 @@ async function main() {
   });
 
   console.log("✅ Seeded 3 suggested tours.");
+
+  // 7. Seed Danh Mục 20 Ngôn Ngữ Chuẩn (LanguageCatalog)
+  const languageList = [
+    { code: 'vi', nameVi: 'Tiếng Việt', nameEn: 'Vietnamese', nativeName: 'Tiếng Việt', flagEmoji: '🇻🇳', isAvailable: true, sortOrder: 1 },
+    { code: 'en', nameVi: 'Tiếng Anh', nameEn: 'English', nativeName: 'English', flagEmoji: '🇬🇧', isAvailable: true, sortOrder: 2 },
+    { code: 'zh', nameVi: 'Tiếng Trung (Giản thể)', nameEn: 'Chinese (Simplified)', nativeName: '中文（简体）', flagEmoji: '🇨🇳', isAvailable: true, sortOrder: 3 },
+    { code: 'zh_TW', nameVi: 'Tiếng Trung (Phồn thể)', nameEn: 'Chinese (Traditional)', nativeName: '中文（繁體）', flagEmoji: '🇹🇼', isAvailable: false, sortOrder: 4 },
+    { code: 'ja', nameVi: 'Tiếng Nhật', nameEn: 'Japanese', nativeName: '日本語', flagEmoji: '🇯🇵', isAvailable: true, sortOrder: 5 },
+    { code: 'ko', nameVi: 'Tiếng Hàn', nameEn: 'Korean', nativeName: '한국어', flagEmoji: '🇰🇷', isAvailable: true, sortOrder: 6 },
+    { code: 'th', nameVi: 'Tiếng Thái', nameEn: 'Thai', nativeName: 'ภาษาไทย', flagEmoji: '🇹🇭', isAvailable: false, sortOrder: 7 },
+    { code: 'lo', nameVi: 'Tiếng Lào', nameEn: 'Lao', nativeName: 'ພາສາລາວ', flagEmoji: '🇱🇦', isAvailable: false, sortOrder: 8 },
+    { code: 'km', nameVi: 'Tiếng Khmer', nameEn: 'Khmer', nativeName: 'ភាសាខ្មែរ', flagEmoji: '🇰🇭', isAvailable: false, sortOrder: 9 },
+    { code: 'id', nameVi: 'Tiếng Indonesia', nameEn: 'Indonesian', nativeName: 'Bahasa Indonesia', flagEmoji: '🇮🇩', isAvailable: false, sortOrder: 10 },
+    { code: 'ms', nameVi: 'Tiếng Malaysia', nameEn: 'Malay', nativeName: 'Bahasa Melayu', flagEmoji: '🇲🇾', isAvailable: false, sortOrder: 11 },
+    { code: 'fil', nameVi: 'Tiếng Philippines', nameEn: 'Filipino', nativeName: 'Wikang Filipino', flagEmoji: '🇵🇭', isAvailable: false, sortOrder: 12 },
+    { code: 'hi', nameVi: 'Tiếng Hindi', nameEn: 'Hindi', nativeName: 'हिन्दी', flagEmoji: '🇮🇳', isAvailable: false, sortOrder: 13 },
+    { code: 'ar', nameVi: 'Tiếng Ả Rập', nameEn: 'Arabic', nativeName: 'العربية', flagEmoji: '🇸🇦', isAvailable: false, sortOrder: 14 },
+    { code: 'ru', nameVi: 'Tiếng Nga', nameEn: 'Russian', nativeName: 'Русский', flagEmoji: '🇷🇺', isAvailable: false, sortOrder: 15 },
+    { code: 'pt', nameVi: 'Tiếng Bồ Đào Nha', nameEn: 'Portuguese', nativeName: 'Português', flagEmoji: '🇵🇹', isAvailable: false, sortOrder: 16 },
+    { code: 'it', nameVi: 'Tiếng Ý', nameEn: 'Italian', nativeName: 'Italiano', flagEmoji: '🇮🇹', isAvailable: false, sortOrder: 17 },
+    { code: 'fr', nameVi: 'Tiếng Pháp', nameEn: 'French', nativeName: 'Français', flagEmoji: '🇫🇷', isAvailable: false, sortOrder: 18 },
+    { code: 'de', nameVi: 'Tiếng Đức', nameEn: 'German', nativeName: 'Deutsch', flagEmoji: '🇩🇪', isAvailable: false, sortOrder: 19 },
+    { code: 'es', nameVi: 'Tiếng Tây Ban Nha', nameEn: 'Spanish', nativeName: 'Español', flagEmoji: '🇪🇸', isAvailable: false, sortOrder: 20 },
+  ];
+
+  for (const lang of languageList) {
+    await prisma.languageCatalog.upsert({
+      where: { code: lang.code },
+      update: {
+        nameVi: lang.nameVi,
+        nameEn: lang.nameEn,
+        nativeName: lang.nativeName,
+        flagEmoji: lang.flagEmoji,
+        isAvailable: lang.isAvailable,
+        sortOrder: lang.sortOrder,
+      },
+      create: lang,
+    });
+  }
+  console.log("✅ Seeded 20 languages in LanguageCatalog.");
+
+  // 8. Seed Danh Mục Mã QR Di Tích (QrCode)
+  const defaultQrCodes = [
+    { code: 'QR-DINH-DOC-LAP', targetPoiId: 'dinh-doc-lap', label: 'Mã QR Dinh Độc Lập - Cổng Nam Kỳ Khởi Nghĩa', defaultLang: Language.vi },
+    { code: 'QR-NHA-THO-DUC-BA', targetPoiId: 'nha-tho-duc-ba', label: 'Mã QR Nhà thờ Đức Bà - Quảng trường Công xã Paris', defaultLang: Language.vi },
+    { code: 'QR-BUU-DIEN-TRUNG-TAM', targetPoiId: 'buu-dien-trung-tam', label: 'Mã QR Bưu điện Trung tâm TP.HCM', defaultLang: Language.vi },
+    { code: 'QR-BAO-TANG-CHUNG-TICH', targetPoiId: 'bao-tang-chung-tich', label: 'Mã QR Bảo tàng Chứng tích Chiến tranh', defaultLang: Language.vi },
+    { code: 'QR-NHA-HAT-THANH-PHO', targetPoiId: 'nha-hat-thanh-pho', label: 'Mã QR Nhà hát Thành phố - Công trường Lam Sơn', defaultLang: Language.vi },
+    { code: 'QR-PHO-DI-BO-NGUYEN-HUE', targetPoiId: 'pho-di-bo-nguyen-hue', label: 'Mã QR Phố đi bộ Nguyễn Huệ', defaultLang: Language.vi },
+    { code: 'QR-CHO-BEN-THANH', targetPoiId: 'cho-ben-thanh', label: 'Mã QR Chợ Bến Thành - Cửa Nam', defaultLang: Language.vi },
+    { code: 'QR-BEN-NHA-RONG', targetPoiId: 'ben-nha-rong', label: 'Mã QR Bến Nhà Rồng - Bảo tàng Hồ Chí Minh', defaultLang: Language.vi },
+  ];
+
+  for (const qr of defaultQrCodes) {
+    await prisma.qrCode.upsert({
+      where: { code: qr.code },
+      update: {
+        targetPoiId: qr.targetPoiId,
+        label: qr.label,
+        defaultLang: qr.defaultLang,
+      },
+      create: qr,
+    });
+  }
+  console.log("✅ Seeded 8 default QR Codes.");
+
   console.log("🎉 Seeding completed successfully!");
 }
 

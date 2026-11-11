@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
+import { configureApp } from '../src/app.setup.js';
 
 type HttpResponse = { body: Record<string, unknown> };
 
@@ -37,6 +38,7 @@ describeIntegration('GPS Guide API Integration (E2E)', () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
+    configureApp(app);
     await app.init();
   });
 
@@ -71,24 +73,25 @@ describeIntegration('GPS Guide API Integration (E2E)', () => {
     await prisma?.$disconnect();
   });
 
-  it('lấy trạng thái hệ thống thành công qua GET /', async () => {
+  it('lấy trạng thái hệ thống thành công qua GET /health', async () => {
     await request(app.getHttpServer())
-      .get('/')
+      .get('/health')
       .expect(200)
       .expect(({ body }: HttpResponse) => {
         expect(body.status).toBe('ok');
-        expect(body.time).toBeDefined();
+        expect(body.database).toBeDefined();
+        expect(body.timestamp).toBeDefined();
       });
   });
 
   it('từ chối truy cập API Admin khi không có hoặc sai x-admin-key', async () => {
     await request(app.getHttpServer())
-      .patch(`/admin/pois/${poiId}/status`)
+      .patch(`/api/admin/pois/${poiId}/status`)
       .send({ status: PoiStatus.PUBLISHED })
       .expect(401);
 
     await request(app.getHttpServer())
-      .patch(`/admin/pois/${poiId}/status`)
+      .patch(`/api/admin/pois/${poiId}/status`)
       .set('x-admin-key', 'wrong-key')
       .send({ status: PoiStatus.PUBLISHED })
       .expect(401);
@@ -96,7 +99,7 @@ describeIntegration('GPS Guide API Integration (E2E)', () => {
 
   it('cho phép Admin cập nhật trạng thái POI và xóa POI khi có x-admin-key hợp lệ', async () => {
     await request(app.getHttpServer())
-      .patch(`/admin/pois/${poiId}/status`)
+      .patch(`/api/admin/pois/${poiId}/status`)
       .set('x-admin-key', adminKey)
       .send({ status: PoiStatus.PUBLISHED })
       .expect(200)
@@ -105,7 +108,7 @@ describeIntegration('GPS Guide API Integration (E2E)', () => {
       });
 
     await request(app.getHttpServer())
-      .delete(`/admin/pois/${poiId}`)
+      .delete(`/api/admin/pois/${poiId}`)
       .set('x-admin-key', adminKey)
       .expect(200);
 
@@ -113,14 +116,14 @@ describeIntegration('GPS Guide API Integration (E2E)', () => {
     expect(deleted).toBeNull();
   });
 
-  it('trả về danh sách POI lân cận theo tọa độ GPS qua GET /pois/nearby', async () => {
+  it('trả về danh sách POI lân cận theo tọa độ GPS qua GET /api/pois/nearby', async () => {
     await prisma.poi.update({
       where: { id: poiId },
       data: { status: PoiStatus.PUBLISHED },
     });
 
     await request(app.getHttpServer())
-      .get('/pois/nearby')
+      .get('/api/pois/nearby')
       .query({
         lat: 16.10699,
         lng: 108.27354,
@@ -147,30 +150,30 @@ describeIntegration('GPS Guide API Integration (E2E)', () => {
     });
 
     await request(app.getHttpServer())
-      .post('/access-passes/activate')
+      .post('/api/access-passes/activate')
       .send({ code: 'DEMO-2026', deviceInfo: 'iOS-Mobile-Safari' })
       .expect(201)
       .expect(({ body }: HttpResponse) => {
-        expect(body.pass).toMatchObject({
+        expect(body.accessPass).toMatchObject({
           code: 'DEMO-2026',
           status: PassStatus.ACTIVE,
         });
       });
 
     await request(app.getHttpServer())
-      .post('/access-passes/activate')
+      .post('/api/access-passes/activate')
       .send({ code: 'INVALID-CODE', deviceInfo: 'Android-Chrome' })
       .expect(404);
   });
 
-  it('ghi nhận sự kiện nghe thuyết minh qua POST /listening/events', async () => {
+  it('ghi nhận sự kiện nghe thuyết minh qua POST /api/listening-events', async () => {
     await prisma.poi.update({
       where: { id: poiId },
       data: { status: PoiStatus.PUBLISHED },
     });
 
     await request(app.getHttpServer())
-      .post('/listening/events')
+      .post('/api/listening-events')
       .send({
         poiId,
         language: Language.vi,

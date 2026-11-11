@@ -9,9 +9,21 @@ import { TourModule } from './tour/tour.module.js';
 import { ListeningModule } from './listening/listening.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { AccessPassModule } from './access-pass/access-pass.module.js';
+import { AccessEventModule } from './access-event/access-event.module.js';
 
 @Module({
-  imports: [PrismaModule, PoiModule, ChatbotModule, TranslationModule, GeoModule, TourModule, ListeningModule, AdminModule, AccessPassModule],
+  imports: [
+    PrismaModule,
+    PoiModule,
+    ChatbotModule,
+    TranslationModule,
+    GeoModule,
+    TourModule,
+    ListeningModule,
+    AdminModule,
+    AccessPassModule,
+    AccessEventModule,
+  ],
   controllers: [AppController],
 })
 export class AppModule {}

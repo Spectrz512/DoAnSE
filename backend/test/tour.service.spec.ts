@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { Language } from '@prisma/client';
 import { TourService } from '../src/tour/tour.service.js';
 
-describe('TourService (UC6 - Route & Time Estimation)', () => {
+describe('TourService (UC6 - Route & Time Estimation, UC8 - Offline Package)', () => {
   const mockPois = [
     {
       id: 'poi-1',
@@ -42,6 +42,18 @@ describe('TourService (UC6 - Route & Time Estimation)', () => {
       return Promise.resolve(null);
     }),
     findPoisByIds: vi.fn().mockResolvedValue(mockPois),
+    findTourPackage: vi.fn().mockImplementation((id: string) => {
+      if (id === 'tour-1') {
+        return Promise.resolve({
+          tour: mockTour,
+          language: Language.vi,
+          downloadedAt: new Date().toISOString(),
+          stops: mockTour.stops,
+          pois: mockPois,
+        });
+      }
+      return Promise.resolve(null);
+    }),
   };
 
   const service = new TourService(mockRepository as any);
@@ -68,5 +80,17 @@ describe('TourService (UC6 - Route & Time Estimation)', () => {
     expect(result.estimatedMinutes).toBeGreaterThanOrEqual(7);
     expect(result.stops[0].legDistanceM).toBe(0);
     expect(result.stops[1].legDistanceM).toBeGreaterThan(0);
+  });
+
+  it('tải trọn gói dữ liệu Tour ngoại tuyến (UC8 - package) thành công', async () => {
+    const pkg = await service.getPackage('tour-1', Language.vi);
+    expect(pkg).toBeDefined();
+    expect(pkg.tour.id).toBe('tour-1');
+    expect(pkg.pois).toHaveLength(2);
+    expect(pkg.downloadedAt).toBeDefined();
+  });
+
+  it('ném lỗi NotFoundException khi tải package của tour không tồn tại', async () => {
+    await expect(service.getPackage('invalid-tour')).rejects.toThrowError('không tồn tại');
   });
 });

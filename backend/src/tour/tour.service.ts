@@ -24,6 +24,17 @@ export class TourService {
     return this.enrichTourMetrics(tour);
   }
 
+  /**
+   * UC8: Tải trọn gói dữ liệu Tour ngoại tuyến (Offline Package)
+   */
+  async getPackage(id: string, language: Language = Language.vi) {
+    const pkg = await this.repository.findTourPackage(id, language);
+    if (!pkg) {
+      throw new NotFoundException(`Tour với ID [${id}] không tồn tại.`);
+    }
+    return pkg;
+  }
+
   async plan(poiIds: string[], language: Language = Language.vi, walkingSpeedKmh: number = 4) {
     const pois = await this.repository.findPoisByIds(poiIds, language);
     if (pois.length !== poiIds.length) {

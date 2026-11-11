@@ -26,6 +26,15 @@ export class TourController {
     return this.tours.createCustomRoute(dto);
   }
 
+  /**
+   * UC8: Tải trọn gói dữ liệu Tour ngoại tuyến (Offline Package)
+   * GET /api/tours/:id/package?language=vi
+   */
+  @Get(':id/package')
+  getPackage(@Param('id') id: string, @Query() query: TourQueryDto) {
+    return this.tours.getPackage(id, query.language);
+  }
+
   @Get(':id')
   detail(@Param('id') id: string, @Query() query: TourQueryDto) {
     return this.tours.detail(id, query.language);
