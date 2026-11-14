@@ -110,18 +110,27 @@ export class PoiRepository {
   delete(id: string) {
     return this.prisma.poi.delete({ where: { id } });
   }
-
   findPublishedForKnowledge(query?: string) {
+    const terms: string[] = [
+      ...new Set(
+        (query || '')
+          .toLocaleLowerCase('vi')
+          .match(/[\p{L}\p{N}]+/gu) || [],
+      ),
+    ]
+      .filter((term) => term.length >= 2)
+      .slice(0, 8);
+
     return this.prisma.poi.findMany({
       where: {
         status: PoiStatus.PUBLISHED,
-        ...(query
+        ...(terms.length > 0
           ? {
-              OR: [
-                { name: { contains: query, mode: 'insensitive' } },
-                { address: { contains: query, mode: 'insensitive' } },
-                { description: { contains: query, mode: 'insensitive' } },
-              ],
+              OR: terms.flatMap((term) => [
+                { name: { contains: term, mode: 'insensitive' as const } },
+                { address: { contains: term, mode: 'insensitive' as const } },
+                { description: { contains: term, mode: 'insensitive' as const } },
+              ]),
             }
           : {}),
       },
@@ -129,9 +138,10 @@ export class PoiRepository {
         narrations: true,
       },
       orderBy: [{ priority: 'desc' }, { name: 'asc' }],
-      take: 5,
+      take: 20,
     });
   }
+
 
   async findNearby(
     lat: number,

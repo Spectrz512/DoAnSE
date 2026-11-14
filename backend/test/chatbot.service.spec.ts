@@ -38,4 +38,74 @@ describe('ChatbotService', () => {
     expect(response.references).toBeDefined();
     expect(response.references?.length).toBe(1);
   });
+
+  it('preserves Vietnamese accents when searching the knowledge base', async () => {
+    const mockRepo = {
+      findPublishedForKnowledge: vi.fn().mockResolvedValue([
+        {
+          id: 'chua-linh-ung',
+          name: 'Chùa Linh Ứng',
+          category: 'temple',
+          address: 'Bãi Bụt, Đà Nẵng',
+          description: 'Ngôi chùa nổi tiếng tại Đà Nẵng',
+          narrations: [
+            {
+              id: 'n-2',
+              language: 'vi',
+              title: 'Chùa Linh Ứng',
+              content: 'Chùa Linh Ứng tọa lạc tại Bãi Bụt.',
+            },
+          ],
+        },
+      ]),
+    } as unknown as PoiRepository;
+
+    const service = new ChatbotService(mockRepo);
+    const response = await service.reply({
+      message: 'Chùa Linh Ứng ở đâu?',
+    });
+
+    expect(mockRepo.findPublishedForKnowledge).toHaveBeenCalledWith(
+      'chùa linh ứng',
+    );
+    expect(response.provider).toBe('knowledge-grounded');
+    expect(response.answer).toContain('Chùa Linh Ứng');
+  });
+
+  it('selects narration matching the requested language', async () => {
+    const mockRepo = {
+      findPublishedForKnowledge: vi.fn().mockResolvedValue([
+        {
+          id: 'dinh-doc-lap',
+          name: 'Dinh Độc Lập',
+          category: 'culture',
+          address: 'TP. Hồ Chí Minh',
+          description: 'Di tích lịch sử',
+          narrations: [
+            {
+              id: 'n-vi',
+              language: 'vi',
+              title: 'Dinh Độc Lập',
+              content: 'Nội dung tiếng Việt',
+            },
+            {
+              id: 'n-en',
+              language: 'en',
+              title: 'Independence Palace',
+              content: 'English narration',
+            },
+          ],
+        },
+      ]),
+    } as unknown as PoiRepository;
+
+    const service = new ChatbotService(mockRepo);
+    const response = await service.reply({
+      message: 'Thông tin Dinh Độc Lập',
+      language: 'en',
+    });
+
+    expect(response.answer).toContain('English narration');
+    expect(response.language).toBe('en');
+  });
 });
