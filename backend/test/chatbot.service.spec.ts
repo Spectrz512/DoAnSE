@@ -40,32 +40,31 @@ describe('ChatbotService', () => {
   });
 
   it('preserves Vietnamese accents when searching the knowledge base', async () => {
-    const mockRepo = {
-      findPublishedForKnowledge: vi.fn().mockResolvedValue([
-        {
-          id: 'chua-linh-ung',
-          name: 'Chùa Linh Ứng',
-          category: 'temple',
-          address: 'Bãi Bụt, Đà Nẵng',
-          description: 'Ngôi chùa nổi tiếng tại Đà Nẵng',
-          narrations: [
-            {
-              id: 'n-2',
-              language: 'vi',
-              title: 'Chùa Linh Ứng',
-              content: 'Chùa Linh Ứng tọa lạc tại Bãi Bụt.',
-            },
-          ],
-        },
-      ]),
-    } as unknown as PoiRepository;
+    const findPublishedForKnowledge = vi.fn().mockResolvedValue([
+      {
+        id: 'chua-linh-ung',
+        name: 'Chùa Linh Ứng',
+        category: 'temple',
+        address: 'Bãi Bụt, Đà Nẵng',
+        description: 'Ngôi chùa nổi tiếng tại Đà Nẵng',
+        narrations: [
+          {
+            id: 'n-2',
+            language: 'vi',
+            title: 'Chùa Linh Ứng',
+            content: 'Chùa Linh Ứng tọa lạc tại Bãi Bụt.',
+          },
+        ],
+      },
+    ]);
+    const mockRepo = { findPublishedForKnowledge } as unknown as PoiRepository;
 
     const service = new ChatbotService(mockRepo);
     const response = await service.reply({
       message: 'Chùa Linh Ứng ở đâu?',
     });
 
-    expect(mockRepo.findPublishedForKnowledge).toHaveBeenCalledWith(
+    expect(findPublishedForKnowledge).toHaveBeenCalledWith(
       'chùa linh ứng',
     );
     expect(response.provider).toBe('knowledge-grounded');
@@ -108,4 +107,44 @@ describe('ChatbotService', () => {
     expect(response.answer).toContain('English narration');
     expect(response.language).toBe('en');
   });
+
+  it('falls back to all published POIs when accent-free query matches via normalizeText', async () => {
+    const findPublishedForKnowledge = vi
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'dinh-doc-lap',
+          name: 'Dinh Độc Lập',
+          category: 'culture',
+          address: '135 Nam Kỳ Khởi Nghĩa',
+          description: 'Di tích lịch sử Dinh Độc Lập',
+          narrations: [
+            {
+              id: 'n-1',
+              language: 'vi',
+              title: 'Dinh Độc Lập',
+              content: 'Dinh Độc Lập nằm tại trung tâm TP. Hồ Chí Minh.',
+            },
+          ],
+        },
+      ]);
+    const mockRepo = { findPublishedForKnowledge } as unknown as PoiRepository;
+
+    const service = new ChatbotService(mockRepo);
+    const response = await service.reply({
+      message: 'dinh doc lap o dau',
+    });
+
+    expect(findPublishedForKnowledge).toHaveBeenCalledTimes(2);
+    expect(findPublishedForKnowledge).toHaveBeenNthCalledWith(
+      1,
+      'dinh doc lap',
+    );
+    expect(findPublishedForKnowledge).toHaveBeenNthCalledWith(2);
+    expect(response.provider).toBe('knowledge-grounded');
+    expect(response.poi?.name).toBe('Dinh Độc Lập');
+    expect(response.answer).toContain('Dinh Độc Lập');
+  });
 });
+

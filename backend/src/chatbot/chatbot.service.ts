@@ -50,10 +50,14 @@ export class ChatbotService {
 
     if (this.poiRepository && keywords.length > 0) {
       try {
-        const candidates =
+        let candidates =
           await this.poiRepository.findPublishedForKnowledge(
             searchTerms.join(' '),
           );
+
+        if (!candidates || candidates.length === 0) {
+          candidates = await this.poiRepository.findPublishedForKnowledge();
+        }
 
         const rankedPois = (candidates || [])
           .map((poi) => {
