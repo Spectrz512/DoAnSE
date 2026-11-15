@@ -1,4 +1,3 @@
-
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ExecutionContext,
@@ -7,10 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RateLimitGuard } from '../src/auth/rate-limit.guard.js';
-import {
-  RATE_LIMIT_KEY,
-  RateLimitOptions,
-} from '../src/auth/rate-limit.decorator.js';
+import type { RateLimitOptions } from '../src/auth/rate-limit.decorator.js';
 
 describe('RateLimitGuard', () => {
   afterEach(() => {
