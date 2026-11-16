@@ -1,8 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChatbotService } from '../src/chatbot/chatbot.service.js';
 import type { PoiRepository } from '../src/poi/poi.repository.js';
 
 describe('ChatbotService', () => {
+  afterEach(() => {
+    delete process.env.GEMINI_API_KEY;
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   it('returns a clearly identified fallback reply when no repo or match', async () => {
     const response = await new ChatbotService().reply({ message: 'Giờ mở cửa?' });
     expect(response.provider).toBe('local-fallback');
@@ -146,5 +152,93 @@ describe('ChatbotService', () => {
     expect(response.poi?.name).toBe('Dinh Độc Lập');
     expect(response.answer).toContain('Dinh Độc Lập');
   });
+
+  it('returns gemini-rag response when GEMINI_API_KEY is configured and Gemini API succeeds', async () => {
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: 'Dinh Độc Lập là di tích lịch sử quan trọng tại trung tâm TP.HCM.',
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const mockRepo = {
+      findPublishedForKnowledge: vi.fn().mockResolvedValue([
+        {
+          id: 'dinh-doc-lap',
+          name: 'Dinh Độc Lập',
+          category: 'culture',
+          address: '135 Nam Kỳ Khởi Nghĩa',
+          description: 'Di tích lịch sử Dinh Độc Lập',
+          narrations: [
+            {
+              id: 'n-1',
+              language: 'vi',
+              title: 'Dinh Độc Lập',
+              content: 'Chào mừng quý khách đến với Dinh Độc Lập.',
+            },
+          ],
+        },
+      ]),
+    } as unknown as PoiRepository;
+
+    const service = new ChatbotService(mockRepo);
+    const response = await service.reply({
+      message: 'Kể cho tôi về Dinh Độc Lập',
+      language: 'vi',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(response.provider).toBe('gemini-rag');
+    expect(response.answer).toContain('Dinh Độc Lập là di tích lịch sử');
+    expect(response.references).toHaveLength(1);
+  });
+
+  it('falls back to knowledge-grounded when GEMINI_API_KEY is set but fetch fails', async () => {
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    const fetchMock = vi.fn().mockRejectedValue(new Error('Network timeout'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const mockRepo = {
+      findPublishedForKnowledge: vi.fn().mockResolvedValue([
+        {
+          id: 'dinh-doc-lap',
+          name: 'Dinh Độc Lập',
+          category: 'culture',
+          address: '135 Nam Kỳ Khởi Nghĩa',
+          description: 'Di tích lịch sử Dinh Độc Lập',
+          narrations: [
+            {
+              id: 'n-1',
+              language: 'vi',
+              title: 'Dinh Độc Lập',
+              content: 'Nội dung gốc từ cơ sở dữ liệu.',
+            },
+          ],
+        },
+      ]),
+    } as unknown as PoiRepository;
+
+    const service = new ChatbotService(mockRepo);
+    const response = await service.reply({
+      message: 'Thông tin Dinh Độc Lập',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(response.provider).toBe('knowledge-grounded');
+    expect(response.answer).toContain('Nội dung gốc từ cơ sở dữ liệu.');
+  });
 });
+
 
