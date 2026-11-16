@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 CREATE TYPE "Language" AS ENUM ('vi', 'en', 'ko');
 CREATE TYPE "ListeningMode" AS ENUM ('AUTO', 'MANUAL');
 

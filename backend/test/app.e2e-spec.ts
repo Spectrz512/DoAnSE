@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaPg } from '@prisma/adapter-pg';
 import {
   Language,
   ListeningMode,
@@ -13,25 +14,29 @@ import { configureApp } from '../src/app.setup.js';
 
 type HttpResponse = { body: Record<string, unknown> };
 
-const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+const testDatabaseUrl = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
 const integrationEnabled =
-  process.env.RUN_INTEGRATION_TESTS === 'true' && Boolean(testDatabaseUrl);
+  (process.env.RUN_INTEGRATION_TESTS === 'true' || Boolean(process.env.DATABASE_URL)) &&
+  Boolean(testDatabaseUrl);
 const describeIntegration = integrationEnabled ? describe : describe.skip;
 
 describeIntegration('GPS Guide API Integration (E2E)', () => {
   let app: INestApplication;
   let moduleRef: TestingModule;
   let prisma: PrismaClient;
-  const adminKey = 'DEMO_ADMIN_KEY_2026';
+  const adminKey = process.env.ADMIN_API_KEY || process.env.ADMIN_KEY || 'DEMO_ADMIN_KEY_2026';
   let poiId: string;
 
   beforeAll(async () => {
     assertSafeTestDatabase(testDatabaseUrl!);
     process.env.DATABASE_URL = testDatabaseUrl!;
+    process.env.ADMIN_API_KEY = adminKey;
     process.env.ADMIN_KEY = adminKey;
     process.env.NODE_ENV = 'test';
 
-    prisma = new PrismaClient();
+    prisma = new PrismaClient({
+      adapter: new PrismaPg({ connectionString: testDatabaseUrl! }),
+    });
 
     moduleRef = await Test.createTestingModule({
       imports: [AppModule],

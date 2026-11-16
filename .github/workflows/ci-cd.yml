@@ -6,12 +6,29 @@ on:
   pull_request:
     branches: [main, develop]
 
+env:
+  IMAGE_NAME: hcm-gps-audio-guide-backend
+
 jobs:
   continuous-integration:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gps_tour_test
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,6 +40,17 @@ jobs:
       - run: npm run prisma:generate
       - run: npm run lint
       - run: npm test
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gps_tour_test?schema=public
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gps_tour_test?schema=public
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gps_tour_test?schema=public
+          RUN_INTEGRATION_TESTS: 'true'
+          ADMIN_API_KEY: test-admin-key
       - run: npm run build
 
   continuous-delivery:
@@ -40,8 +68,8 @@ jobs:
           context: backend
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/gps-chua-linh-ung-backend:latest
-            ${{ secrets.DOCKER_USERNAME }}/gps-chua-linh-ung-backend:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
   deploy-production:
     needs: continuous-delivery
