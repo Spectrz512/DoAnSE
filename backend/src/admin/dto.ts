@@ -29,3 +29,26 @@ export class UpdatePoiStatusDto {
   @IsEnum(PoiStatus)
   status!: PoiStatus;
 }
+
+export interface UploadedAudioFile {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+}
+
+export class UploadAudioDto {
+  @IsOptional()
+  @IsString()
+  poiId?: string;
+
+  @IsOptional()
+  @IsEnum(Language)
+  language?: Language;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  durationSeconds?: number;
+}

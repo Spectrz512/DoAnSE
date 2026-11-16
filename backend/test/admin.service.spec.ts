@@ -1,3 +1,6 @@
+import { BadRequestException } from '@nestjs/common';
+import { existsSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { Language, PoiStatus } from '@prisma/client';
 import { AdminService } from '../src/admin/admin.service.js';
@@ -48,6 +51,11 @@ describe('AdminService (UC3 & UC7 - Multilingual POI Management & Audit Events)'
     Promise.resolve({ id: 'nar-1', poiId, ...dto }),
   );
 
+  const updateNarrationAudioMock = vi.fn().mockImplementation(
+    (poiId: string, language: Language, audioUrl: string, durationSeconds?: number) =>
+      Promise.resolve({ id: 'nar-audio-1', poiId, language, audioUrl, durationSeconds }),
+  );
+
   const listAuditEventsMock = vi.fn().mockResolvedValue([
     {
       id: 'audit-1',
@@ -68,6 +76,7 @@ describe('AdminService (UC3 & UC7 - Multilingual POI Management & Audit Events)'
     updatePoiStatus: updatePoiStatusMock,
     deletePoi: deletePoiMock,
     upsertNarration: upsertNarrationMock,
+    updateNarrationAudio: updateNarrationAudioMock,
     listAuditEvents: listAuditEventsMock,
   } as unknown as AdminRepository;
 
@@ -165,5 +174,70 @@ describe('AdminService (UC3 & UC7 - Multilingual POI Management & Audit Events)'
       }),
     ).rejects.toThrowError('POI not found');
   });
+
+  it('upload thành công file audio .mp3 hợp lệ, lưu file và gắn audioUrl vào Narration', async () => {
+    const file = {
+      originalname: 'Thuyết Minh Chùa Linh Ứng.mp3',
+      mimetype: 'audio/mpeg',
+      size: 1024,
+      buffer: Buffer.from('mock-mp3-binary-content'),
+    };
+
+    const result = await service.uploadAudio(file, {
+      poiId: 'poi-1',
+      language: Language.vi,
+      durationSeconds: 120,
+    });
+
+    const savedPath = join(process.cwd(), 'uploads', 'audio', result.filename);
+    try {
+      expect(result.audioUrl).toBe(`/uploads/audio/${result.filename}`);
+      expect(result.filename).toMatch(/^\d+-thuyet-minh-chua-linh-ung\.mp3$/);
+      expect(result.size).toBe(1024);
+      expect(result.mimeType).toBe('audio/mpeg');
+      expect(existsSync(savedPath)).toBe(true);
+      expect(updateNarrationAudioMock).toHaveBeenCalledWith(
+        'poi-1',
+        Language.vi,
+        result.audioUrl,
+        120,
+      );
+    } finally {
+      if (existsSync(savedPath)) {
+        unlinkSync(savedPath);
+      }
+    }
+  });
+
+  it('báo lỗi BadRequestException khi không gửi kèm file audio', async () => {
+    await expect(service.uploadAudio(undefined)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('báo lỗi BadRequestException khi định dạng file không phải audio hợp lệ', async () => {
+    const invalidFile = {
+      originalname: 'script.txt',
+      mimetype: 'text/plain',
+      size: 256,
+      buffer: Buffer.from('hello'),
+    };
+
+    await expect(service.uploadAudio(invalidFile)).rejects.toThrowError(
+      'Invalid audio format. Supported formats: .mp3, .wav, .ogg, .m4a',
+    );
+  });
+
+  it('báo lỗi BadRequestException khi file audio vượt quá giới hạn 15MB', async () => {
+    const oversizedFile = {
+      originalname: 'huge-narration.mp3',
+      mimetype: 'audio/mpeg',
+      size: 15 * 1024 * 1024 + 1,
+      buffer: Buffer.alloc(16),
+    };
+
+    await expect(service.uploadAudio(oversizedFile)).rejects.toThrowError(
+      'Audio file exceeds the 15MB limit',
+    );
+  });
 });
+
 

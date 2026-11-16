@@ -33,3 +33,10 @@ Thumbs.db
 .claude/
 .windsurf/
 skills-lock.json
+
+# Uploaded audio & media files
+backend/uploads/*
+!backend/uploads/audio/
+backend/uploads/audio/*
+!backend/uploads/audio/.gitkeep
+

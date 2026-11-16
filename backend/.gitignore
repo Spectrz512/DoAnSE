@@ -9,3 +9,8 @@ dist/
 .claude/
 .windsurf/
 skills-lock.json
+uploads/*
+!uploads/audio/
+uploads/audio/*
+!uploads/audio/.gitkeep
+

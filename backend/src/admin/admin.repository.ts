@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ListeningMode, ListeningStatus, PoiStatus } from '@prisma/client';
+import { Language, ListeningMode, ListeningStatus, PoiStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service.js';
 import { CreatePoiDto, UpdatePoiDto } from '../poi/dto.js';
 import { UpsertNarrationDto } from './dto.js';
@@ -367,6 +367,41 @@ export class AdminRepository {
       poiId,
       language: dto.language,
       title: dto.title,
+    });
+    return narration;
+  }
+
+  async updateNarrationAudio(
+    poiId: string,
+    language: Language,
+    audioUrl: string,
+    durationSeconds?: number,
+  ) {
+    const poi = await this.prisma.poi.findUnique({
+      where: { id: poiId },
+      select: { name: true, description: true },
+    });
+
+    const narration = await this.prisma.narration.upsert({
+      where: { poiId_language: { poiId, language } },
+      create: {
+        poiId,
+        language,
+        title: poi?.name ?? 'Audio Guide',
+        content: poi?.description ?? '',
+        audioUrl,
+        ...(durationSeconds !== undefined ? { durationSeconds } : {}),
+      },
+      update: {
+        audioUrl,
+        ...(durationSeconds !== undefined ? { durationSeconds } : {}),
+      },
+    });
+
+    await this.recordAudit('UPLOAD_AUDIO', 'NARRATION', narration.id, {
+      poiId,
+      language,
+      audioUrl,
     });
     return narration;
   }
