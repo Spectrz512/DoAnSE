@@ -1,54 +1,58 @@
-# Kiến trúc backend — Hồ Chí Minh GPS Guide
+# Kiến trúc backend — Hồ Chí Minh GPS Audio Guide
 
 ## 1. Quyết định kiến trúc cho MVP
 
-Hệ thống xây dựng trên nền tảng **NestJS**, **PostgreSQL (kèm PostGIS)** và **Prisma ORM**. Hệ thống tuân thủ chặt chẽ kiến trúc 3 lớp (3-Tier Architecture) được mô-đun hóa:
+Hệ thống xây dựng trên nền tảng **NestJS**, **PostgreSQL 16 (kèm PostGIS 3.4)** và **Prisma ORM 7** (`@prisma/adapter-pg`). Toàn bộ mã nguồn tuân thủ chặt chẽ kiến trúc 3 lớp (3-Tier Architecture) được mô-đun hóa:
 
 | Lớp | Trách nhiệm | Thành phần trong mã |
 |---|---|---|
-| **Presentation Layer** | Tiếp nhận HTTP/REST, xác thực DTO, phân quyền (Guards), chuẩn hóa mã HTTP response. | `*.controller.ts`, `dto/` |
-| **Business Logic Layer** | Xử lý quy tắc nghiệp vụ, điều phối Use Case, giải thuật geofence, logic chống phát lặp. | `*.service.ts` |
-| **Data Access Layer** | Thực hiện truy vấn/ghi dữ liệu, bọc các truy vấn PostGIS thuần, không chứa mã HTTP. | `*.repository.ts`, Prisma Client |
+| **Presentation Layer** | Tiếp nhận HTTP/REST, xác thực DTO, phân quyền (`AdminKeyGuard`, `RateLimitGuard`), Upload `FileInterceptor`. | `*.controller.ts`, `dto.ts`, `*.guard.ts` |
+| **Business Logic Layer** | Xử lý nghiệp vụ 9 Use Cases, giải thuật Hysteresis, Gemini RAG + fallback, ước tính lộ trình, kiểm tra file audio. | `*.service.ts` |
+| **Data Access Layer** | Thực thi truy vấn/ghi dữ liệu qua Prisma Client và truy vấn không gian PostGIS `$queryRaw`, không chứa logic HTTP. | `*.repository.ts`, `PrismaService` |
 
 Luồng dữ liệu chuẩn: `Client Request → Controller → Service → Repository → PostgreSQL/PostGIS`.
 
-## 2. Geofence, Đồng bộ dữ liệu & Chống phát lặp
+## 2. Geofence, Hybrid PostGIS & Chống phát lặp (UC2, UC6, UC8)
 
-- **Chiến lược Geofencing:**
-  - *Chế độ theo Tour (Khuyên dùng):* Sau khi kích hoạt vé, Client gọi `GET /api/v1/tours/:id/package` để tải trọn gói dữ liệu POI. Toàn bộ việc tính toán khoảng cách và kích hoạt thuyết minh được thực hiện **cục bộ trên Client** nhằm tiết kiệm pin, băng thông và hạn chế gọi API liên tục.
-  - *Chế độ Khám phá tự do (Online):* Client gửi vị trí định kỳ tới `GET /api/v1/pois/nearby`. Tầng Service lọc các POI published trong bán kính tìm kiếm.
-- **Cơ chế Hysteresis (Chống phát lặp / Chống rung GPS):** Client giữ danh sách `playedPoiIds` trong phiên. POI chỉ được đưa vào trạng thái sẵn sàng phát tự động lần tiếp theo khi người dùng di chuyển ra xa tối thiểu **1.5 lần `triggerRadiusM`**.
-- **Tối ưu hóa PostGIS:** Sử dụng `ST_DWithin` và `ST_DistanceSphere` qua `prisma.$queryRaw`. Các bảng chứa vị trí địa lý được đánh chỉ mục không gian (Spatial GIST Index) trên kiểu dữ liệu `geography(Point, 4326)` để đảm bảo độ trễ truy vấn thấp khi dữ liệu tăng trưởng.
+- **Kích hoạt PostGIS tự động:** `PrismaService.onModuleInit()` và migration khởi tạo (`20261020000000_init`) tự động chạy `CREATE EXTENSION IF NOT EXISTS postgis;` an toàn.
+- **Chiến lược Hybrid Geofencing (`PoiRepository.findNearby`):**
+  - *Tầng 1 (PostGIS Native):* Thực thi `prisma.$queryRaw` với `ST_DWithin(::geography)` và `ST_DistanceSphere` kết hợp `LEFT JOIN "Narration"` theo ngôn ngữ.
+  - *Tầng 2 (Fallback an toàn):* Tự động fallback về thuật toán Haversine in-memory khi DB chưa bật PostGIS hoặc trong môi trường unit test mock.
+- **Chế độ theo Tour & Khám phá tự do:**
+  - *Theo Tour (Offline Package - UC8):* Client gọi `GET /api/tours/:id/package?language=vi` để tải trọn gói thông tin tour, stops, POI và audio URL.
+  - *Khám phá trực tuyến (UC2):* Client gửi vị trí tới `GET /api/pois/nearby` hoặc `GET /api/geo/trigger-candidates`.
+- **Cơ chế Hysteresis (Chống phát lặp / Chống rung GPS):** Vào vùng kích hoạt khi `distanceM <= triggerRadiusM` (`1.0x`) và chỉ đưa POI vào `resetPoiIds` để sẵn sàng phát lại khi du khách rời xa tối thiểu **`1.5 * triggerRadiusM`**.
 
-## 3. Quản lý Tệp tĩnh & Media Streaming
+## 3. Quản lý Tệp tĩnh & Upload Audio (UC3)
 
-- **Lưu trữ:** Ở giai đoạn MVP, file âm thanh thuyết minh (.mp3) và hình ảnh được lưu trữ tại Local Directory, phục vụ trực tiếp qua Nginx Static Cache hoặc NestJS ServeStatic.
-- **Trừu tượng hóa (Abstraction):** Tầng Service tương tác với tệp thông qua `StorageService` interface, cho phép dễ dàng chuyển đổi sang Object Storage (MinIO / AWS S3) trong tương lai mà không phải sửa logic nghiệp vụ.
-- **Streaming:** Máy chủ web hỗ trợ HTTP Range Requests (`206 Partial Content`) để du khách có thể tua hoặc phát mượt mà trên thiết bị di động.
+- **Upload âm thanh trực tiếp:** `AdminController` cung cấp `POST /api/admin/upload-audio` và `POST /api/admin/pois/:id/audio` (bảo vệ bởi `AdminKeyGuard`), nhận `multipart/form-data` (field `file`) thông qua `FileInterceptor('file')`.
+- **Kiểm tra & Lưu trữ:** `AdminService.uploadAudio` xác thực phần mở rộng (`.mp3`, `.wav`, `.ogg`, `.m4a`), mimetype `audio/*` và giới hạn tối đa **15MB** (`BadRequestException` nếu sai), làm sạch tên file và lưu vào `backend/uploads/audio/`. Nếu truyền kèm `poiId` và `language`, hệ thống tự động upsert `audioUrl` vào bảng `Narration` và ghi nhận `AuditEvent` (`UPLOAD_AUDIO`).
+- **Phục vụ Static Files:** Cấu hình `app.use('/uploads', express.static(join(process.cwd(), 'uploads')))` trong `app.setup.ts`; Nginx reverse proxy `/uploads/` sang `api:3000/uploads/` (`demo/nginx.conf`) và mount volume `./backend/uploads:/app/uploads` trong `docker-compose.yml`.
 
-## 4. Bảo mật, Quyền riêng tư & Phục hồi
+## 4. Bảo mật, AI Chatbot RAG & Phục hồi (UC4, UC7)
 
-- Xác thực Admin bằng JWT; mật khẩu quản trị được băm bằng `bcrypt`.
-- Không lưu vết lịch sử GPS thô (raw telemetry) của người dùng để bảo vệ quyền riêng tư; chỉ ghi nhận các sự kiện nghe (`ListeningEvent`: POI ID, chế độ AUTO/MANUAL, thời lượng) phục vụ thống kê.
-- Xử lý lỗi linh hoạt (Graceful Degradation): Nếu GPS mất tín hiệu hoặc module AI/TTS bị lỗi mạng, Client tự động chuyển về chế độ phát thủ công (Fallback).
+- **Phân quyền & Chống spam:**
+  - API quản trị yêu cầu header `x-admin-key` đối chiếu với `ADMIN_API_KEY` (`AdminKeyGuard`).
+  - Endpoint `POST /api/chatbot/messages` gắn `RateLimitGuard` giới hạn **20 request/phút** theo IP (in-memory sliding window).
+- **Quyền riêng tư:** Backend không lưu vết tọa độ GPS thô liên tục; chỉ lưu sự kiện nghe (`ListeningEvent` với chế độ `AUTO`/`MANUAL`), phiên nghe trực tiếp (`ListeningSession`), lượt truy cập (`AccessEvent`) và trạng thái online (`VisitorSession`) phục vụ thống kê UC7.
+- **Kiến trúc AI Guide RAG 2 tầng (UC4):**
+  1. `ChatbotService` trích xuất từ khóa, truy vấn `PoiRepository.findPublishedForKnowledge()` (có fallback tìm kiếm không dấu trên toàn bộ POI `PUBLISHED` bằng `normalizeText`) để xếp hạng `rankedPois`.
+  2. Nếu cấu hình `GEMINI_API_KEY`, hệ thống gọi **Google Gemini 2.5 Flash REST API** (`AbortSignal.timeout(8000)`) kèm ngữ cảnh top 3 POI và trả về `provider: 'gemini-rag'`.
+  3. **Graceful Degradation:** Khi thiếu `GEMINI_API_KEY` hoặc API timeout/lỗi, hệ thống tự động trả về câu trả lời ghép sẵn từ tri thức đã duyệt với `provider: 'knowledge-grounded'` kèm danh sách `references`.
 
 ## 5. Quy trình Tích hợp và Triển khai Liên tục (CI/CD)
 
-Pipeline được tự động hóa qua GitHub Actions:
-1. **CI (Kiểm tra chất lượng):**
-   - Linting & Formatting (`eslint`, `prettier`).
-   - Kiểm tra tính hợp lệ của Prisma Schema (`prisma validate`).
-   - Chạy bộ kiểm thử tự động (Unit Test cho các Service tính toán khoảng cách và logic vé).
-   - Kiểm tra biên dịch TypeScript (`nest build`).
-2. **CD (Triển khai):**
-   - Đóng gói Docker Image ứng dụng.
-   - Chạy lệnh migration cơ sở dữ liệu (`prisma migrate deploy`).
-   - Khởi động lại container phía sau Nginx Reverse Proxy mà không làm gián đoạn các kết nối đang nghe audio.
+Pipeline được tự động hóa qua GitHub Actions (`.github/workflows/ci-cd.yml`):
+1. **Continuous Integration (`continuous-integration`):**
+   - Cài đặt dependencies (`npm ci`) và sinh Prisma Client (`npm run prisma:generate`).
+   - Linting type-aware với Oxlint (`npm run lint` — yêu cầu 0 lỗi, 0 cảnh báo).
+   - Chạy toàn bộ **9 test suites / 55 Unit Tests** bằng Vitest (`npm test`).
+   - Khởi động service container `postgis/postgis:16-3.4-alpine`, chạy `npx prisma migrate deploy` và bộ kiểm thử tích hợp E2E (`npm run test:e2e`).
+   - Kiểm tra biên dịch TypeScript (`npm run build`).
+2. **Continuous Delivery & Deployment:**
+   - Đóng gói Docker Image `${{ secrets.DOCKER_USERNAME }}/hcm-gps-audio-guide-backend` (`latest` và commit SHA) khi push lên `main`.
+   - Deploy qua SSH tới `/var/www/gps-backend` (`docker compose pull api && docker compose up -d api`) khi bật `DEPLOY_ENABLED=true`.
 
-## 6. Lộ trình phát triển Module
+## 6. Trạng thái hoàn thiện Module (9/9 Use Cases)
 
-1. Core POIs + Translations + Tour Routing + Access Pass/QR.
-2. Quản trị Media Streaming và Cơ chế Tải gói Tour ngoại tuyến (Offline Pack).
-3. Telemetry Event Analytics, Health Check (`/health`), Dashboard Quản trị.
-4. Tích hợp AI Guide RAG: Nội dung POI đã duyệt → Embeddings Vector Store → Trợ lý giải đáp có trích dẫn nguồn.
-5. Cổng thanh toán (Payment Webhook) và Tự động hóa sinh giọng nói (TTS Service).
+- **Hoàn thiện 100%:** UC1 (Access Pass QR), UC2 (Geofence PostGIS Hybrid & Hysteresis), UC3 (Admin CRUD, Đa ngôn ngữ & Upload Audio `/uploads`), UC4 (Chatbot Gemini 2.5 Flash RAG + fallback `knowledge-grounded` & Rate Limit), UC5 (Manual Playback), UC6 (Tour Planning), UC7 (Dashboard Analytics & Seed mẫu đa dạng), UC8 (Offline Tour Package), UC9 (Real-time Health Check `SELECT 1`).
