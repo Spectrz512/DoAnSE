@@ -1,4 +1,12 @@
-import { Language, PassStatus, PoiStatus, PrismaClient } from "@prisma/client";
+import {
+  AccessSource,
+  Language,
+  ListeningMode,
+  ListeningStatus,
+  PassStatus,
+  PoiStatus,
+  PrismaClient,
+} from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/linh_ung?schema=public";
@@ -7,21 +15,32 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) })
 async function main() {
   console.log("🌱 Seeding database...");
 
-  // 1. Tạo sẵn mã AccessPass mặc định DEMO-2026 (ACTIVE, hạn dùng 30 ngày)
+  // 1. Tạo sẵn danh sách AccessPass mặc định (ACTIVE, hạn dùng 30 ngày)
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  await prisma.accessPass.upsert({
-    where: { code: "DEMO-2026" },
-    update: {
-      status: PassStatus.ACTIVE,
-      expiresAt,
-    },
-    create: {
-      code: "DEMO-2026",
-      status: PassStatus.ACTIVE,
-      expiresAt,
-    },
-  });
-  console.log("✅ Seeded AccessPass: DEMO-2026");
+  const accessPasses = [
+    { code: "DEMO-2026", tourId: null, activatedAt: new Date(Date.now() - 2 * 3600 * 1000), deviceInfo: "iPhone 15 Pro - Safari" },
+    { code: "TOUR-SAIGON-2026", tourId: "saigon-highlights", activatedAt: new Date(Date.now() - 24 * 3600 * 1000), deviceInfo: "Samsung S24 - Chrome" },
+    { code: "PASS-VIP-2026", tourId: "saigon-heritage-walk", activatedAt: null, deviceInfo: null },
+  ];
+  for (const pass of accessPasses) {
+    await prisma.accessPass.upsert({
+      where: { code: pass.code },
+      update: {
+        status: PassStatus.ACTIVE,
+        expiresAt,
+        tourId: pass.tourId,
+      },
+      create: {
+        code: pass.code,
+        tourId: pass.tourId,
+        status: PassStatus.ACTIVE,
+        expiresAt,
+        activatedAt: pass.activatedAt,
+        deviceInfo: pass.deviceInfo,
+      },
+    });
+  }
+  console.log(`✅ Seeded ${accessPasses.length} AccessPasses (DEMO-2026, TOUR-SAIGON-2026, PASS-VIP-2026).`);
 
   // 2. Danh sách POI Chùa Linh Ứng (Đà Nẵng) với 5 ngôn ngữ
   const linhUngPois = [
@@ -705,15 +724,16 @@ async function main() {
   console.log("✅ Seeded 20 languages in LanguageCatalog.");
 
   // 8. Seed Danh Mục Mã QR Di Tích (QrCode)
+  const now = Date.now();
   const defaultQrCodes = [
-    { code: 'QR-DINH-DOC-LAP', targetPoiId: 'dinh-doc-lap', label: 'Mã QR Dinh Độc Lập - Cổng Nam Kỳ Khởi Nghĩa', defaultLang: Language.vi },
-    { code: 'QR-NHA-THO-DUC-BA', targetPoiId: 'nha-tho-duc-ba', label: 'Mã QR Nhà thờ Đức Bà - Quảng trường Công xã Paris', defaultLang: Language.vi },
-    { code: 'QR-BUU-DIEN-TRUNG-TAM', targetPoiId: 'buu-dien-trung-tam', label: 'Mã QR Bưu điện Trung tâm TP.HCM', defaultLang: Language.vi },
-    { code: 'QR-BAO-TANG-CHUNG-TICH', targetPoiId: 'bao-tang-chung-tich', label: 'Mã QR Bảo tàng Chứng tích Chiến tranh', defaultLang: Language.vi },
-    { code: 'QR-NHA-HAT-THANH-PHO', targetPoiId: 'nha-hat-thanh-pho', label: 'Mã QR Nhà hát Thành phố - Công trường Lam Sơn', defaultLang: Language.vi },
-    { code: 'QR-PHO-DI-BO-NGUYEN-HUE', targetPoiId: 'pho-di-bo-nguyen-hue', label: 'Mã QR Phố đi bộ Nguyễn Huệ', defaultLang: Language.vi },
-    { code: 'QR-CHO-BEN-THANH', targetPoiId: 'cho-ben-thanh', label: 'Mã QR Chợ Bến Thành - Cửa Nam', defaultLang: Language.vi },
-    { code: 'QR-BEN-NHA-RONG', targetPoiId: 'ben-nha-rong', label: 'Mã QR Bến Nhà Rồng - Bảo tàng Hồ Chí Minh', defaultLang: Language.vi },
+    { code: 'QR-DINH-DOC-LAP', targetPoiId: 'dinh-doc-lap', label: 'Mã QR Dinh Độc Lập - Cổng Nam Kỳ Khởi Nghĩa', defaultLang: Language.vi, scanCount: 42, lastScannedAt: new Date(now - 2 * 3600 * 1000) },
+    { code: 'QR-NHA-THO-DUC-BA', targetPoiId: 'nha-tho-duc-ba', label: 'Mã QR Nhà thờ Đức Bà - Quảng trường Công xã Paris', defaultLang: Language.vi, scanCount: 38, lastScannedAt: new Date(now - 3 * 3600 * 1000) },
+    { code: 'QR-BUU-DIEN-TRUNG-TAM', targetPoiId: 'buu-dien-trung-tam', label: 'Mã QR Bưu điện Trung tâm TP.HCM', defaultLang: Language.en, scanCount: 29, lastScannedAt: new Date(now - 5 * 3600 * 1000) },
+    { code: 'QR-BAO-TANG-CHUNG-TICH', targetPoiId: 'bao-tang-chung-tich', label: 'Mã QR Bảo tàng Chứng tích Chiến tranh', defaultLang: Language.en, scanCount: 31, lastScannedAt: new Date(now - 8 * 3600 * 1000) },
+    { code: 'QR-NHA-HAT-THANH-PHO', targetPoiId: 'nha-hat-thanh-pho', label: 'Mã QR Nhà hát Thành phố - Công trường Lam Sơn', defaultLang: Language.vi, scanCount: 19, lastScannedAt: new Date(now - 12 * 3600 * 1000) },
+    { code: 'QR-PHO-DI-BO-NGUYEN-HUE', targetPoiId: 'pho-di-bo-nguyen-hue', label: 'Mã QR Phố đi bộ Nguyễn Huệ', defaultLang: Language.ko, scanCount: 24, lastScannedAt: new Date(now - 18 * 3600 * 1000) },
+    { code: 'QR-CHO-BEN-THANH', targetPoiId: 'cho-ben-thanh', label: 'Mã QR Chợ Bến Thành - Cửa Nam', defaultLang: Language.ja, scanCount: 35, lastScannedAt: new Date(now - 24 * 3600 * 1000) },
+    { code: 'QR-BEN-NHA-RONG', targetPoiId: 'ben-nha-rong', label: 'Mã QR Bến Nhà Rồng - Bảo tàng Hồ Chí Minh', defaultLang: Language.vi, scanCount: 27, lastScannedAt: new Date(now - 36 * 3600 * 1000) },
   ];
 
   for (const qr of defaultQrCodes) {
@@ -723,11 +743,68 @@ async function main() {
         targetPoiId: qr.targetPoiId,
         label: qr.label,
         defaultLang: qr.defaultLang,
+        scanCount: qr.scanCount,
+        lastScannedAt: qr.lastScannedAt,
       },
       create: qr,
     });
   }
   console.log("✅ Seeded 8 default QR Codes.");
+
+  // 9. Seed Dữ liệu Thống kê Dashboard Admin (UC7 - Idempotent)
+  const dayMs = 24 * 3600 * 1000;
+  const hourMs = 3600 * 1000;
+
+  if ((await prisma.listeningEvent.count()) === 0) {
+    await prisma.listeningEvent.createMany({
+      data: [
+        { visitorId: 'visitor-demo-01', poiId: 'dinh-doc-lap', language: Language.vi, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7769, longitude: 106.6953, durationSeconds: 185, startedAt: new Date(now - 2 * hourMs), endedAt: new Date(now - 2 * hourMs + 185_000), createdAt: new Date(now - 2 * hourMs) },
+        { visitorId: 'visitor-demo-02', poiId: 'nha-tho-duc-ba', language: Language.en, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7798, longitude: 106.6990, durationSeconds: 160, startedAt: new Date(now - 4 * hourMs), endedAt: new Date(now - 4 * hourMs + 160_000), createdAt: new Date(now - 4 * hourMs) },
+        { visitorId: 'visitor-demo-03', poiId: 'buu-dien-trung-tam', language: Language.ko, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, latitude: 10.7799, longitude: 106.6999, durationSeconds: 145, startedAt: new Date(now - 6 * hourMs), endedAt: new Date(now - 6 * hourMs + 145_000), createdAt: new Date(now - 6 * hourMs) },
+        { visitorId: 'visitor-demo-04', poiId: 'cho-ben-thanh', language: Language.ja, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7725, longitude: 106.6980, durationSeconds: 150, startedAt: new Date(now - 1 * dayMs), endedAt: new Date(now - 1 * dayMs + 150_000), createdAt: new Date(now - 1 * dayMs) },
+        { visitorId: 'visitor-demo-01', poiId: 'ben-nha-rong', language: Language.vi, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, latitude: 10.7683, longitude: 106.7068, durationSeconds: 210, startedAt: new Date(now - 1 * dayMs - 3 * hourMs), endedAt: new Date(now - 1 * dayMs - 3 * hourMs + 210_000), createdAt: new Date(now - 1 * dayMs - 3 * hourMs) },
+        { visitorId: 'visitor-demo-05', poiId: 'dinh-doc-lap', language: Language.en, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7769, longitude: 106.6953, durationSeconds: 190, startedAt: new Date(now - 2 * dayMs), endedAt: new Date(now - 2 * dayMs + 190_000), createdAt: new Date(now - 2 * dayMs) },
+        { visitorId: 'visitor-demo-06', poiId: 'nha-tho-duc-ba', language: Language.vi, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7798, longitude: 106.6990, durationSeconds: 175, startedAt: new Date(now - 2 * dayMs - 5 * hourMs), endedAt: new Date(now - 2 * dayMs - 5 * hourMs + 175_000), createdAt: new Date(now - 2 * dayMs - 5 * hourMs) },
+        { visitorId: 'visitor-demo-07', poiId: 'bao-tang-chung-tich', language: Language.en, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, latitude: 10.7795, longitude: 106.6921, durationSeconds: 240, startedAt: new Date(now - 3 * dayMs), endedAt: new Date(now - 3 * dayMs + 240_000), createdAt: new Date(now - 3 * dayMs) },
+        { visitorId: 'visitor-demo-08', poiId: 'chua-linh-ung-tuong-quan-am', language: Language.zh, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 16.1003, longitude: 108.2775, durationSeconds: 165, startedAt: new Date(now - 4 * dayMs), endedAt: new Date(now - 4 * dayMs + 165_000), createdAt: new Date(now - 4 * dayMs) },
+        { visitorId: 'visitor-demo-09', poiId: 'dinh-doc-lap', language: Language.ko, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7769, longitude: 106.6953, durationSeconds: 180, startedAt: new Date(now - 5 * dayMs), endedAt: new Date(now - 5 * dayMs + 180_000), createdAt: new Date(now - 5 * dayMs) },
+        { visitorId: 'visitor-demo-10', poiId: 'pho-di-bo-nguyen-hue', language: Language.vi, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, latitude: 10.7745, longitude: 106.7034, durationSeconds: 130, startedAt: new Date(now - 5 * dayMs - 2 * hourMs), endedAt: new Date(now - 5 * dayMs - 2 * hourMs + 130_000), createdAt: new Date(now - 5 * dayMs - 2 * hourMs) },
+        { visitorId: 'visitor-demo-11', poiId: 'chua-linh-ung-tuong-quan-am', language: Language.ja, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 16.1003, longitude: 108.2775, durationSeconds: 170, startedAt: new Date(now - 6 * dayMs), endedAt: new Date(now - 6 * dayMs + 170_000), createdAt: new Date(now - 6 * dayMs) },
+      ],
+    });
+    console.log("✅ Seeded 12 ListeningEvents for Dashboard analytics.");
+  }
+
+  if ((await prisma.accessEvent.count()) === 0) {
+    await prisma.accessEvent.createMany({
+      data: [
+        { visitorId: 'visitor-demo-01', ipAddress: '192.168.1.21', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.vi, poiId: 'dinh-doc-lap', source: AccessSource.QR, path: '/index.html?poi=dinh-doc-lap', createdAt: new Date(now - 1 * hourMs) },
+        { visitorId: 'visitor-demo-02', ipAddress: '192.168.1.22', userAgent: 'Mozilla/5.0 (Linux; Android 14)', deviceType: 'Mobile', language: Language.en, poiId: 'nha-tho-duc-ba', source: AccessSource.QR, path: '/index.html?poi=nha-tho-duc-ba', createdAt: new Date(now - 3 * hourMs) },
+        { visitorId: 'visitor-demo-03', ipAddress: '192.168.1.23', userAgent: 'Mozilla/5.0 (Windows NT 10.0)', deviceType: 'Desktop', language: Language.ko, poiId: 'buu-dien-trung-tam', source: AccessSource.DIRECT, path: '/index.html', createdAt: new Date(now - 1 * dayMs) },
+        { visitorId: 'visitor-demo-04', ipAddress: '192.168.1.24', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.ja, poiId: 'cho-ben-thanh', source: AccessSource.TOUR, path: '/index.html?tour=saigon-highlights', createdAt: new Date(now - 1 * dayMs - 4 * hourMs) },
+        { visitorId: 'visitor-demo-05', ipAddress: '192.168.1.25', userAgent: 'Mozilla/5.0 (Linux; Android 13)', deviceType: 'Mobile', language: Language.en, poiId: 'dinh-doc-lap', source: AccessSource.MAP, path: '/index.html', createdAt: new Date(now - 2 * dayMs) },
+        { visitorId: 'visitor-demo-06', ipAddress: '192.168.1.26', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.vi, poiId: 'ben-nha-rong', source: AccessSource.QR, path: '/index.html?poi=ben-nha-rong', createdAt: new Date(now - 3 * dayMs) },
+        { visitorId: 'visitor-demo-07', ipAddress: '192.168.1.27', userAgent: 'Mozilla/5.0 (Macintosh)', deviceType: 'Desktop', language: Language.zh, poiId: 'chua-linh-ung-tuong-quan-am', source: AccessSource.TOUR, path: '/index.html?tour=linh-ung-panoramic', createdAt: new Date(now - 4 * dayMs) },
+        { visitorId: 'visitor-demo-08', ipAddress: '192.168.1.28', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.vi, poiId: 'pho-di-bo-nguyen-hue', source: AccessSource.MAP, path: '/index.html', createdAt: new Date(now - 4 * dayMs - 5 * hourMs) },
+        { visitorId: 'visitor-demo-09', ipAddress: '192.168.1.29', userAgent: 'Mozilla/5.0 (Linux; Android 14)', deviceType: 'Mobile', language: Language.ko, poiId: 'nha-hat-thanh-pho', source: AccessSource.QR, path: '/index.html?poi=nha-hat-thanh-pho', createdAt: new Date(now - 5 * dayMs) },
+        { visitorId: 'visitor-demo-10', ipAddress: '192.168.1.30', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.en, poiId: 'bao-tang-chung-tich', source: AccessSource.DIRECT, path: '/index.html', createdAt: new Date(now - 6 * dayMs) },
+      ],
+    });
+    console.log("✅ Seeded 10 AccessEvents for Dashboard traffic analytics.");
+  }
+
+  if ((await prisma.auditEvent.count()) === 0) {
+    await prisma.auditEvent.createMany({
+      data: [
+        { action: 'CREATE_POI', entityType: 'POI', entityId: 'dinh-doc-lap', actor: 'admin', metadata: JSON.stringify({ name: 'Dinh Độc Lập', status: PoiStatus.PUBLISHED }), createdAt: new Date(now - 6 * dayMs) },
+        { action: 'PUBLISH_POI', entityType: 'POI', entityId: 'nha-tho-duc-ba', actor: 'admin', metadata: JSON.stringify({ status: PoiStatus.PUBLISHED }), createdAt: new Date(now - 5 * dayMs) },
+        { action: 'UPSERT_NARRATION', entityType: 'NARRATION', entityId: 'dinh-doc-lap-vi', actor: 'admin', metadata: JSON.stringify({ poiId: 'dinh-doc-lap', language: Language.vi }), createdAt: new Date(now - 3 * dayMs) },
+        { action: 'UPSERT_NARRATION', entityType: 'NARRATION', entityId: 'buu-dien-trung-tam-en', actor: 'admin', metadata: JSON.stringify({ poiId: 'buu-dien-trung-tam', language: Language.en }), createdAt: new Date(now - 2 * dayMs) },
+        { action: 'UPLOAD_AUDIO', entityType: 'NARRATION', entityId: 'dinh-doc-lap-en', actor: 'admin', metadata: JSON.stringify({ poiId: 'dinh-doc-lap', language: Language.en, audioUrl: '/uploads/audio/sample-dinh-doc-lap-en.mp3' }), createdAt: new Date(now - 1 * dayMs) },
+      ],
+    });
+    console.log("✅ Seeded 5 AuditEvents.");
+  }
 
   console.log("🎉 Seeding completed successfully!");
 }

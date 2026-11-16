@@ -3,6 +3,14 @@ import { Language } from '@prisma/client';
 import { PoiRepository } from '../poi/poi.repository.js';
 import { ChatDto } from './dto.js';
 
+interface GeminiGenerateContentResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{ text?: string }>;
+    };
+  }>;
+}
+
 const STOP_WORDS = new Set([
   'la', 'va', 'cua', 'co', 'cho', 'toi', 'biet',
   've', 'nhu', 'the', 'nao', 'gi', 'nhung',
@@ -91,19 +99,55 @@ export class ChatbotService {
           const content =
             narration?.content || topPoi.description;
 
+          const poiPayload = {
+            id: topPoi.id,
+            name: topPoi.name,
+            category: topPoi.category,
+            address: topPoi.address,
+          };
+          const references = rankedPois.slice(0, 3).map(({ poi }) => ({
+            id: poi.id,
+            name: poi.name,
+            address: poi.address,
+          }));
+
+          const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
+          if (geminiApiKey) {
+            const contextText = rankedPois
+              .slice(0, 3)
+              .map(({ poi }) => {
+                const poiNarration =
+                  poi.narrations?.find((item) => item.language === language) ??
+                  poi.narrations?.find((item) => item.language === Language.vi);
+                const narrationText = poiNarration?.content || poi.description;
+                return `- Tên: ${poi.name}\n  Địa chỉ: ${poi.address || 'Không rõ'}\n  Mô tả: ${poi.description}\n  Thuyết minh: ${narrationText}`;
+              })
+              .join('\n\n');
+
+            const geminiAnswer = await this.generateWithGemini(
+              geminiApiKey,
+              cleanMsg,
+              language,
+              contextText,
+            );
+
+            if (geminiAnswer) {
+              return {
+                answer: geminiAnswer,
+                poi: poiPayload,
+                references,
+                provider: 'gemini-rag',
+                language: narration?.language ?? language,
+                disclaimer:
+                  'Thông tin được tổng hợp bởi AI từ kho tri thức di tích đã được kiểm duyệt.',
+              };
+            }
+          }
+
           return {
             answer: `Dựa trên dữ liệu di tích [${topPoi.name}]: ${content}`,
-            poi: {
-              id: topPoi.id,
-              name: topPoi.name,
-              category: topPoi.category,
-              address: topPoi.address,
-            },
-            references: rankedPois.slice(0, 3).map(({ poi }) => ({
-              id: poi.id,
-              name: poi.name,
-              address: poi.address,
-            })),
+            poi: poiPayload,
+            references,
             provider: 'knowledge-grounded',
             language: narration?.language ?? Language.vi,
             disclaimer:
@@ -123,5 +167,47 @@ export class ChatbotService {
       disclaimer:
         'Câu trả lời chưa được xác thực từ kho tri thức di tích.',
     };
+  }
+
+  private async generateWithGemini(
+    apiKey: string,
+    question: string,
+    language: Language,
+    contextText: string,
+  ): Promise<string | null> {
+    const prompt = [
+      'Bạn là hướng dẫn viên du lịch ảo thông minh của hệ thống Hồ Chí Minh GPS Audio Guide.',
+      `Hãy trả lời ngắn gọn, tự nhiên, lịch sự và chính xác bằng ngôn ngữ "${language}" chỉ dựa trên ngữ cảnh di tích được kiểm duyệt dưới đây.`,
+      'Không bịa thêm thông tin ngoài ngữ cảnh nếu ngữ cảnh không đề cập.',
+      '',
+      'Ngữ cảnh di tích:',
+      contextText,
+      '',
+      `Câu hỏi của du khách: ${question}`,
+    ].join('\n');
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(8000),
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = (await response.json()) as GeminiGenerateContentResponse;
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      return text || null;
+    } catch {
+      return null;
+    }
   }
 }

@@ -28,6 +28,7 @@ services:
       PORT: 3000
       SEED_ON_START: "true"
       SERVER_LAN_IP: ${SERVER_LAN_IP:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     ports:
       - "3000:3000"
     volumes:
