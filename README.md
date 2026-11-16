@@ -17,13 +17,14 @@ Hệ thống hướng dẫn du lịch âm thanh tự động (Location-based Aud
 ## 2. Tech Stack
 
 - **Backend Framework:** [NestJS](https://nestjs.com/) (Node.js v20/v22, TypeScript ESM).
-- **Database & Spatial Engine:** [PostgreSQL 16](https://www.postgresql.org/) kết hợp [PostGIS 3.4](https://postgis.net/) (xử lý truy vấn không gian `ST_DWithin`, `ST_DistanceSphere`).
+- **Database & Spatial Engine:** [PostgreSQL 16](https://www.postgresql.org/) kết hợp [PostGIS 3.4](https://postgis.net/) (tự động kích hoạt extension `postgis`, truy vấn không gian `ST_DWithin`, `ST_DistanceSphere` + fallback Haversine).
 - **ORM:** [Prisma ORM 7](https://www.prisma.io/) với `@prisma/adapter-pg`.
-- **Testing:** [Vitest](https://vitest.dev/) (Unit Tests, Test Spies, Mocking), Supertest (E2E API Integration).
-- **Linter & Code Quality:** [Oxlint](https://oxc.rs/) (type-aware linting siêu tốc).
-- **Security & Docs:** Helmet, CORS, Swagger UI (`/docs`), Rate Limiting (in-memory sliding window).
-- **Infrastructure & Proxy:** [Docker](https://www.docker.com/), Docker Compose, [Nginx](https://nginx.org/) (Reverse Proxy serving client static assets on port 8080).
-- **CI/CD:** GitHub Actions (Lint, Vitest, Build, Docker Image build & SSH deploy).
+- **AI & Media:** Google Gemini 2.5 Flash REST API (RAG kèm fallback `knowledge-grounded`), Multer (`FileInterceptor`) upload audio và Express Static (`/uploads`).
+- **Testing:** [Vitest](https://vitest.dev/) (9 test suites, 55 Unit Tests), Supertest (E2E API Integration trên PostGIS container).
+- **Linter & Code Quality:** [Oxlint](https://oxc.rs/) (type-aware linting, 0 lỗi / 0 cảnh báo).
+- **Security & Docs:** Helmet, CORS, Swagger UI (`/docs`), `AdminKeyGuard` (`x-admin-key`), `RateLimitGuard` (in-memory sliding window).
+- **Infrastructure & Proxy:** [Docker](https://www.docker.com/), Docker Compose, [Nginx](https://nginx.org/) (Reverse Proxy serving client static assets on port 8080, proxy `/api/` và `/uploads/`).
+- **CI/CD:** GitHub Actions (Oxlint, 55 Unit Tests, Prisma Migrate Deploy + E2E PostGIS tests, Docker build & SSH deploy).
 
 ---
 
@@ -76,10 +77,10 @@ Toàn bộ các module trong `backend/src/` tuân thủ nghiêm ngặt mô hình
    Khách quét QR tại cổng hoặc di tích để nhận mã `access_pass` có thời hạn (mặc định 24h hoặc 30 ngày cho demo), tự động nạp gói dữ liệu tour mà không hiển thị bảng giá hay yêu cầu đăng ký tài khoản.
 2. **UC2: Tự động thuyết minh theo vị trí GPS (`Geofence & Hysteresis`)**  
    Tự động phát âm thanh khi du khách đi vào bán kính kích hoạt (`distanceM <= 1.0 * activationRadius`). Áp dụng ngưỡng Hysteresis: chỉ reset trạng thái phát khi du khách rời xa khỏi bán kính tối thiểu `1.5 * activationRadius`. Khi phát hiện điểm di tích mới, giao diện hiển thị thông báo đếm ngược 3 giây trước khi tự động chuyển bài thuyết minh.
-3. **UC3: Quản trị POI, đa ngôn ngữ & file audio (`Admin Dashboard`)**  
-   Quản trị viên sử dụng `x-admin-key` để quản lý danh mục địa điểm (tọa độ, bán kính, độ ưu tiên), biên tập nội dung thuyết minh đa ngôn ngữ (Việt, Anh, Hàn, Nhật, Trung...), tải file audio và kiểm soát trạng thái xuất bản (`DRAFT` / `PUBLISHED`) có ghi nhật ký kiểm toán (`AuditEvent`).
-4. **UC4: Hỏi đáp AI Guide dựa trên nội dung POI đã duyệt (`RAG & Rate Limit`)**  
-   Trợ lý ảo hỗ trợ trả lời câu hỏi của khách tham quan dựa trên dữ liệu các POI đã được phê duyệt trong cơ sở dữ liệu (`findPublishedForKnowledge`), đính kèm nguồn trích dẫn (`references`). Endpoint được bảo vệ bằng `RateLimitGuard` giới hạn 20 request/phút để chống spam kỹ thuật.
+3. **UC3: Quản trị POI, đa ngôn ngữ & Upload Audio (`Admin Dashboard`)**  
+   Quản trị viên dùng header `x-admin-key` (`ADMIN_API_KEY`) để CRUD POI, kiểm soát trạng thái (`DRAFT` / `PUBLISHED`), biên tập thuyết minh 20 ngôn ngữ (`PUT /api/admin/pois/:id/narrations`) và upload trực tiếp file âm thanh (`.mp3`, `.wav`, `.ogg`, `.m4a`, tối đa 15MB) qua `POST /api/admin/upload-audio` hoặc `POST /api/admin/pois/:id/audio`. File được lưu tại `backend/uploads/audio/`, phục vụ tĩnh qua `/uploads/audio/*`, tự động gắn vào `Narration` và ghi nhận `AuditEvent`.
+4. **UC4: Hỏi đáp AI Guide dựa trên nội dung POI đã duyệt (`Gemini 2.5 Flash RAG & Rate Limit`)**  
+   Trợ lý ảo tìm kiếm tri thức từ các POI đã duyệt (`findPublishedForKnowledge`), hỗ trợ khớp tiếng Việt có dấu và không dấu (`normalizeText`). Khi cấu hình `GEMINI_API_KEY`, hệ thống gọi **Google Gemini 2.5 Flash REST API** (`provider: 'gemini-rag'`) để tổng hợp câu trả lời tự nhiên kèm trích dẫn `references`; nếu thiếu key hoặc lỗi/timeout API sẽ tự động fallback an toàn về `provider: 'knowledge-grounded'`. Endpoint được bảo vệ bởi `RateLimitGuard` (20 request/phút).
 5. **UC5: Thuyết minh thủ công khi chạm POI trên bản đồ (`mode: MANUAL`)**  
    Cho phép du khách chủ động bấm chọn điểm trên bản đồ hoặc danh sách để xem thông tin chi tiết và phát audio theo ngôn ngữ tùy chọn mà không phụ thuộc vào GPS. Ghi nhận nhật ký nghe với chế độ `MANUAL`.
 6. **UC6: Gợi ý & tùy chỉnh lộ trình tham quan cá nhân (`Tour Planning`)**  
@@ -129,13 +130,16 @@ npm ci
 
 # 3. Cấu hình biến môi trường
 cp .env.example .env
-# Chỉnh sửa DATABASE_URL trong .env trỏ về PostgreSQL của bạn
+# Cấu hình trong .env:
+# - DATABASE_URL: chuỗi kết nối PostgreSQL / PostGIS
+# - ADMIN_API_KEY: khóa bảo vệ các API quản trị (header x-admin-key)
+# - GEMINI_API_KEY: (tùy chọn) API key cho Chatbot Gemini 2.5 Flash RAG
 
 # 4. Sinh Prisma Client & Đẩy schema vào DB
 npm run prisma:generate
 npm run db:push
 
-# 5. Nạp dữ liệu mẫu (Seed 8 POI Sài Gòn, Chùa Linh Ứng, Tour mẫu, 20 ngôn ngữ)
+# 5. Nạp dữ liệu mẫu (Seed 13 POI Sài Gòn & Chùa Linh Ứng, 3 Tour, 20 ngôn ngữ, QR, AccessPass & thống kê UC7)
 npm run db:seed
 
 # 6. Khởi chạy server ở chế độ Development (Hot-reload)
@@ -155,10 +159,13 @@ cd backend
 # 1. Kiểm tra lỗi cú pháp và kiểu dữ liệu với Oxlint (Yêu cầu 0 lỗi, 0 cảnh báo)
 npm run lint
 
-# 2. Chạy toàn bộ 8 bộ kiểm thử tự động với Vitest (41 Unit Tests)
+# 2. Chạy toàn bộ 9 bộ kiểm thử tự động với Vitest (55 Unit Tests PASS)
 npm run test
 
-# 3. Biên dịch TypeScript sang JavaScript trong thư mục dist/
+# 3. Chạy kiểm thử tích hợp E2E với PostGIS (cần TEST_DATABASE_URL chứa 'test' và RUN_INTEGRATION_TESTS=true)
+npm run test:e2e
+
+# 4. Biên dịch TypeScript sang JavaScript trong thư mục dist/
 npm run build
 ```
 
