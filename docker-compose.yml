@@ -30,6 +30,8 @@ services:
       SERVER_LAN_IP: ${SERVER_LAN_IP:-}
     ports:
       - "3000:3000"
+    volumes:
+      - ./backend/uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy

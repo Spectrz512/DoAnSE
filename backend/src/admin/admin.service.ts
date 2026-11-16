@@ -1,9 +1,27 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PoiStatus } from '@prisma/client';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { basename, extname, join } from 'node:path';
 import { CreatePoiDto, UpdatePoiDto } from '../poi/dto.js';
 import { PoiRepository } from '../poi/poi.repository.js';
 import { AdminRepository } from './admin.repository.js';
-import { UpsertNarrationDto } from './dto.js';
+import { UploadAudioDto, type UploadedAudioFile, UpsertNarrationDto } from './dto.js';
+
+const MAX_AUDIO_SIZE_BYTES = 15 * 1024 * 1024;
+const ALLOWED_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a']);
+
+function sanitizeAudioFilename(originalName: string): string {
+  const ext = extname(originalName).toLowerCase();
+  const base = basename(originalName, extname(originalName))
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+
+  return `${Date.now()}-${base || 'audio'}${ext}`;
+}
 
 @Injectable()
 export class AdminService {
@@ -42,6 +60,53 @@ export class AdminService {
   async upsertNarration(poiId: string, dto: UpsertNarrationDto) {
     await this.assertPoi(poiId);
     return this.admin.upsertNarration(poiId, dto);
+  }
+
+  async uploadAudio(file: UploadedAudioFile | undefined, dto?: UploadAudioDto) {
+    if (!file || !file.buffer || !file.originalname) {
+      throw new BadRequestException('Audio file is required');
+    }
+
+    const ext = extname(file.originalname).toLowerCase();
+    const mimeType = (file.mimetype || '').toLowerCase();
+    if (!ALLOWED_AUDIO_EXTENSIONS.has(ext) || !mimeType.startsWith('audio/')) {
+      throw new BadRequestException(
+        'Invalid audio format. Supported formats: .mp3, .wav, .ogg, .m4a',
+      );
+    }
+
+    if (file.size > MAX_AUDIO_SIZE_BYTES || file.buffer.byteLength > MAX_AUDIO_SIZE_BYTES) {
+      throw new BadRequestException('Audio file exceeds the 15MB limit');
+    }
+
+    if (dto?.poiId) {
+      await this.assertPoi(dto.poiId);
+    }
+
+    const filename = sanitizeAudioFilename(file.originalname);
+    const uploadDir = join(process.cwd(), 'uploads', 'audio');
+    mkdirSync(uploadDir, { recursive: true });
+    writeFileSync(join(uploadDir, filename), file.buffer);
+
+    const audioUrl = `/uploads/audio/${filename}`;
+
+    if (dto?.poiId && dto?.language) {
+      await this.admin.updateNarrationAudio(
+        dto.poiId,
+        dto.language,
+        audioUrl,
+        dto.durationSeconds,
+      );
+    }
+
+    return {
+      audioUrl,
+      filename,
+      size: file.size,
+      mimeType: file.mimetype,
+      ...(dto?.poiId ? { poiId: dto.poiId } : {}),
+      ...(dto?.language ? { language: dto.language } : {}),
+    };
   }
 
   private async assertPoi(id: string) {

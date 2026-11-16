@@ -1,7 +1,9 @@
 import { ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import express from 'express';
 import helmet from 'helmet';
+import { join } from 'node:path';
 
 export function configureApp(app: INestApplication) {
   app.use(
@@ -9,6 +11,8 @@ export function configureApp(app: INestApplication) {
       contentSecurityPolicy: false,
     }),
   );
+
+  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   const rawOrigins = process.env.CORS_ORIGINS || '';
   const allowedOrigins = rawOrigins

@@ -1,8 +1,21 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CreatePoiDto } from '../poi/dto.js';
 import { AdminKeyGuard } from './admin-key.guard.js';
 import { AdminService } from './admin.service.js';
-import { UpdatePoiStatusDto, UpsertNarrationDto } from './dto.js';
+import { UpdatePoiStatusDto, UploadAudioDto, type UploadedAudioFile, UpsertNarrationDto } from './dto.js';
 
 @Controller('admin')
 @UseGuards(AdminKeyGuard)
@@ -42,5 +55,28 @@ export class AdminController {
   @Put('pois/:id/narrations')
   narration(@Param('id') id: string, @Body() dto: UpsertNarrationDto) {
     return this.admin.upsertNarration(id, dto);
+  }
+
+  @Post('upload-audio')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadAudio(
+    @UploadedFile() file: UploadedAudioFile | undefined,
+    @Body() dto: UploadAudioDto,
+  ) {
+    return this.admin.uploadAudio(file, dto);
+  }
+
+  @Post('pois/:id/audio')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadPoiAudio(
+    @Param('id') id: string,
+    @UploadedFile() file: UploadedAudioFile | undefined,
+    @Body() dto: UploadAudioDto,
+  ) {
+    return this.admin.uploadAudio(file, {
+      poiId: id,
+      language: dto.language,
+      durationSeconds: dto.durationSeconds,
+    });
   }
 }
