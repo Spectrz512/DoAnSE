@@ -1,4 +1,6 @@
--- 1. Mở rộng Enum Language với 15 ngôn ngữ mới
+-- 1. Mở rộng Enum Language đầy đủ 20 ngôn ngữ (bao gồm ja, zh và 15 ngôn ngữ mới)
+ALTER TYPE "Language" ADD VALUE IF NOT EXISTS 'ja';
+ALTER TYPE "Language" ADD VALUE IF NOT EXISTS 'zh';
 ALTER TYPE "Language" ADD VALUE IF NOT EXISTS 'zh_TW';
 ALTER TYPE "Language" ADD VALUE IF NOT EXISTS 'th';
 ALTER TYPE "Language" ADD VALUE IF NOT EXISTS 'lo';
@@ -15,19 +17,33 @@ ALTER TYPE "Language" ADD VALUE IF NOT EXISTS 'fr';
 ALTER TYPE "Language" ADD VALUE IF NOT EXISTS 'de';
 ALTER TYPE "Language" ADD VALUE IF NOT EXISTS 'es';
 
--- 2. Tạo Enum ListeningStatus
+-- 2. Tạo Enum ListeningStatus, AccessSource, PassStatus, PoiStatus
 DO $$ BEGIN
   CREATE TYPE "ListeningStatus" AS ENUM ('PREPARING', 'PLAYING', 'COMPLETED', 'ERROR', 'PAUSED');
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
 
--- 3. Tạo Enum AccessSource
 DO $$ BEGIN
   CREATE TYPE "AccessSource" AS ENUM ('QR', 'DIRECT', 'MAP', 'TOUR');
 EXCEPTION
   WHEN duplicate_object THEN null;
 END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "PassStatus" AS ENUM ('ACTIVE', 'EXPIRED', 'REVOKED');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "PoiStatus" AS ENUM ('DRAFT', 'PUBLISHED');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+-- 3. Cập nhật cột status cho bảng Poi trước khi tạo index
+ALTER TABLE "Poi" ADD COLUMN IF NOT EXISTS "status" "PoiStatus" NOT NULL DEFAULT 'PUBLISHED';
 
 -- 4. Bảng danh mục 20 ngôn ngữ
 CREATE TABLE IF NOT EXISTS "LanguageCatalog" (
@@ -120,7 +136,51 @@ CREATE UNIQUE INDEX IF NOT EXISTS "QrCode_code_key" ON "QrCode"("code");
 CREATE INDEX IF NOT EXISTS "QrCode_targetPoiId_idx" ON "QrCode"("targetPoiId");
 CREATE INDEX IF NOT EXISTS "QrCode_code_idx" ON "QrCode"("code");
 
--- 9. Thêm các Index tối ưu hóa truy vấn cho Poi, Tour, Narration, AccessPass
+-- 9. Tạo các bảng AccessPass, AuditEvent, VisitorSession trước khi đánh index
+CREATE TABLE IF NOT EXISTS "AccessPass" (
+  "id" TEXT NOT NULL,
+  "code" TEXT NOT NULL,
+  "tourId" TEXT,
+  "status" "PassStatus" NOT NULL DEFAULT 'ACTIVE',
+  "expiresAt" TIMESTAMP(3),
+  "activatedAt" TIMESTAMP(3),
+  "deviceInfo" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "AccessPass_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "AccessPass_code_key" ON "AccessPass"("code");
+
+CREATE TABLE IF NOT EXISTS "AuditEvent" (
+  "id" TEXT NOT NULL,
+  "action" TEXT NOT NULL,
+  "entityType" TEXT NOT NULL,
+  "entityId" TEXT NOT NULL,
+  "actor" TEXT NOT NULL DEFAULT 'admin',
+  "metadata" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "AuditEvent_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX IF NOT EXISTS "AuditEvent_entityType_entityId_idx" ON "AuditEvent"("entityType", "entityId");
+CREATE INDEX IF NOT EXISTS "AuditEvent_createdAt_idx" ON "AuditEvent"("createdAt");
+
+CREATE TABLE IF NOT EXISTS "VisitorSession" (
+  "visitorId" TEXT NOT NULL,
+  "passCode" TEXT,
+  "language" "Language" NOT NULL DEFAULT 'vi',
+  "deviceInfo" TEXT,
+  "lastActivePoiId" TEXT,
+  "latitude" DOUBLE PRECISION,
+  "longitude" DOUBLE PRECISION,
+  "isSpeaking" BOOLEAN NOT NULL DEFAULT false,
+  "connectedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "lastSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "isActive" BOOLEAN NOT NULL DEFAULT true,
+  CONSTRAINT "VisitorSession_pkey" PRIMARY KEY ("visitorId")
+);
+CREATE INDEX IF NOT EXISTS "VisitorSession_lastSeenAt_isActive_idx" ON "VisitorSession"("lastSeenAt", "isActive");
+
+-- 10. Thêm các Index tối ưu hóa truy vấn cho Poi, Tour, Narration, AccessPass
 CREATE INDEX IF NOT EXISTS "Poi_status_idx" ON "Poi"("status");
 CREATE INDEX IF NOT EXISTS "Poi_priority_idx" ON "Poi"("priority");
 CREATE INDEX IF NOT EXISTS "Poi_category_idx" ON "Poi"("category");
@@ -131,3 +191,4 @@ CREATE INDEX IF NOT EXISTS "TourStop_tourId_idx" ON "TourStop"("tourId");
 CREATE INDEX IF NOT EXISTS "TourStop_poiId_idx" ON "TourStop"("poiId");
 CREATE INDEX IF NOT EXISTS "AccessPass_status_idx" ON "AccessPass"("status");
 CREATE INDEX IF NOT EXISTS "AccessPass_expiresAt_idx" ON "AccessPass"("expiresAt");
+
