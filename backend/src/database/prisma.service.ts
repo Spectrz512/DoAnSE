@@ -9,9 +9,17 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     if (!connectionString) throw new Error('DATABASE_URL is required');
     super({ adapter: new PrismaPg({ connectionString }) });
   }
-  async onModuleInit() { await this.$connect(); }
+  async onModuleInit() {
+    await this.$connect();
+    try {
+      await this.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS postgis;');
+    } catch {
+      // Fallback an toàn nếu user DB không đủ quyền hoặc môi trường không hỗ trợ PostGIS
+    }
+  }
   async onModuleDestroy() { await this.$disconnect(); }
   async enableShutdownHooks(app: INestApplication) {
     process.on('beforeExit', () => void app.close());
   }
 }
+
