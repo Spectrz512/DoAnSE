@@ -35,9 +35,12 @@ async function itAsync(name, fn) {
 
 async function runTests() {
   console.log('\n=== KIỂM THỬ 1: CHUẨN HÓA MÃ NGÔN NGỮ ===');
-  it('Chấp nhận cả 5 ngôn ngữ backend hỗ trợ: vi, en, ko, ja, zh', () => {
+  it('Chấp nhận toàn bộ 20 ngôn ngữ backend hỗ trợ (vi, en, fr, ja, zh, ko, de, es, ...)', () => {
     assert.strictEqual(ApiClient.normalizeLanguage('vi'), 'vi');
     assert.strictEqual(ApiClient.normalizeLanguage('en'), 'en');
+    assert.strictEqual(ApiClient.normalizeLanguage('fr'), 'fr');
+    assert.strictEqual(ApiClient.normalizeLanguage('de'), 'de');
+    assert.strictEqual(ApiClient.normalizeLanguage('es'), 'es');
     assert.strictEqual(ApiClient.normalizeLanguage('ko'), 'ko');
     assert.strictEqual(ApiClient.normalizeLanguage('ja'), 'ja');
     assert.strictEqual(ApiClient.normalizeLanguage('zh'), 'zh');
@@ -45,44 +48,44 @@ async function runTests() {
     assert.strictEqual(ApiClient.normalizeLanguage('JA'), 'ja');
   });
 
-  it('Tự động fallback về "vi" đối với ngôn ngữ không được hỗ trợ (fr, de, unknown)', () => {
-    assert.strictEqual(ApiClient.normalizeLanguage('fr'), 'vi');
-    assert.strictEqual(ApiClient.normalizeLanguage('de'), 'vi');
+  it('Tự động fallback về "vi" đối với mã không được hỗ trợ (unknown, null)', () => {
+    assert.strictEqual(ApiClient.normalizeLanguage('unknown_lang'), 'vi');
+    assert.strictEqual(ApiClient.normalizeLanguage('xx'), 'vi');
     assert.strictEqual(ApiClient.normalizeLanguage(null), 'vi');
   });
 
   console.log('\n=== KIỂM THỬ 2: CHUẨN HÓA DỮ LIỆU POI ===');
   it('Chuẩn hóa POI đầy đủ từ schema Backend thành cấu trúc UI (p.text[lang], p.lat, p.radius, p.cat)', () => {
     const backendPoi = {
-      id: 'poi-1',
-      name: 'Chùa Linh Ứng',
-      description: 'Mô tả chung',
-      latitude: 16.1068,
-      longitude: 108.2787,
-      category: 'temple',
-      address: 'Bãi Bụt',
-      activationRadius: 60,
+      id: 'dinh-doc-lap',
+      name: 'Dinh Độc Lập',
+      description: 'Di tích lịch sử Dinh Độc Lập tại Sài Gòn',
+      latitude: 10.7770,
+      longitude: 106.6953,
+      category: 'culture',
+      address: '135 Nam Kỳ Khởi Nghĩa, Quận 1',
+      activationRadius: 50,
       priority: 10,
       narrations: [
-        { language: 'vi', title: 'Chùa Linh Ứng', content: 'Thuyết minh tiếng Việt', durationSeconds: 300 },
-        { language: 'en', title: 'Linh Ung Pagoda', content: 'English narration', durationSeconds: 280 }
+        { language: 'vi', title: 'Dinh Độc Lập', content: 'Thuyết minh tiếng Việt Dinh Độc Lập', durationSeconds: 300 },
+        { language: 'en', title: 'Independence Palace', content: 'English narration of Independence Palace', durationSeconds: 280 }
       ]
     };
 
     const normalized = ApiClient.normalizePoi(backendPoi);
-    assert.strictEqual(normalized.id, 'poi-1');
-    assert.strictEqual(normalized.name, 'Chùa Linh Ứng');
-    assert.strictEqual(normalized.cat, 'temple');
-    assert.strictEqual(normalized.category, 'temple');
-    assert.strictEqual(normalized.lat, 16.1068);
-    assert.strictEqual(normalized.lng, 108.2787);
-    assert.strictEqual(normalized.radius, 60);
+    assert.strictEqual(normalized.id, 'dinh-doc-lap');
+    assert.strictEqual(normalized.name, 'Dinh Độc Lập');
+    assert.strictEqual(normalized.cat, 'culture');
+    assert.strictEqual(normalized.category, 'culture');
+    assert.strictEqual(normalized.lat, 10.7770);
+    assert.strictEqual(normalized.lng, 106.6953);
+    assert.strictEqual(normalized.radius, 50);
     assert.strictEqual(normalized.priority, 10);
     assert.strictEqual(normalized.duration, 5); // 300s / 60 = 5 phút
-    assert.deepStrictEqual(normalized.text.vi, ['Chùa Linh Ứng', 'Thuyết minh tiếng Việt']);
-    assert.deepStrictEqual(normalized.text.en, ['Linh Ung Pagoda', 'English narration']);
-    // Fallback cho ngôn ngữ chưa có bản dịch
-    assert.deepStrictEqual(normalized.text.ko, ['Chùa Linh Ứng', 'Thuyết minh tiếng Việt']);
+    assert.deepStrictEqual(normalized.text.vi, ['Dinh Độc Lập', 'Thuyết minh tiếng Việt Dinh Độc Lập']);
+    assert.deepStrictEqual(normalized.text.en, ['Independence Palace', 'English narration of Independence Palace']);
+    // Fallback cho ngôn ngữ chưa có bản dịch (fallback về tiếng Việt)
+    assert.deepStrictEqual(normalized.text.ko, ['Dinh Độc Lập', 'Thuyết minh tiếng Việt Dinh Độc Lập']);
   });
 
   it('Xử lý an toàn khi POI thiếu narrations (fallback về name & description)', () => {

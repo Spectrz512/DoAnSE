@@ -1,3 +1,13 @@
+/**
+ * ==============================================================================
+ * MODULE: GEO SPATIAL (ĐỊNH VỊ KHÔNG GIAN ĐỊA LÝ)
+ * TẦNG: BUSINESS LOGIC LAYER (THUẬT TOÁN KHOẢNG CÁCH)
+ * ==============================================================================
+ * Vai trò & Thuật toán:
+ * - Tính toán khoảng cách lượng giác và xếp hạng các điểm di tích ưu tiên kích hoạt.
+ * ==============================================================================
+ */
+
 import { Injectable } from '@nestjs/common';
 import { Language } from '@prisma/client';
 import { GeoRepository } from './geo.repository.js';

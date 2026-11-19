@@ -27,12 +27,13 @@ services:
       ADMIN_API_KEY: local-admin-key-change-me
       PORT: 3000
       SEED_ON_START: "true"
-      SERVER_LAN_IP: ${SERVER_LAN_IP:-}
+      SERVER_LAN_IP: ${SERVER_LAN_IP:-192.168.1.6}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     ports:
       - "3000:3000"
     volumes:
       - ./backend/uploads:/app/uploads
+      - ./demo:/app/demo:ro
     depends_on:
       db:
         condition: service_healthy

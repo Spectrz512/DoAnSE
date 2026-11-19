@@ -1,3 +1,13 @@
+/**
+ * ==============================================================================
+ * BẢO MẬT & XÁC THỰC QUẢN TRỊ VIÊN (ADMIN KEY GUARD)
+ * ==============================================================================
+ * Vai trò:
+ * - Chặn và kiểm tra header 'x-admin-key' đối chiếu với ADMIN_API_KEY trong .env.
+ * - Từ chối 401 Unauthorized nếu key không hợp lệ, bảo vệ an toàn các API CRUD.
+ * ==============================================================================
+ */
+
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 
 @Injectable()

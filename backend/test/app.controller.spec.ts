@@ -29,5 +29,23 @@ describe('AppController (UC9 - System Health Check)', () => {
     expect(result.database).toBe('disconnected');
     expect(result.timestamp).toBeDefined();
   });
+
+  it('trả về network info đầy đủ primaryIp, addresses, webPort, apiPort', () => {
+    const mockPrisma = {} as unknown as PrismaService;
+    const controller = new AppController(mockPrisma);
+    const mockReq = {
+      headers: { host: '192.168.1.100:3000' },
+      hostname: '192.168.1.100',
+    } as any;
+
+    const result = controller.getNetworkInfo(mockReq);
+
+    expect(result.status).toBe('ok');
+    expect(result.primaryIp).toBeDefined();
+    expect(Array.isArray(result.addresses)).toBe(true);
+    expect(result.webPort).toBe(3000);
+    expect(result.apiPort).toBe(3000);
+    expect(result.suggestedOrigins.length).toBeGreaterThan(0);
+  });
 });
 

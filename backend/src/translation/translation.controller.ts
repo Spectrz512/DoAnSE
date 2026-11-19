@@ -1,3 +1,14 @@
+/**
+ * ==============================================================================
+ * MODULE: TRANSLATION (DANH MỤC 20 NGÔN NGỮ QUỐC TẾ)
+ * TẦNG: PRESENTATION LAYER (GIAO TIẾP HTTP)
+ * ==============================================================================
+ * Vai trò:
+ * - Cung cấp danh mục 20 ngôn ngữ chính thức (GET /api/languages).
+ * - Lấy nội dung thuyết minh theo ngôn ngữ yêu cầu (GET /api/pois/:poiId/narrations).
+ * ==============================================================================
+ */
+
 import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
 import { Language } from '@prisma/client';
 import { TranslationService } from './translation.service.js';

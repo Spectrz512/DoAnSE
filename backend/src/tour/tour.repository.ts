@@ -1,3 +1,13 @@
+/**
+ * ==============================================================================
+ * MODULE: TOURS & ITINERARY (LỘ TRÌNH THAM QUAN GỢI Ý)
+ * TẦNG: DATA ACCESS LAYER (TRUY VẤN BẢNG TOUR VÀ TOUR_STOP)
+ * ==============================================================================
+ * Vai trò:
+ * - Truy vấn CSDL Prisma bảng 'Tour' và 'TourStop', nạp kèm thông tin POIs liên kết.
+ * ==============================================================================
+ */
+
 import { Injectable } from '@nestjs/common';
 import { Language } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service.js';

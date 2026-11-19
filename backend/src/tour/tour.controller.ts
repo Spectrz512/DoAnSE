@@ -1,3 +1,14 @@
+/**
+ * ==============================================================================
+ * MODULE: TOURS & ITINERARY (LỘ TRÌNH THAM QUAN GỢI Ý)
+ * TẦNG: PRESENTATION LAYER (GIAO TIẾP HTTP)
+ * ==============================================================================
+ * Vai trò:
+ * - Tiếp nhận yêu cầu xem 3 tour chuyên gia gợi ý từ demo/index.html (GET /api/tours/suggested).
+ * - Hỗ trợ lập lộ trình tour tùy chỉnh theo danh sách điểm du khách chọn (POST /api/tours/plan).
+ * ==============================================================================
+ */
+
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { CustomRouteDto, PlanTourDto, TourQueryDto } from './dto.js';
 import { TourService } from './tour.service.js';

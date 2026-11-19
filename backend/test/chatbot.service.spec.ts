@@ -1,8 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ChatbotService } from '../src/chatbot/chatbot.service.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ChatbotService, cleanApiKey } from '../src/chatbot/chatbot.service.js';
 import type { PoiRepository } from '../src/poi/poi.repository.js';
 
 describe('ChatbotService', () => {
+  beforeEach(() => {
+    delete process.env.GEMINI_API_KEY;
+  });
+
   afterEach(() => {
     delete process.env.GEMINI_API_KEY;
     vi.restoreAllMocks();
@@ -10,6 +14,7 @@ describe('ChatbotService', () => {
   });
 
   it('returns a clearly identified fallback reply when no repo or match', async () => {
+    delete process.env.GEMINI_API_KEY;
     const response = await new ChatbotService().reply({ message: 'Giờ mở cửa?' });
     expect(response.provider).toBe('local-fallback');
     expect(response.answer).toBeDefined();
@@ -205,7 +210,7 @@ describe('ChatbotService', () => {
     expect(response.references).toHaveLength(1);
   });
 
-  it('falls back to knowledge-grounded when GEMINI_API_KEY is set but fetch fails', async () => {
+  it('falls back to knowledge-grounded when GEMINI_API_KEY is set but fetch fails for all candidate models', async () => {
     process.env.GEMINI_API_KEY = 'test-gemini-key';
     const fetchMock = vi.fn().mockRejectedValue(new Error('Network timeout'));
     vi.stubGlobal('fetch', fetchMock);
@@ -235,9 +240,60 @@ describe('ChatbotService', () => {
       message: 'Thông tin Dinh Độc Lập',
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    // 4 candidate models are attempted before fallback
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(response.provider).toBe('knowledge-grounded');
     expect(response.answer).toContain('Nội dung gốc từ cơ sở dữ liệu.');
+  });
+
+  it('tries next candidate model if first model returns HTTP error', async () => {
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'Gợi ý từ model gemini-3.1-flash-lite thành công.',
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const mockRepo = {
+      findPublishedForKnowledge: vi.fn().mockResolvedValue([]),
+    } as unknown as PoiRepository;
+
+    const service = new ChatbotService(mockRepo);
+    const response = await service.reply({
+      message: 'Gợi ý lịch trình 2 tiếng ở Quận 1',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(response.provider).toBe('gemini-rag');
+    expect(response.answer).toContain(
+      'Gợi ý từ model gemini-3.1-flash-lite thành công.',
+    );
+  });
+
+  it('cleans quotes and whitespace from API key correctly', () => {
+    expect(cleanApiKey('"my-key"')).toBe('my-key');
+    expect(cleanApiKey("'my-key' ")).toBe('my-key');
+    expect(cleanApiKey('  ')).toBeUndefined();
+    expect(cleanApiKey(undefined)).toBeUndefined();
   });
 });
 

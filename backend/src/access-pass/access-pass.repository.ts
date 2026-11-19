@@ -1,3 +1,13 @@
+/**
+ * ==============================================================================
+ * MODULE: ACCESS PASS (MÃ VÉ THAM QUAN QR)
+ * TẦNG: DATA ACCESS LAYER (BẢNG ACCESS_PASS)
+ * ==============================================================================
+ * Vai trò:
+ * - Thao tác CSDL Prisma trên bảng 'AccessPass'.
+ * ==============================================================================
+ */
+
 import { Injectable } from '@nestjs/common';
 import { Language, PassStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service.js';

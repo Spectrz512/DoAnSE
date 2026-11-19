@@ -1,3 +1,18 @@
+// ==============================================================================
+// HỆ THỐNG CƠ SỞ DỮ LIỆU SÀI GÒN DI SẢN (PRISMA SCHEMA DEFINITION)
+// ==============================================================================
+// Gồm 11 bảng dữ liệu chuẩn hóa quan hệ (RDBMS):
+// 1. Poi: 13 điểm di tích lịch sử TP.HCM (tọa độ GPS, bán kính Geofence 80m).
+// 2. Narration: 260 bản thuyết minh văn bản & URL audio MP3 cho 20 ngôn ngữ.
+// 3. LanguageCatalog: Danh mục 20 ngôn ngữ chính thức (vi, en, fr, zh, ja, ko...).
+// 4. Tour & TourStop: 3 lộ trình tour chuyên gia gợi ý và thứ tự điểm dừng.
+// 5. VisitorSession & ListeningSession: Quản lý phiên truy cập & phiên nghe du khách.
+// 6. ListeningEvent: Nhật ký chi tiết mỗi lượt nghe thuyết minh qua GPS/Manual.
+// 7. AccessEvent: Lượt quét mã QR và truy cập hệ thống theo nguồn.
+// 8. AuditEvent: Nhật ký kiểm toán toàn bộ thao tác thay đổi dữ liệu của Admin.
+// 9. AccessPass: Quản lý mã vé tham quan QR hạn dùng 72 giờ.
+// ==============================================================================
+
 generator client {
   provider = "prisma-client-js"
 }

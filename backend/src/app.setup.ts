@@ -1,28 +1,55 @@
+/**
+ * ==============================================================================
+ * THIẾT LẬP CẤU HÌNH TOÀN CỤC (GLOBAL APPLICATION SETUP)
+ * ==============================================================================
+ * Vai trò:
+ * - Bật CORS không giới hạn (credentials: true) cho phép điện thoại LAN và Tunnel truy cập.
+ * - Cấu hình phục vụ file tĩnh: /uploads (audio MP3) và / (toàn bộ thư mục demo/).
+ * - Kích hoạt ValidationPipe toàn cục để kiểm tra dữ liệu DTO đầu vào an toàn.
+ * ==============================================================================
+ */
+
 import { ValidationPipe } from '@nestjs/common';
-import type { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import express from 'express';
 import helmet from 'helmet';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-export function configureApp(app: INestApplication) {
+export function configureApp(app: NestExpressApplication) {
   app.use(
     helmet({
       contentSecurityPolicy: false,
     }),
   );
 
-  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
+  const uploadsPaths = [
+    join(process.cwd(), 'uploads'),
+    join(process.cwd(), 'backend', 'uploads'),
+    join(process.cwd(), '..', 'uploads'),
+  ];
+  const uploadsDir = uploadsPaths.find((p) => existsSync(p)) || join(process.cwd(), 'uploads');
+  app.use('/uploads', express.static(uploadsDir));
 
-  const rawOrigins = process.env.CORS_ORIGINS || '';
-  const allowedOrigins = rawOrigins
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  // Phục vụ trực tiếp thư mục tĩnh demo (index.html, qr.html, admin.html, api-client.js) ở root (/)
+  const demoPaths = [
+    join(process.cwd(), 'demo'),
+    join(process.cwd(), '..', 'demo'),
+    join(process.cwd(), 'backend', 'demo'),
+    '/app/demo',
+  ];
+  const demoDir = demoPaths.find((p) => existsSync(p));
+  if (demoDir) {
+    app.useStaticAssets(demoDir, {
+      prefix: '/',
+    });
+  }
 
   app.enableCors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type,Accept,Authorization,x-admin-key,x-visitor-id,x-requested-with',
     credentials: true,
   });
 

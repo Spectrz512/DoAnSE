@@ -168,4 +168,46 @@ describe('PoiService.findNearbyWithTriggerState — UC2 Geofence & Chống phát
     expect(result.activePlayedPoiIds).toContain('dinh-doc-lap');
     expect(result.activePlayedPoiIds).not.toContain('buu-dien-tp');
   });
+
+  describe('generateTtsAudio (TTS Proxy cho 20 ngôn ngữ)', () => {
+    it('trả về Buffer rỗng nếu văn bản đầu vào trống', async () => {
+      const service = buildService([]);
+      const buf = await service.generateTtsAudio('   ', 'vi');
+      expect(Buffer.isBuffer(buf)).toBe(true);
+      expect(buf.length).toBe(0);
+    });
+
+    it('chia đoạn và ghép các audio buffer thành công khi fetch Google TTS trả về dữ liệu', async () => {
+      const service = buildService([]);
+      const fakeAudioChunk = Buffer.from([0xff, 0xfb, 0x90, 0x44]);
+
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => fakeAudioChunk.buffer,
+      } as any);
+
+      try {
+        const buf = await service.generateTtsAudio('Chào mừng bạn đến với Dinh Độc Lập.', 'vi');
+        expect(Buffer.isBuffer(buf)).toBe(true);
+        expect(buf.length).toBeGreaterThan(0);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('xử lý an toàn khi gọi Google TTS gặp lỗi mạng', async () => {
+      const service = buildService([]);
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+      try {
+        const buf = await service.generateTtsAudio('Xin chào', 'vi');
+        expect(Buffer.isBuffer(buf)).toBe(true);
+        expect(buf.length).toBe(0);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+  });
 });

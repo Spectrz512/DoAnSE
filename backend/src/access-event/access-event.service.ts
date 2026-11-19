@@ -1,4 +1,14 @@
 /**
+ * ==============================================================================
+ * MODULE: ACCESS EVENT (THEO DÕI LƯỢT TRUY CẬP DU KHÁCH)
+ * TẦNG: BUSINESS LOGIC LAYER
+ * ==============================================================================
+ * Vai trò:
+ * - Phân loại nguồn truy cập (QR, DIRECT, SEARCH), xử lý thống kê lượt du khách.
+ * ==============================================================================
+ */
+
+/**
  * Module Quản lý Lượt Truy cập (Access Event Service)
  * Dự án: Thuyết minh tự động Thành phố Hồ Chí Minh (GeoAudio Guide Sài Gòn)
  * 

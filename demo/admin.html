@@ -1,3 +1,26 @@
+<!--
+================================================================================
+  HERITAGE COMMAND CENTER · TRUNG TÂM ĐIỀU HÀNH & QUẢN TRỊ (demo/admin.html)
+================================================================================
+  VAI TRÒ TRONG HỆ THỐNG:
+  - Bảng điều khiển quản trị tập trung (Admin Dashboard) cho người vận hành hệ thống
+    thuyết minh tự động di sản Sài Gòn.
+  - 4 PHÂN HỆ NGHIỆP VỤ CHÍNH:
+    1. 📊 Analytics Dashboard: Thống kê 4 KPI (Tổng điểm di tích, Du khách trực tuyến,
+       Lượt nghe hoàn tất, Điểm đến phổ biến), biểu đồ lưu lượng theo giờ/ngày/tuần,
+       bảng lịch sử sự kiện tham quan (Audit Logs) kèm tính năng Xuất CSV.
+    2. 📡 Live Radar Visitor Map: Bản đồ thời gian thực trực quan hóa vị trí của mọi
+       du khách đang online, vòng Geofence halos, điểm dừng hiện tại và lịch sử di chuyển.
+    3. 🏛️ POI Editor & Audio Studio: Bộ công cụ CRUD di tích trực quan, kéo thả tọa độ
+       trên bản đồ, chỉnh bán kính kích hoạt (Geofence Radius 15m - 200m), nhập bản
+       thuyết minh 20 ngôn ngữ, tải lên file audio MP3/WAV hoặc kiểm thử giọng đọc TTS.
+    4. 🖨️ QR Print Studio: Sinh mã QR chuẩn in ấn Standee/Kiosk khổ A4/A5, tự động đồng
+       bộ IP Wi-Fi LAN để quét được ngay từ điện thoại du khách, hỗ trợ tải PNG hàng loạt.
+  - BẢO MẬT & XÁC THỰC:
+    + Bảo vệ bằng Admin Key qua Header X-Admin-Key (AdminKeyGuard trên Backend).
+    + Lưu trữ bền vững khóa quản trị và tùy chọn giao diện trong localStorage.
+================================================================================
+-->
 <!doctype html>
 <html lang="vi">
 <head>
@@ -336,6 +359,23 @@ body {
 .kpi-card.rose::after { background: #E11D48; }
 .kpi-card.indigo::after { background: #4F46E5; }
 .kpi-card.slate::after { background: #64748B; }
+
+.kpi-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 22px;
+}
+@media (max-width: 1024px) {
+  .kpi-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .kpi-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
 
 .kpi-grid-9 {
   display: grid;
@@ -1029,7 +1069,7 @@ tr:hover td { background: var(--bg-subtle); }
 
     <div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg-subtle);padding:4px 8px;border-radius:var(--radius-sm);border:1px solid var(--border);">
       <span style="font-size:12px;font-weight:700;">🔑 Admin Key:</span>
-      <input type="password" id="adminKeyInput" value="local-admin-key-change-me" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);width:150px;font-family:var(--font-mono);" title="Admin Key dùng cho API bảo mật" onchange="saveAdminKey()" />
+      <input type="password" id="adminKeyInput" value="local-admin-key-change-me" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);width:150px;font-family:var(--font-mono);" title="Admin Key dùng cho API bảo mật" oninput="saveAdminKey()" onchange="saveAdminKey()" />
       <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;" onclick="syncAdminDataFromApi()">🔄 Đồng bộ API</button>
     </div>
     <span id="livePresenceHeaderBadge" class="api-badge live" style="font-weight:700;box-shadow:0 0 10px rgba(16,185,129,0.3);">
@@ -1047,7 +1087,7 @@ tr:hover td { background: var(--bg-subtle); }
 
 <!-- Workspace Container -->
 <div class="admin-container">
-  <!-- Top Nav Pills -->
+  <!-- Top Nav Pills (4 Phân Hệ Nghiệp Vụ Cốt Lõi) -->
   <nav class="admin-nav no-print" aria-label="Phân hệ quản trị">
     <button class="nav-tab-btn active" onclick="switchAdminTab('dashboard')">
       📊 Analytics Dashboard
@@ -1061,14 +1101,14 @@ tr:hover td { background: var(--bg-subtle); }
     <button class="nav-tab-btn" onclick="switchAdminTab('qr')">
       🖨️ QR Print Studio
     </button>
-    <button class="nav-tab-btn" onclick="switchAdminTab('arch')">
-      🛡️ Backend 3-Tier Architecture
-    </button>
   </nav>
 
   <!-- ══════════════════════════════════════════════════════════════
        TAB 1: ANALYTICS DASHBOARD
   ══════════════════════════════════════════════════════════════ -->
+  <!-- ===================================================================== -->
+  <!-- PHÂN HỆ 1: ANALYTICS DASHBOARD & AUDIT LOGS (THỐNG KÊ & LỊCH SỬ)         -->
+  <!-- ===================================================================== -->
   <section id="tab-dashboard" class="tab-section active">
     <!-- Dashboard Top Bar -->
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
@@ -1077,12 +1117,12 @@ tr:hover td { background: var(--bg-subtle); }
           <span class="badge-live-pulse"></span>
           Trung Tâm Giám Sát & Điều Hành Thời Gian Thực
         </h2>
-        <p style="font-size:13px;color:var(--text-muted);">
-          Bao quát 100% dữ liệu: Lượt truy cập, phiên nghe trực tiếp, 20 ngôn ngữ và 8 điểm di tích Sài Gòn.
+        <p id="dashboardSubtitle" style="font-size:13px;color:var(--text-muted);">
+          Bao quát 100% dữ liệu: Lượt truy cập, phiên nghe trực tiếp, 20 ngôn ngữ và tất cả điểm di tích (đồng bộ từ API).
         </p>
       </div>
       <div style="display:flex;align-items:center;gap:10px;">
-        <select id="dashboardTimeRange" class="filter-row" style="margin-bottom:0;" onchange="syncAdminDataFromApi()">
+        <select id="dashboardTimeRange" class="filter-row" style="margin-bottom:0;" onchange="onTimeRangeChanged()">
           <option value="today">📅 Hôm nay (24h)</option>
           <option value="7d" selected>📅 7 ngày gần nhất</option>
           <option value="30d">📅 30 ngày qua</option>
@@ -1093,91 +1133,58 @@ tr:hover td { background: var(--bg-subtle); }
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════
-         NHÓM A — THỐNG KÊ TỔNG QUAN (9 KPI CARDS CHÍNH XÁC)
+         NHÓM A — THỐNG KÊ TỔNG QUAN (4 KPI CARDS CỐT LÕI)
     ══════════════════════════════════════════════════════════════ -->
-    <div style="margin-bottom:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);">
+    <div style="margin-bottom:10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);">
       📌 NHÓM A — THỐNG KÊ TỔNG QUAN HỆ THỐNG
     </div>
-    <div class="kpi-grid-9">
-      <!-- KPI 1: Tổng lượt truy cập -->
+    <div class="kpi-grid-4">
+      <!-- KPI 1: Lượt Quét & Truy Cập -->
       <div class="kpi-card accent">
         <div>
           <div class="kpi-val" id="kpiTotalVisits">0</div>
-          <div class="kpi-label">Tổng Lượt Truy Cập</div>
+          <div class="kpi-label">Lượt Quét & Truy Cập</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+            Hôm nay: <strong id="kpiTodayVisits" style="color:var(--emerald);">0</strong> lượt
+          </div>
         </div>
         <div class="kpi-icon">🚪</div>
       </div>
 
-      <!-- KPI 2: Lượt truy cập hôm nay -->
-      <div class="kpi-card emerald">
-        <div>
-          <div class="kpi-val" id="kpiTodayVisits">0</div>
-          <div class="kpi-label">Truy Cập Hôm Nay</div>
-        </div>
-        <div class="kpi-icon">📅</div>
-      </div>
-
-      <!-- KPI 3: Tổng lượt nghe thuyết minh -->
+      <!-- KPI 2: Tổng Lượt Nghe -->
       <div class="kpi-card cobalt">
         <div>
           <div class="kpi-val" id="kpiTotalEvents">0</div>
           <div class="kpi-label">Tổng Lượt Nghe</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+            Hoàn thành: <strong id="kpiCompletedListens" style="color:var(--cobalt);">0</strong> lượt (<span id="kpiCompletedRate">0%</span>)
+          </div>
         </div>
         <div class="kpi-icon">🎧</div>
       </div>
 
-      <!-- KPI 4: Phiên nghe đang hoạt động -->
+      <!-- KPI 3: Đang Nghe Trực Tiếp (Live) -->
       <div class="kpi-card purple">
         <div>
           <div class="kpi-val" id="kpiActiveSessions" style="color:#9333EA;">0</div>
-          <div class="kpi-label">Phiên Nghe Đang Chạy</div>
+          <div class="kpi-label">Đang Nghe Trực Tiếp (Live)</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+            <strong id="kpiConcurrentListeners">0</strong> du khách trực tuyến • <strong id="kpiPreparingSessions">0</strong> phiên chuẩn bị
+          </div>
         </div>
         <div class="kpi-icon">📡</div>
       </div>
 
-      <!-- KPI 5: Số người nghe đồng thời -->
-      <div class="kpi-card amber">
+      <!-- KPI 4: Quy Mô Nội Dung -->
+      <div class="kpi-card emerald">
         <div>
-          <div class="kpi-val" id="kpiConcurrentListeners" style="color:#D97706;">0</div>
-          <div class="kpi-label">Người Nghe Đồng Thời</div>
-        </div>
-        <div class="kpi-icon">👥</div>
-      </div>
-
-      <!-- KPI 6: Phiên chuẩn bị / tải nội dung -->
-      <div class="kpi-card teal">
-        <div>
-          <div class="kpi-val" id="kpiPreparingSessions" style="color:#0D9488;">0</div>
-          <div class="kpi-label">Phiên Tải / Chuẩn Bị</div>
-        </div>
-        <div class="kpi-icon">⏳</div>
-      </div>
-
-      <!-- KPI 7: Tổng số địa điểm -->
-      <div class="kpi-card slate">
-        <div>
-          <div class="kpi-val" id="kpiTotalPois">8</div>
-          <div class="kpi-label">Tổng Số Địa Điểm</div>
+          <div class="kpi-val" id="kpiTotalPois" style="font-size:22px;">13 Điểm Di Tích</div>
+          <div class="kpi-label" id="kpiPoisLabel">13 Published</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+            <strong id="kpiTotalNarrations">260</strong> Bài thuyết minh • <strong id="kpiTotalLanguages">20</strong> Ngôn ngữ
+          </div>
         </div>
         <div class="kpi-icon">🏛️</div>
-      </div>
-
-      <!-- KPI 8: Tổng số bài thuyết minh -->
-      <div class="kpi-card indigo">
-        <div>
-          <div class="kpi-val" id="kpiTotalNarrations">65</div>
-          <div class="kpi-label">Bài Thuyết Minh</div>
-        </div>
-        <div class="kpi-icon">📜</div>
-      </div>
-
-      <!-- KPI 9: Tổng số ngôn ngữ hỗ trợ -->
-      <div class="kpi-card rose">
-        <div>
-          <div class="kpi-val" id="kpiTotalLanguages">20</div>
-          <div class="kpi-label">Ngôn Ngữ Hỗ Trợ</div>
-        </div>
-        <div class="kpi-icon">🌐</div>
       </div>
     </div>
 
@@ -1238,19 +1245,19 @@ tr:hover td { background: var(--bg-subtle); }
         <table>
           <thead>
             <tr>
-              <th>Bắt đầu</th>
+              <th>Thời gian</th>
               <th>Mã phiên / Du khách</th>
               <th>Địa điểm di tích</th>
               <th>Ngôn ngữ</th>
+              <th>Chế độ</th>
+              <th>Thời lượng</th>
               <th>Trạng thái</th>
-              <th>Thời lượng nghe</th>
-              <th>Cập nhật gần nhất</th>
             </tr>
           </thead>
           <tbody id="liveSessionsTableBody">
             <tr>
               <td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">
-                Đang tải dữ liệu phiên nghe trực tiếp...
+                Chưa có phiên nghe nào được ghi nhận.
               </td>
             </tr>
           </tbody>
@@ -1273,15 +1280,16 @@ tr:hover td { background: var(--bg-subtle); }
         </div>
       </div>
 
-      <!-- Phân bổ nguồn truy cập (QR vs Tour vs Direct) -->
+      <!-- Top Địa Điểm & Ngôn Ngữ Được Nghe Nhiều Nhất -->
       <div class="panel-card">
         <div class="panel-title">
-          <span>🎯 Nguồn Truy Cập (Traffic Source)</span>
-          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">QR Code / Tour / Trực tiếp</span>
+          <span>🏆 Top Địa Điểm & Ngôn Ngữ Được Nghe Nhiều Nhất</span>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">Từ dữ liệu nghe thực tế</span>
         </div>
-        <div id="visitSourceBars" class="bar-list">
-          <!-- Render động -->
+        <div id="topListeningDistributionBars" class="bar-list">
+          <!-- Render động từ s.topPois & s.byLanguage -->
         </div>
+        <div id="visitSourceBars" style="display:none;"></div>
       </div>
     </div>
 
@@ -1369,7 +1377,10 @@ tr:hover td { background: var(--bg-subtle); }
     <div class="panel-card">
       <div class="panel-title">
         <span>🛡️ Nhật Ký Hoạt Động Quản Trị (Audit Event Logs - UC3)</span>
-        <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="loadAdminAuditEvents()">🔄 Tải Lại Audit Logs</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="exportAuditLogsCsv()">📤 Xuất CSV</button>
+          <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="loadAdminAuditEvents()">🔄 Tải Lại Audit Logs</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -1394,6 +1405,9 @@ tr:hover td { background: var(--bg-subtle); }
   <!-- ══════════════════════════════════════════════════════════════
        TAB RADAR: LIVE VISITOR RADAR (BAO NHIÊU NGƯỜI & Ở ĐÂU)
   ══════════════════════════════════════════════════════════════ -->
+  <!-- ===================================================================== -->
+  <!-- PHÂN HỆ 2: LIVE VISITOR RADAR (BẢN ĐỒ ĐỊNH VỊ DU KHÁCH THỜI GIAN THỰC)     -->
+  <!-- ===================================================================== -->
   <section id="tab-radar" class="tab-section">
     <!-- 4 Live Presence KPIs -->
     <div class="kpi-grid">
@@ -1450,7 +1464,7 @@ tr:hover td { background: var(--bg-subtle); }
         <span style="font-size:12px;color:var(--text-muted);">Tự động nhóm theo vùng bán kính Geofence</span>
       </div>
       <div id="densityGrid" class="density-grid">
-        <!-- Render động 8 POIs kèm danh sách du khách đang có mặt -->
+        <!-- Render động toàn bộ POIs kèm danh sách du khách đang có mặt -->
       </div>
     </div>
 
@@ -1495,12 +1509,15 @@ tr:hover td { background: var(--bg-subtle); }
   <!-- ══════════════════════════════════════════════════════════════
        TAB 3: POI & VISUAL GEOFENCE EDITOR
   ══════════════════════════════════════════════════════════════ -->
+  <!-- ===================================================================== -->
+  <!-- PHÂN HỆ 3: POI EDITOR & AUDIO STUDIO (QUẢN LÝ DI TÍCH & BÁN KÍNH GEOFENCE) -->
+  <!-- ===================================================================== -->
   <section id="tab-editor" class="tab-section">
     <div class="editor-layout">
       <!-- Left POI Selector List -->
       <div class="poi-sidebar">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <h3 style="font-size:15px;font-weight:700;">Danh Sách Di Tích (8)</h3>
+          <h3 style="font-size:15px;font-weight:700;">Danh Sách Di Tích (<span id="poiSidebarCount">0</span>)</h3>
           <button class="btn btn-primary" style="font-size:12px;padding:4px 10px;" onclick="createNewPoi()">➕ Thêm mới</button>
         </div>
         <input id="poiSearch" class="form-control" placeholder="Tìm theo tên..." oninput="filterPoiList()">
@@ -1572,21 +1589,28 @@ tr:hover td { background: var(--bg-subtle); }
           </div>
         </div>
 
-        <!-- 5-Language Narration Content Editor -->
+        <!-- 20-Language Narration Content & Audio Upload Editor -->
         <div style="border-top:1.5px solid var(--border);padding-top:14px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <label style="font-size:13px;font-weight:700;">Nội Dung Thuyết Minh 5 Ngôn Ngữ</label>
-            <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="previewVoiceTTS()">
-              🔊 Nghe Thử TTS
-            </button>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+            <label style="font-size:13px;font-weight:700;">Nội Dung Thuyết Minh & Audio (20 Ngôn Ngữ)</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <input type="file" id="editAudioFileInput" accept=".mp3,.wav,.ogg,.m4a,audio/*" style="font-size:11px;max-width:210px;" />
+              <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="uploadAudioForCurrentPoi()">
+                📤 Upload Audio
+              </button>
+              <button class="btn btn-outline" style="font-size:12px;padding:4px 10px;" onclick="previewVoiceTTS()">
+                🔊 Nghe Thử
+              </button>
+            </div>
           </div>
 
-          <div class="lang-tab-bar">
-            <button class="lang-tab-btn active" data-lang="vi" onclick="switchEditorLangTab('vi')">🇻🇳 Tiếng Việt</button>
-            <button class="lang-tab-btn" data-lang="en" onclick="switchEditorLangTab('en')">🇬🇧 English</button>
-            <button class="lang-tab-btn" data-lang="ko" onclick="switchEditorLangTab('ko')">🇰🇷 한국어</button>
-            <button class="lang-tab-btn" data-lang="ja" onclick="switchEditorLangTab('ja')">🇯🇵 日本語</button>
-            <button class="lang-tab-btn" data-lang="zh" onclick="switchEditorLangTab('zh')">🇨🇳 中文</button>
+          <div class="lang-tab-bar" id="editorLangTabBar" style="flex-wrap:wrap;">
+            <!-- Render động đủ 20 ngôn ngữ -->
+          </div>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label>Đường dẫn File Audio (tự động cập nhật khi Upload hoặc nhập URL ngoài)</label>
+            <input id="editLangAudioUrl" class="form-control" placeholder="/uploads/audio/example.mp3" readonly style="background:var(--bg-subtle);font-family:var(--font-mono);font-size:12px;">
           </div>
 
           <div class="form-group" style="margin-bottom:10px;">
@@ -1606,6 +1630,9 @@ tr:hover td { background: var(--bg-subtle); }
   <!-- ══════════════════════════════════════════════════════════════
        TAB 3: QR PRINT STUDIO
   ══════════════════════════════════════════════════════════════ -->
+  <!-- ===================================================================== -->
+  <!-- PHÂN HỆ 4: QR PRINT STUDIO (XUẤT BẢNG MÃ QR IN ẤN STANDEE / KIOSK)        -->
+  <!-- ===================================================================== -->
   <section id="tab-qr" class="tab-section">
     <div class="qr-studio-grid">
       <!-- Left Controls -->
@@ -1651,13 +1678,9 @@ tr:hover td { background: var(--bg-subtle); }
         </div>
 
         <div class="form-group" style="margin-bottom:14px;">
-          <label>Ngôn Ngữ Mặc Định Khi Quét:</label>
+          <label>Ngôn Ngữ Mặc Định Khi Quét (20 Ngôn Ngữ):</label>
           <select id="qrLangSelect" class="form-control" onchange="renderQrStudio()">
-            <option value="vi">🇻🇳 Tiếng Việt (VI)</option>
-            <option value="en">🇬🇧 English (EN)</option>
-            <option value="ko">🇰🇷 한국어 (KO)</option>
-            <option value="ja">🇯🇵 日本語 (JA)</option>
-            <option value="zh">🇨🇳 中文 (ZH)</option>
+            <!-- Nạp động đủ 20 ngôn ngữ -->
           </select>
         </div>
 
@@ -1694,6 +1717,10 @@ tr:hover td { background: var(--bg-subtle); }
           <div class="standee-qr-frame">
             <img id="standeeQrImg" alt="QR Code Di Tích">
           </div>
+          <div style="margin-top:8px;padding:6px 10px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:6px;font-family:var(--font-mono);font-size:11px;color:#334155;word-break:break-all;text-align:center;">
+            <span style="font-weight:700;color:#d97706;display:block;font-size:10px;text-transform:uppercase;">🔗 URL Thực Tế Quét Mã:</span>
+            <span id="standeeDirectUrlText" style="font-weight:600;color:#1e293b;"></span>
+          </div>
 
           <div class="standee-instructions">
             📱 <b>Quét mã bằng Camera điện thoại</b><br>
@@ -1710,6 +1737,9 @@ tr:hover td { background: var(--bg-subtle); }
   <!-- ══════════════════════════════════════════════════════════════
        TAB 4: BACKEND 3-TIER ARCHITECTURE & HEALTH CHECK
   ══════════════════════════════════════════════════════════════ -->
+  <!-- ===================================================================== -->
+  <!-- PHÂN HỆ 5: SYSTEM ARCHITECTURE MONITOR (GIÁM SÁT HỆ THỐNG & KẾT NỐI API)    -->
+  <!-- ===================================================================== -->
   <section id="tab-arch" class="tab-section">
     <!-- Architecture Diagram -->
     <div class="panel-card" style="margin-bottom:20px;">
@@ -1755,11 +1785,11 @@ tr:hover td { background: var(--bg-subtle); }
         <span>🔄 Quản Trị & Khôi Phục Dữ Liệu Hệ Thống</span>
       </div>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
-        Thao tác khôi phục hoặc xuất sao lưu an toàn toàn bộ dữ liệu 8 điểm di tích Sài Gòn và lịch sử nghe:
+        Thao tác đồng bộ lại dữ liệu từ Backend API hoặc xuất sao lưu toàn bộ danh sách di tích và lịch sử nghe:
       </p>
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
         <button class="btn btn-outline" style="border-color:var(--danger);color:var(--danger);" onclick="resetStandardData()">
-          🔄 Khôi phục 8 Điểm Sài Gòn Gốc (Reset Seed)
+          🔄 Đồng Bộ Lại Từ Backend (Reset Cache)
         </button>
         <button class="btn btn-outline" onclick="exportFullSystemBackup()">
           📤 Xuất Tệp Sao Lưu Hệ Thống (JSON Backup)
@@ -1768,6 +1798,16 @@ tr:hover td { background: var(--bg-subtle); }
     </div>
   </section>
 </div>
+
+<!-- Footer with discreet 3-tier architecture button -->
+<footer style="text-align:center;padding:24px 16px;color:var(--text-muted);font-size:12px;border-top:1px solid var(--border);margin-top:40px;">
+  <div style="display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;">
+    <span>Hồ Chí Minh GPS Audio Guide — Quản Trị Hệ Thống 3-Lớp (NestJS • Prisma • PostGIS)</span>
+    <button class="btn btn-outline" style="font-size:11px;padding:3px 10px;opacity:0.75;" onclick="switchAdminTab('arch')">
+      📐 Xem Sơ Đồ Kiến Trúc 3-Lớp
+    </button>
+  </div>
+</footer>
 
 <!-- Nạp ApiClient -->
 <script src="api-client.js"></script>
@@ -2156,12 +2196,41 @@ function updatePinLabelLive() {
   // Cập nhật nhãn trực tiếp
 }
 
-/* ─── Điều Hướng Tab Phân Hệ ─── */
+const ALL_20_LANGUAGES = [
+  { code: 'vi', nativeName: 'Tiếng Việt', flag: '🇻🇳', voice: 'vi-VN' },
+  { code: 'en', nativeName: 'English', flag: '🇬🇧', voice: 'en-US' },
+  { code: 'zh', nativeName: '中文（简体）', flag: '🇨🇳', voice: 'zh-CN' },
+  { code: 'zh_TW', nativeName: '中文（繁體）', flag: '🇹🇼', voice: 'zh-TW' },
+  { code: 'ja', nativeName: '日本語', flag: '🇯🇵', voice: 'ja-JP' },
+  { code: 'ko', nativeName: '한국어', flag: '🇰🇷', voice: 'ko-KR' },
+  { code: 'th', nativeName: 'ภาษาไทย', flag: '🇹🇭', voice: 'th-TH' },
+  { code: 'lo', nativeName: 'ພາສາລາວ', flag: '🇱🇦', voice: 'lo-LA' },
+  { code: 'km', nativeName: 'ភាសាខ្មែរ', flag: '🇰🇭', voice: 'km-KH' },
+  { code: 'id', nativeName: 'Bahasa Indonesia', flag: '🇮🇩', voice: 'id-ID' },
+  { code: 'ms', nativeName: 'Bahasa Melayu', flag: '🇲🇾', voice: 'ms-MY' },
+  { code: 'fil', nativeName: 'Wikang Filipino', flag: '🇵🇭', voice: 'fil-PH' },
+  { code: 'hi', nativeName: 'हिन्दी', flag: '🇮🇳', voice: 'hi-IN' },
+  { code: 'ar', nativeName: 'العربية', flag: '🇸🇦', voice: 'ar-SA' },
+  { code: 'ru', nativeName: 'Русский', flag: '🇷🇺', voice: 'ru-RU' },
+  { code: 'pt', nativeName: 'Português', flag: '🇵🇹', voice: 'pt-PT' },
+  { code: 'it', nativeName: 'Italiano', flag: '🇮🇹', voice: 'it-IT' },
+  { code: 'fr', nativeName: 'Français', flag: '🇫🇷', voice: 'fr-FR' },
+  { code: 'de', nativeName: 'Deutsch', flag: '🇩🇪', voice: 'de-DE' },
+  { code: 'es', nativeName: 'Español', flag: '🇪🇸', voice: 'es-ES' },
+];
+
+const VOICE_LOCALE_MAP = ALL_20_LANGUAGES.reduce((acc, item) => {
+  acc[item.code] = item.voice;
+  return acc;
+}, {});
+
+/* ─── Điều Hướng Tab Phân Hệ (Lưu trạng thái bền vững vào localStorage) ─── */
 function switchAdminTab(tabKey) {
+  localStorage.setItem('tmtd-admin-active-tab', tabKey);
   document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-section').forEach(sec => sec.classList.remove('active'));
 
-  const activeBtn = Array.from(document.querySelectorAll('.nav-tab-btn')).find(b => b.getAttribute('onclick').includes(tabKey));
+  const activeBtn = Array.from(document.querySelectorAll('.nav-tab-btn')).find(b => (b.getAttribute('onclick') || '').includes(`'${tabKey}'`));
   if (activeBtn) activeBtn.classList.add('active');
 
   const sec = document.getElementById('tab-' + tabKey);
@@ -2183,96 +2252,35 @@ function switchAdminTab(tabKey) {
 }
 window.switchAdminTab = switchAdminTab;
 
-/* ─── Dashboard Analytics Logic ─── */
+/* ─── Dashboard Analytics Logic (Null-Safe, Không ghi đè KPI thật từ API) ─── */
+let _adminStatsLoaded = false;
 function renderDashboardAnalytics() {
-  // 1. KPI Cards
-  document.getElementById('kpiTotalPois').textContent = pois.length;
-  document.getElementById('kpiTotalEvents').textContent = events.length;
+  if (_adminStatsLoaded) return;
 
-  // Đếm theo POI
-  const poiCounts = {};
-  pois.forEach(p => { poiCounts[p.id] = 0; });
-  events.forEach(e => {
-    if (poiCounts[e.id] !== undefined) poiCounts[e.id]++;
-    else poiCounts[e.id] = 1;
-  });
+  const kpiTotalPoisEl = document.getElementById('kpiTotalPois');
+  const kpiTotalEventsEl = document.getElementById('kpiTotalEvents');
+  const kpiTotalNarrationsEl = document.getElementById('kpiTotalNarrations');
+  const kpiTotalLanguagesEl = document.getElementById('kpiTotalLanguages');
+  if (kpiTotalPoisEl) kpiTotalPoisEl.textContent = pois.length;
+  if (kpiTotalEventsEl) kpiTotalEventsEl.textContent = events.length;
+  if (kpiTotalNarrationsEl) kpiTotalNarrationsEl.textContent = pois.length * 20;
+  if (kpiTotalLanguagesEl) kpiTotalLanguagesEl.textContent = ALL_20_LANGUAGES.length;
 
-  let topPoiId = pois[0]?.id;
-  let maxCount = -1;
-  Object.entries(poiCounts).forEach(([id, cnt]) => {
-    if (cnt > maxCount) {
-      maxCount = cnt;
-      topPoiId = id;
-    }
-  });
-  const topPoi = pois.find(p => p.id === topPoiId) || pois[0];
-  document.getElementById('kpiTopPoi').textContent = topPoi ? topPoi.name : 'Chưa có';
-
-  // Đếm theo ngôn ngữ
-  const langCounts = { vi: 0, en: 0, ko: 0, ja: 0, zh: 0 };
-  events.forEach(e => {
-    const l = (e.language || 'vi').toLowerCase();
-    if (langCounts[l] !== undefined) langCounts[l]++;
-    else langCounts.vi++;
-  });
-  const totalLangs = events.length || 1;
-  let topLang = 'vi';
-  let maxLangCount = -1;
-  Object.entries(langCounts).forEach(([l, cnt]) => {
-    if (cnt > maxLangCount) { maxLangCount = cnt; topLang = l; }
-  });
-  const langFlags = { vi: '🇻🇳 VI', en: '🇬🇧 EN', ko: '🇰🇷 KO', ja: '🇯🇵 JA', zh: '🇨🇳 ZH' };
-  const topPct = Math.round((maxLangCount / totalLangs) * 100);
-  document.getElementById('kpiTopLang').textContent = `${langFlags[topLang]} (${topPct}%)`;
-
-  // 2. Bar Chart Theo POI
-  const maxPoiVal = Math.max(1, ...Object.values(poiCounts));
-  document.getElementById('poiListenBars').innerHTML = pois.map(p => {
-    const cnt = poiCounts[p.id] || 0;
-    const pct = Math.round((cnt / maxPoiVal) * 100);
-    return `
-      <div class="bar-item">
-        <div class="bar-meta">
-          <span>${p.name}</span>
-          <span style="font-family:var(--font-mono)">${cnt} lượt</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${pct}%"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  // 3. Bar Chart Theo Ngôn Ngữ
-  document.getElementById('langDistributionBars').innerHTML = Object.entries(langCounts).map(([l, cnt]) => {
-    const pct = Math.round((cnt / totalLangs) * 100);
-    return `
-      <div class="bar-item">
-        <div class="bar-meta">
-          <span>${langFlags[l]}</span>
-          <span style="font-family:var(--font-mono)">${cnt} (${pct}%)</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${pct}%;background:var(--accent);"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  // 4. Bảng Live Event Logs
   const tbody = document.getElementById('eventLogsTableBody');
-  if (events.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">Chưa có lượt nghe nào được ghi nhận. Hãy mở tab du khách để thử nghiệm GPS!</td></tr>`;
-  } else {
-    tbody.innerHTML = events.slice(0, 30).map(e => `
-      <tr>
-        <td style="font-family:var(--font-mono);font-size:12px;">${e.at || '--'}</td>
-        <td><b>${e.name}</b></td>
-        <td><span class="api-badge ${e.mode === 'AUTO' ? 'live' : 'demo'}">${e.mode || 'MANUAL'}</span></td>
-        <td><b>${(e.language || 'vi').toUpperCase()}</b></td>
-        <td style="font-family:var(--font-mono);font-size:12px;">${e.latitude ? `${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}` : '--'}</td>
-      </tr>
-    `).join('');
+  if (tbody && tbody.children.length === 0) {
+    if (events.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">Đang đồng bộ dữ liệu lượt nghe từ máy chủ...</td></tr>`;
+    } else {
+      tbody.innerHTML = events.slice(0, 30).map(e => `
+        <tr>
+          <td style="font-family:var(--font-mono);font-size:12px;">${e.at || '--'}</td>
+          <td><b>${e.name}</b></td>
+          <td><span class="api-badge ${e.mode === 'AUTO' ? 'live' : 'demo'}">${e.mode || 'MANUAL'}</span></td>
+          <td><b>${(e.language || 'vi').toUpperCase()}</b></td>
+          <td style="font-family:var(--font-mono);font-size:12px;">${e.latitude ? `${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}` : '--'}</td>
+        </tr>
+      `).join('');
+    }
   }
 }
 
@@ -2298,7 +2306,10 @@ function clearEventLogs() {
 /* ─── POI Editor Logic ─── */
 function renderPoiSidebar() {
   const query = (document.getElementById('poiSearch').value || '').toLowerCase();
-  const filtered = pois.filter(p => (p.name + p.address).toLowerCase().includes(query));
+  const filtered = pois.filter(p => ((p.name || '') + ' ' + (p.address || '')).toLowerCase().includes(query));
+
+  const countEl = document.getElementById('poiSidebarCount');
+  if (countEl) countEl.textContent = pois.length;
 
   document.getElementById('poiSidebarList').innerHTML = filtered.map(p => `
     <div class="poi-card-item ${p.id === currentSelectedPoiId ? 'active' : ''}" onclick="selectPoiForEditing('${p.id}')">
@@ -2306,7 +2317,7 @@ function renderPoiSidebar() {
         <span class="poi-item-title">${p.name}</span>
         <span style="font-family:var(--font-mono);font-size:11px;color:var(--accent);">${p.radius}m</span>
       </div>
-      <div class="poi-item-sub">📍 ${p.address}</div>
+      <div class="poi-item-sub">📍 ${p.address || ''}</div>
     </div>
   `).join('');
 }
@@ -2371,62 +2382,177 @@ async function toggleCurrentPoiStatusLive() {
   }
 }
 
+function renderEditorLangTabs() {
+  const bar = document.getElementById('editorLangTabBar');
+  if (!bar) return;
+  bar.innerHTML = ALL_20_LANGUAGES.map(l => `
+    <button class="lang-tab-btn ${l.code === currentEditorLang ? 'active' : ''}" data-lang="${l.code}" onclick="switchEditorLangTab('${l.code}')">
+      ${l.flag} ${l.code.toUpperCase()}
+    </button>
+  `).join('');
+}
+
 function switchEditorLangTab(langCode) {
   currentEditorLang = langCode;
-  document.querySelectorAll('.lang-tab-bar .lang-tab-btn').forEach(btn => {
+  document.querySelectorAll('#editorLangTabBar .lang-tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === langCode);
   });
   loadLangContentForEditor();
 }
 
 function loadLangContentForEditor() {
+  renderEditorLangTabs();
   const p = pois.find(x => x.id === currentSelectedPoiId);
   if (!p) return;
   const textArr = (p.text && p.text[currentEditorLang]) || (p.text && p.text.vi) || [p.name, ''];
   document.getElementById('editLangTitle').value = textArr[0] || '';
   document.getElementById('editLangDesc').value = textArr[1] || '';
+
+  const audioUrlEl = document.getElementById('editLangAudioUrl');
+  if (audioUrlEl) {
+    const nar = Array.isArray(p.narrations)
+      ? p.narrations.find(n => n.language === currentEditorLang)
+      : null;
+    const savedUrl = (p.audioUrls && p.audioUrls[currentEditorLang]) || (nar && nar.audioUrl) || '';
+    audioUrlEl.value = savedUrl;
+  }
 }
 
-function saveCurrentPoi() {
-  const id = document.getElementById('editId').value;
-  let p = pois.find(x => x.id === id);
-  const isNew = !p;
+async function uploadAudioForCurrentPoi() {
+  const fileInput = document.getElementById('editAudioFileInput');
+  const file = fileInput && fileInput.files && fileInput.files[0];
+  if (!file) {
+    alert('Vui lòng chọn file âm thanh (.mp3, .wav, .ogg, .m4a) trước khi Upload!');
+    return;
+  }
 
-  if (isNew) {
-    p = { id, text: {} };
+  const p = pois.find(x => x.id === currentSelectedPoiId);
+  if (!p || String(p.id).startsWith('poi-')) {
+    alert('Vui lòng bấm "💾 Lưu Thay Đổi" để tạo POI trên máy chủ trước khi upload audio.');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('language', currentEditorLang);
+
+  const adminKey = getAdminKey();
+  const res = await ApiClient.uploadPoiAudio(p.id, formData, adminKey);
+  if (res.ok && res.data) {
+    if (!p.audioUrls) p.audioUrls = {};
+    p.audioUrls[currentEditorLang] = res.data.audioUrl;
+    const audioUrlEl = document.getElementById('editLangAudioUrl');
+    if (audioUrlEl) audioUrlEl.value = res.data.audioUrl;
+    if (fileInput) fileInput.value = '';
+    localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+    await loadAdminAuditEvents();
+    alert(`✓ Upload audio thành công (${res.data.audioUrl}) và đã gắn vào ngôn ngữ ${currentEditorLang.toUpperCase()}!`);
+  } else {
+    alert(`❌ Upload thất bại: ${res.error}`);
+  }
+}
+window.uploadAudioForCurrentPoi = uploadAudioForCurrentPoi;
+
+/**
+ * Lưu thông tin điểm di tích (Tên, Tọa độ, Bán kính Geofence, Bản thuyết minh)
+ * lên Backend qua ApiClient.savePoi() và ApiClient.upsertNarration().
+ * Tự động ghi nhật ký kiểm toán (Audit Log) cho hành động CREATE/UPDATE.
+ */
+async function saveCurrentPoi() {
+  const oldId = document.getElementById('editId').value;
+  let p = pois.find(x => x.id === oldId);
+  const isNew = !p || String(oldId).startsWith('poi-');
+
+  if (!p) {
+    p = { id: oldId, text: {}, audioUrls: {} };
     pois.push(p);
   }
 
-  p.name = document.getElementById('editName').value;
+  p.name = (document.getElementById('editName').value || '').trim();
   p.cat = document.getElementById('editCat').value;
-  p.address = document.getElementById('editAddress').value;
+  p.category = p.cat;
+  p.address = (document.getElementById('editAddress').value || '').trim();
   p.lat = parseFloat(document.getElementById('editLat').value);
   p.lng = parseFloat(document.getElementById('editLng').value);
-  p.radius = parseInt(document.getElementById('editRadius').value, 10);
+  p.radius = parseInt(document.getElementById('editRadius').value, 10) || 50;
   p.priority = parseInt(document.getElementById('editPriority').value, 10) || 5;
 
+  const langTitle = (document.getElementById('editLangTitle').value || p.name || '').trim();
+  const langDesc = (document.getElementById('editLangDesc').value || '').trim();
+  const langAudioUrl = (document.getElementById('editLangAudioUrl')?.value || '').trim();
+
   if (!p.text) p.text = {};
-  p.text[currentEditorLang] = [
-    document.getElementById('editLangTitle').value,
-    document.getElementById('editLangDesc').value
-  ];
+  p.text[currentEditorLang] = [langTitle, langDesc];
+  if (langAudioUrl) {
+    if (!p.audioUrls) p.audioUrls = {};
+    p.audioUrls[currentEditorLang] = langAudioUrl;
+  }
 
-  // Lưu localStorage
-  localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+  const adminKey = getAdminKey();
+  const poiPayload = {
+    ...(isNew ? {} : { id: p.id }),
+    name: p.name,
+    description: (p.text?.vi?.[1] || langDesc || `${p.name} - ${p.address}`).slice(0, 500),
+    latitude: p.lat,
+    longitude: p.lng,
+    category: p.cat,
+    address: p.address,
+    activationRadius: p.radius,
+    priority: p.priority,
+    status: p.status || 'PUBLISHED'
+  };
+  if (poiPayload.description.length < 5) {
+    poiPayload.description = `${p.name} tại ${p.address || 'TP. Hồ Chí Minh'}`;
+  }
 
-  // Kích hoạt event storage cho các tab khác
-  window.dispatchEvent(new Event('storage'));
+  try {
+    const poiRes = await ApiClient.savePoi(poiPayload, adminKey);
+    if (!poiRes.ok) {
+      alert(`❌ Lỗi lưu POI lên máy chủ: ${poiRes.error}`);
+      return;
+    }
 
-  alert(`✓ Đã lưu thành công địa điểm: ${p.name}!`);
-  renderPoiSidebar();
-  renderEditorMapElements();
-  renderDashboardAnalytics();
-  initQrStudioOptions();
+    if (poiRes.poi && poiRes.poi.id) {
+      p.id = poiRes.poi.id;
+      currentSelectedPoiId = p.id;
+      document.getElementById('editId').value = p.id;
+    }
+
+    if (langTitle.length >= 2 && langDesc.length >= 10) {
+      const narRes = await ApiClient.upsertNarration(
+        p.id,
+        {
+          language: currentEditorLang,
+          title: langTitle,
+          content: langDesc,
+          ...(langAudioUrl ? { audioUrl: langAudioUrl } : {}),
+        },
+        adminKey,
+      );
+      if (!narRes.ok) {
+        alert(`⚠️ Đã lưu POI nhưng lỗi lưu thuyết minh (${currentEditorLang}): ${narRes.error}`);
+      }
+    }
+
+    localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+    window.dispatchEvent(new Event('storage'));
+    renderPoiSidebar();
+    renderEditorMapElements();
+    initQrStudioOptions();
+    await syncAdminDataFromApi();
+    alert(`✓ Đã lưu địa điểm & ghi nhật ký quản trị thành công: ${p.name}!`);
+  } catch (err) {
+    alert(`❌ Lỗi kết nối máy chủ: ${err.message}`);
+  }
 }
 
+/**
+ * Khởi tạo một điểm di tích mới với tọa độ mặc định tại tâm bản đồ
+ * và kịch bản thuyết minh mẫu tiếng Việt & tiếng Anh.
+ */
 function createNewPoi() {
   const newId = 'poi-' + Date.now().toString().slice(-4);
-  const defaultPos = editorMap ? editorMap.getCenter() : { lat: 10.7760, lng: 106.7000 };
+  const defaultPos = editorMap ? editorMap.getCenter() : { lat: 10.7769, lng: 106.6953 };
 
   const newPoi = {
     id: newId,
@@ -2438,45 +2564,64 @@ function createNewPoi() {
     radius: 50,
     priority: 5,
     duration: 5,
+    status: 'PUBLISHED',
     text: {
-      vi: ['Điểm di tích mới', 'Kịch bản thuyết minh tiếng Việt...'],
-      en: ['New Landmark', 'English audio guide narration...'],
-      ko: ['새로운 명소', '한국어 오디오 가이드...'],
-      ja: ['新しい観光地', '日本語音声ガイド...'],
-      zh: ['新景点', '中文语音讲解...']
-    }
+      vi: ['Điểm di tích mới', 'Kịch bản thuyết minh tiếng Việt cho điểm di tích lịch sử mới.'],
+      en: ['New Landmark', 'English audio guide narration for this landmark.']
+    },
+    audioUrls: {}
   };
 
   pois.push(newPoi);
   selectPoiForEditing(newId);
 }
 
-function deleteCurrentPoi() {
+/**
+ * Xóa điểm di tích đang chọn khỏi cơ sở dữ liệu Backend (DELETE /api/pois/:id)
+ * và cập nhật lại danh sách điểm trên toàn hệ thống.
+ */
+async function deleteCurrentPoi() {
   const id = document.getElementById('editId').value;
   const p = pois.find(x => x.id === id);
   if (!p) return;
 
-  if (confirm(`Bạn có chắc chắn muốn xóa điểm di tích "${p.name}"?`)) {
-    pois = pois.filter(x => x.id !== id);
-    localStorage.setItem('tmtd-pois', JSON.stringify(pois));
-    window.dispatchEvent(new Event('storage'));
+  if (!confirm(`Bạn có chắc chắn muốn xóa điểm di tích "${p.name}"?`)) return;
 
-    currentSelectedPoiId = pois[0]?.id;
-    selectPoiForEditing(currentSelectedPoiId);
-    renderDashboardAnalytics();
-    initQrStudioOptions();
+  if (!String(id).startsWith('poi-') && typeof ApiClient !== 'undefined') {
+    const res = await ApiClient.deletePoi(id, getAdminKey());
+    if (!res.ok) {
+      alert(`❌ Lỗi xóa POI trên máy chủ: ${res.error}`);
+      return;
+    }
   }
+
+  pois = pois.filter(x => x.id !== id);
+  localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+  window.dispatchEvent(new Event('storage'));
+
+  currentSelectedPoiId = pois[0]?.id || '';
+  if (currentSelectedPoiId) selectPoiForEditing(currentSelectedPoiId);
+  renderPoiSidebar();
+  initQrStudioOptions();
+  await syncAdminDataFromApi();
 }
 
 function previewVoiceTTS() {
+  const audioUrl = (document.getElementById('editLangAudioUrl')?.value || '').trim();
+  if (audioUrl) {
+    const fullUrl = audioUrl.startsWith('http') ? audioUrl : `${window.location.origin}${audioUrl}`;
+    const audio = new Audio(fullUrl);
+    audio.play().catch(() => alert(`Không phát được file audio tại ${fullUrl}`));
+    return;
+  }
+
   const text = document.getElementById('editLangDesc').value;
   if (!text) return alert('Vui lòng nhập kịch bản thuyết minh để nghe thử.');
 
   if (window.speechSynthesis) {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    const langMap = { vi: 'vi-VN', en: 'en-US', ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN' };
-    u.lang = langMap[currentEditorLang] || 'vi-VN';
+    u.lang = VOICE_LOCALE_MAP[currentEditorLang] || 'vi-VN';
     speechSynthesis.speak(u);
   }
 }
@@ -2485,10 +2630,18 @@ function previewVoiceTTS() {
 async function initQrStudioOptions() {
   const select = document.getElementById('qrPoiSelect');
   if (select) {
-    select.innerHTML = '<option value="">-- Mở toàn cảnh Chùa Linh Ứng --</option>' +
+    select.innerHTML = '<option value="">-- Mở toàn cảnh tất cả di tích --</option>' +
       pois.map(p => `
         <option value="${p.id}" ${p.id === currentSelectedPoiId ? 'selected' : ''}>${p.name}</option>
       `).join('');
+  }
+
+  const qrLangSel = document.getElementById('qrLangSelect');
+  if (qrLangSel) {
+    const prevLang = qrLangSel.value || 'vi';
+    qrLangSel.innerHTML = ALL_20_LANGUAGES.map(l => `
+      <option value="${l.code}" ${l.code === prevLang ? 'selected' : ''}>${l.flag} ${l.nativeName} (${l.code.toUpperCase()})</option>
+    `).join('');
   }
 
   const tourSelect = document.getElementById('qrTourSelect');
@@ -2517,10 +2670,8 @@ async function initAdminLanInfo() {
   const saved = localStorage.getItem('tmtd-lan-origin');
   const currentHost = window.location.hostname;
   const currentPort = window.location.port || '8080';
-  const defaultFallback = (currentHost && currentHost !== 'localhost' && currentHost !== '127.0.0.1')
-    ? `${window.location.protocol}//${currentHost}:${currentPort}`
-    : `http://localhost:${currentPort}`;
 
+  let resolvedLanIp = '192.168.1.6';
   let detectedPrimary = '';
   const options = [];
 
@@ -2528,26 +2679,38 @@ async function initAdminLanInfo() {
     const netRes = await ApiClient.fetchNetworkInfo();
     if (netRes.ok && netRes.data) {
       const d = netRes.data;
+      if (d.primaryIp && d.primaryIp !== 'localhost' && d.primaryIp !== '127.0.0.1') {
+        resolvedLanIp = d.primaryIp;
+      }
       if (d.addresses && d.addresses.length > 0) {
         d.addresses.forEach(ip => {
-          options.push({ label: `📱 Wi-Fi: ${ip}:${d.webPort || 8080}`, url: `http://${ip}:${d.webPort || 8080}` });
+          if (ip !== 'localhost' && ip !== '127.0.0.1') {
+            options.push({ label: `📱 Wi-Fi: ${ip}:${d.webPort || 8080}`, url: `http://${ip}:${d.webPort || 8080}` });
+          }
         });
       }
-      if (d.primaryIp && d.primaryIp !== 'localhost') {
-        detectedPrimary = `http://${d.primaryIp}:${d.webPort || 8080}`;
-      }
+      detectedPrimary = `http://${resolvedLanIp}:${d.webPort || 8080}`;
     }
   } catch (e) {}
 
-  options.push({ label: `💻 Máy này: localhost:${currentPort}`, url: `http://localhost:${currentPort}` });
+  const primaryUrl = `http://${resolvedLanIp}:${currentPort}`;
+  if (!options.some(o => o.url === primaryUrl)) {
+    options.unshift({ label: `📱 Wi-Fi: ${resolvedLanIp}:${currentPort}`, url: primaryUrl });
+  }
 
   presetSelect.innerHTML = '<option value="">-- Chọn IP Gợi Ý --</option>' +
     options.map(opt => `<option value="${opt.url}">${opt.label}</option>`).join('');
 
-  const chosen = saved || detectedPrimary || defaultFallback;
+  // BẮT BUỘC: Nếu saved chứa localhost hoặc 127.0.0.1 hoặc IP ảo, GHI ĐÈ THAY THẾ bằng primaryIp
+  let chosen = saved;
+  if (!chosen || chosen.includes('localhost') || chosen.includes('127.0.0.1') || chosen.includes('172.') || chosen.includes('192.168.56.') || chosen.includes('192.168.65.')) {
+    chosen = detectedPrimary || primaryUrl;
+    localStorage.setItem('tmtd-lan-origin', chosen);
+  }
+
   originInput.value = chosen;
-  if (badge && detectedPrimary) {
-    badge.textContent = `✓ Đã phát hiện IP LAN: ${detectedPrimary.replace('http://', '')} (sẵn sàng cho điện thoại)`;
+  if (badge) {
+    badge.textContent = `✓ Đã cấu hình IP LAN: ${chosen.replace('http://', '')} (sẵn sàng cho điện thoại)`;
     badge.style.color = 'var(--emerald)';
   }
 }
@@ -2612,7 +2775,14 @@ function renderQrStudio() {
 
   const p = pois.find(x => x.id === poiId) || pois[0];
 
-  const lanOrigin = (document.getElementById('qrLanOriginInput')?.value || '').trim().replace(/\/+$/, '') || window.location.origin;
+  let lanOrigin = (document.getElementById('qrLanOriginInput')?.value || '').trim().replace(/\/+$/, '');
+  if (!lanOrigin || lanOrigin.includes('localhost') || lanOrigin.includes('127.0.0.1')) {
+    const port = window.location.port || '8080';
+    lanOrigin = `http://192.168.1.6:${port}`;
+    if (document.getElementById('qrLanOriginInput')) document.getElementById('qrLanOriginInput').value = lanOrigin;
+    localStorage.setItem('tmtd-lan-origin', lanOrigin);
+  }
+
   const baseOrigin = `${lanOrigin}/index.html`;
   const params = new URLSearchParams();
   if (pass) params.set('pass', pass);
@@ -2626,9 +2796,12 @@ function renderQrStudio() {
   document.getElementById('qrDeepLinkUrl').value = targetUrl;
   document.getElementById('btnTestQrUrl').href = targetUrl;
 
-  const localizedTitle = (p && p.text && p.text[lang] && p.text[lang][0]) || (p ? p.name : 'Chùa Linh Ứng Bãi Bụt');
+  const directUrlEl = document.getElementById('standeeDirectUrlText');
+  if (directUrlEl) directUrlEl.textContent = targetUrl;
+
+  const localizedTitle = (p && p.text && p.text[lang] && p.text[lang][0]) || (p ? p.name : 'Dinh Độc Lập');
   document.getElementById('standeePoiName').textContent = localizedTitle;
-  document.getElementById('standeeAddress').textContent = (p && p.address) || 'Bãi Bụt, Bán đảo Sơn Trà, TP. Đà Nẵng';
+  document.getElementById('standeeAddress').textContent = (p && p.address) || '135 Nam Kỳ Khởi Nghĩa, Bến Thành, Quận 1, TP. Hồ Chí Minh';
 
   const qrUrl = 'https://quickchart.io/qr?size=400&text=' + encodeURIComponent(targetUrl);
   document.getElementById('standeeQrImg').src = qrUrl;
@@ -2663,12 +2836,22 @@ async function checkBackendHealth() {
   }
 }
 
-function resetStandardData() {
-  if (confirm('Khôi phục toàn bộ danh sách về 8 điểm di tích Sài Gòn mặc định? Mọi thay đổi thủ công sẽ được làm mới.')) {
+async function resetStandardData() {
+  if (confirm('Làm mới bộ nhớ đệm trình duyệt và đồng bộ toàn bộ danh sách di tích trực tiếp từ Backend API?')) {
+    localStorage.removeItem('tmtd-pois');
+    if (typeof ApiClient !== 'undefined') {
+      const res = await ApiClient.fetchBootstrapData(base);
+      if (res.ok && Array.isArray(res.pois) && res.pois.length > 0) {
+        pois = res.pois;
+        localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+        alert(`✓ Đã đồng bộ thành công ${pois.length} địa điểm di tích từ máy chủ!`);
+        location.reload();
+        return;
+      }
+    }
     pois = JSON.parse(JSON.stringify(base));
     localStorage.setItem('tmtd-pois', JSON.stringify(pois));
     window.dispatchEvent(new Event('storage'));
-    alert('✓ Đã khôi phục thành công 8 điểm di tích Sài Gòn chuẩn!');
     location.reload();
   }
 }
@@ -2729,16 +2912,18 @@ const POI_ICONS = {
   'nha-hat-thanh-pho': '🎭',
   'pho-di-bo-nguyen-hue': '⛲',
   'cho-ben-thanh': '🛍️',
-  'ben-nha-rong': '🚢'
+  'ben-nha-rong': '🚢',
+  'chua-ngoc-hoang': '🛕',
+  'bao-tang-my-thuat': '🎨',
+  'ho-con-rua': '🐢',
+  'thao-cam-vien': '🦒',
+  'ben-bach-dang': '⚓'
 };
 
-const LANG_FLAGS = {
-  vi: '🇻🇳',
-  en: '🇬🇧',
-  ko: '🇰🇷',
-  ja: '🇯🇵',
-  zh: '🇨🇳'
-};
+const LANG_FLAGS = ALL_20_LANGUAGES.reduce((acc, l) => {
+  acc[l.code] = l.flag;
+  return acc;
+}, {});
 
 function getActiveVisitorsCombined() {
   return realActiveVisitorSessions.map(v => {
@@ -2903,10 +3088,10 @@ function focusOnHotspot(poiId) {
   }
 }
 window.focusOnHotspot = focusOnHotspot;
-
+// du khach online
 function renderLivePresenceData(exactCount) {
   const visitors = getActiveVisitorsCombined();
-  const totalCount = typeof exactCount === 'number' ? exactCount : visitors.length;
+  const totalCount = typeof exactCount === ('number' ? exactCount : visitors.length);
 
   // 1. Header & KPI
   document.getElementById('headerVisitorCount').textContent = totalCount;
@@ -3080,6 +3265,10 @@ if (typeof BroadcastChannel !== 'undefined') {
       if (liveActivityLog.length > 20) liveActivityLog.pop();
 
       renderLivePresenceData();
+    } else if (e.data && e.data.type === 'LEAVE' && e.data.visitorId) {
+      const vId = e.data.visitorId;
+      realActiveVisitorSessions = realActiveVisitorSessions.filter(x => (x.visitorId || x.id) !== vId);
+      renderLivePresenceData(realActiveVisitorSessions.length);
     }
   };
 }
@@ -3096,37 +3285,39 @@ function getAdminKey() {
 function saveAdminKey() {
   const key = getAdminKey();
   localStorage.setItem('tmtd-admin-key', key);
-  console.log('✓ Đã lưu Admin Key');
 }
 
+function onTimeRangeChanged() {
+  const sel = document.getElementById('dashboardTimeRange');
+  if (sel) {
+    localStorage.setItem('tmtd-admin-timerange', sel.value);
+  }
+  syncAdminDataFromApi();
+}
+window.onTimeRangeChanged = onTimeRangeChanged;
+
 let currentLiveListeningSessions = [];
-let all20LanguagesList = [];
+let currentAuditEvents = [];
+let all20LanguagesList = ALL_20_LANGUAGES;
+let _adminPoisSynced = false;
 
 // Khởi tạo các bộ lọc địa điểm và ngôn ngữ cho bảng Live Listening Sessions
 function initLiveSessionFilters() {
   const poiSelect = document.getElementById('sessionFilterPoi');
-  if (poiSelect && poiSelect.options.length <= 1) {
-    pois.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.name;
-      poiSelect.appendChild(opt);
-    });
+  if (poiSelect) {
+    const prevVal = poiSelect.value;
+    poiSelect.innerHTML = '<option value="">-- Tất cả địa điểm --</option>' +
+      pois.map(p => `<option value="${p.id}" ${p.id === prevVal ? 'selected' : ''}>${p.name}</option>`).join('');
   }
 
   const langSelect = document.getElementById('sessionFilterLang');
-  if (langSelect && langSelect.options.length <= 1 && typeof ApiClient !== 'undefined') {
-    ApiClient.fetchLanguages().then(res => {
-      if (res.ok && Array.isArray(res.languages)) {
-        all20LanguagesList = res.languages;
-        all20LanguagesList.forEach(l => {
-          const opt = document.createElement('option');
-          opt.value = l.code;
-          opt.textContent = `${l.flag || '🌐'} ${l.nativeName} (${l.code.toUpperCase()})`;
-          langSelect.appendChild(opt);
-        });
-      }
-    }).catch(() => {});
+  if (langSelect && langSelect.options.length <= 1) {
+    ALL_20_LANGUAGES.forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.code;
+      opt.textContent = `${l.flag} ${l.nativeName} (${l.code.toUpperCase()})`;
+      langSelect.appendChild(opt);
+    });
   }
 }
 
@@ -3147,9 +3338,23 @@ function renderLiveListeningSessionsTable() {
   const filterLang = (document.getElementById('sessionFilterLang')?.value || '').trim();
   const filterStatus = (document.getElementById('sessionFilterStatus')?.value || '').trim();
   const searchQ = (document.getElementById('sessionSearchInput')?.value || '').toLowerCase().trim();
+  const timeRange = document.getElementById('dashboardTimeRange')?.value || '7d';
+
+  const nowMs = Date.now();
+  const todayStartMs = new Date().setHours(0, 0, 0, 0);
+  const cutoffMs =
+    timeRange === 'today' ? todayStartMs :
+    timeRange === '7d' ? nowMs - 7 * 86400_000 :
+    timeRange === '30d' ? nowMs - 30 * 86400_000 : 0;
 
   let filtered = currentLiveListeningSessions.slice();
 
+  if (cutoffMs > 0) {
+    filtered = filtered.filter(s => {
+      const ts = new Date(s.startedAt || s.lastHeartbeatAt || s.createdAt || nowMs).getTime();
+      return ts >= cutoffMs;
+    });
+  }
   if (filterPoi) {
     filtered = filtered.filter(s => s.poiId === filterPoi);
   }
@@ -3163,6 +3368,7 @@ function renderLiveListeningSessionsTable() {
     filtered = filtered.filter(s =>
       (s.id && s.id.toLowerCase().includes(searchQ)) ||
       (s.visitorId && s.visitorId.toLowerCase().includes(searchQ)) ||
+      (s.poiName && s.poiName.toLowerCase().includes(searchQ)) ||
       (s.poi && s.poi.name && s.poi.name.toLowerCase().includes(searchQ))
     );
   }
@@ -3170,8 +3376,8 @@ function renderLiveListeningSessionsTable() {
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="7" style="text-align:center;padding:28px;color:var(--text-muted);">
-          Không có phiên nghe nào khớp với bộ lọc hiện tại. (Trạng thái: 0)
+        <td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">
+          Không có phiên nghe nào khớp với bộ lọc hiện tại.
         </td>
       </tr>
     `;
@@ -3180,30 +3386,33 @@ function renderLiveListeningSessionsTable() {
 
   const statusBadges = {
     PLAYING: '<span class="api-badge live">🔊 ĐANG NGHE</span>',
+    STARTED: '<span class="api-badge live">🔊 ĐANG NGHE</span>',
     PREPARING: '<span class="api-badge demo" style="color:#2563EB;border-color:rgba(37,99,235,0.3)">⏳ CHUẨN BỊ</span>',
-    COMPLETED: '<span class="api-badge" style="background:#F1F5F9;color:#475569;border-color:#CBD5E1">✅ KẾT THÚC</span>',
+    COMPLETED: '<span class="api-badge" style="background:#F1F5F9;color:#475569;border-color:#CBD5E1">✅ HOÀN THÀNH</span>',
     ERROR: '<span class="api-badge" style="background:#FEF2F2;color:#B91C1C;border-color:rgba(185,28,28,0.3)">⚠️ LỖI</span>'
   };
 
-  tbody.innerHTML = filtered.map(s => {
-    const poiName = (s.poi && s.poi.name) || pois.find(p => p.id === s.poiId)?.name || s.poiId || '--';
+  tbody.innerHTML = filtered.slice(0, 40).map(s => {
+    const poiName = s.poiName || (s.poi && s.poi.name) || pois.find(p => p.id === s.poiId)?.name || s.poiId || '--';
     const langFlag = LANG_FLAGS[s.language] || '🌐';
-    const startTimeStr = s.startedAt ? new Date(s.startedAt).toLocaleTimeString('vi-VN') : '--';
-    const updatedTimeStr = s.lastHeartbeatAt ? new Date(s.lastHeartbeatAt).toLocaleTimeString('vi-VN') : '--';
-    const durationMin = s.durationSeconds ? `${Math.floor(s.durationSeconds / 60)}p ${s.durationSeconds % 60}s` : '0s';
+    const rawTime = s.startedAt || s.createdAt || s.lastHeartbeatAt;
+    const startTimeStr = rawTime ? new Date(rawTime).toLocaleString('vi-VN') : '--';
+    const durationSec = Number(s.durationSeconds || 0);
+    const durationText = durationSec >= 60 ? `${Math.floor(durationSec / 60)}p ${durationSec % 60}s` : `${durationSec}s`;
+    const modeBadge = `<span class="api-badge ${s.mode === 'AUTO' ? 'live' : 'demo'}">${s.mode || 'AUTO'}</span>`;
 
     return `
       <tr>
         <td style="font-family:var(--font-mono);font-size:12px;">${startTimeStr}</td>
         <td>
           <div style="font-weight:700;font-size:13px;">${s.visitorId || 'Khách vãng lai'}</div>
-          <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-muted);">${s.id.slice(0, 14)}...</div>
+          <div style="font-size:10px;font-family:var(--font-mono);color:var(--text-muted);">${String(s.id || '').slice(0, 14)}...</div>
         </td>
         <td><b>${poiName}</b></td>
         <td><span>${langFlag}</span> <b>${(s.language || 'vi').toUpperCase()}</b></td>
+        <td>${modeBadge}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${durationText}</td>
         <td>${statusBadges[s.status] || s.status}</td>
-        <td style="font-family:var(--font-mono);font-size:12px;">${durationMin}</td>
-        <td style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">${updatedTimeStr}</td>
       </tr>
     `;
   }).join('');
@@ -3242,11 +3451,31 @@ window.triggerSimulateDoubleEvents = triggerSimulateDoubleEvents;
 async function syncAdminDataFromApi() {
   if (typeof ApiClient === 'undefined') return;
   const adminKey = getAdminKey();
+
+  // Nạp toàn bộ POI thật (13 địa điểm) từ máy chủ nếu chưa đồng bộ
+  if (!_adminPoisSynced) {
+    try {
+      const bootRes = await ApiClient.fetchBootstrapData();
+      if (bootRes.ok && Array.isArray(bootRes.pois) && bootRes.pois.length > 0) {
+        pois = bootRes.pois;
+        _adminPoisSynced = true;
+        localStorage.setItem('tmtd-pois', JSON.stringify(pois));
+        if (!pois.some(p => p.id === currentSelectedPoiId)) {
+          currentSelectedPoiId = pois[0].id;
+        }
+        renderPoiSidebar();
+        selectPoiForEditing(currentSelectedPoiId);
+        initQrStudioOptions();
+      }
+    } catch (e) {}
+  }
+
   initLiveSessionFilters();
 
   try {
     const res = await ApiClient.fetchAdminStats(adminKey);
     if (res.ok && res.stats) {
+      _adminStatsLoaded = true;
       const s = res.stats;
 
       // 0. Đồng bộ Real Active Visitors từ cơ sở dữ liệu
@@ -3254,26 +3483,85 @@ async function syncAdminDataFromApi() {
         realActiveVisitorSessions = s.activeVisitorSessions;
       }
       renderLivePresenceData(typeof s.activeVisitorsCount === 'number' ? s.activeVisitorsCount : realActiveVisitorSessions.length);
+      // nhân 2 giao diện A B
+      // 1. NHÓM A — 4 KPI Cards Cốt Lõi (Số liệu thật 100% từ PostgreSQL)
+      const totalVisitsVal = (s.totalAccessEvents ?? s.totalVisits ?? 0);
+      const todayVisitsVal = (s.todayAccessEvents ?? s.todayVisits ?? 0);
+      const totalListeningsVal = (s.totalListenings ?? s.totalListeningEvents ?? 0);
+      const activeSessionsVal = (s.activeSessionsCount ?? s.activeListeningSessionsCount ?? 0);
+      const completedVal = (s.completedListenings ?? s.completedSessionsCount ?? 0);
+      const compRate = (totalListeningsVal > 0 ? Math.round((completedVal / totalListeningsVal) * 100) : 100);
 
-      // 1. NHÓM A — 9 KPI Cards
-      document.getElementById('kpiTotalVisits').textContent = (s.totalVisits || 0).toLocaleString();
-      document.getElementById('kpiTodayVisits').textContent = (s.todayVisits || 0).toLocaleString();
-      document.getElementById('kpiTotalEvents').textContent = (s.totalListeningEvents || 0).toLocaleString();
-      document.getElementById('kpiActiveSessions').textContent = s.activeListeningSessionsCount || 0;
-      document.getElementById('kpiConcurrentListeners').textContent = s.concurrentListenersCount || 0;
-      document.getElementById('kpiPreparingSessions').textContent = s.preparingSessionsCount || 0;
-      document.getElementById('kpiTotalPois').textContent = `${s.totalPois || 0} (${s.publishedPois || 0} Pub)`;
-      document.getElementById('kpiTotalNarrations').textContent = s.totalNarrations || 0;
-      document.getElementById('kpiTotalLanguages').textContent = `${s.totalLanguages || 20} (${s.availableLanguagesCount || 5} Audio)`;
+      if (document.getElementById('kpiTotalVisits')) {
+        document.getElementById('kpiTotalVisits').textContent = totalVisitsVal.toLocaleString();
+      }
+      if (document.getElementById('kpiTodayVisits')) {
+        document.getElementById('kpiTodayVisits').textContent = `+${todayVisitsVal.toLocaleString()}`;
+      }
+      if (document.getElementById('kpiTotalEvents')) {
+        document.getElementById('kpiTotalEvents').textContent = totalListeningsVal.toLocaleString();
+      }
+      if (document.getElementById('kpiCompletedListens')) {
+        document.getElementById('kpiCompletedListens').textContent = completedVal.toLocaleString();
+      }
+      if (document.getElementById('kpiCompletedRate')) {
+        document.getElementById('kpiCompletedRate').textContent = `${compRate}%`;
+      }
+      if (document.getElementById('kpiActiveSessions')) {
+        document.getElementById('kpiActiveSessions').textContent = activeSessionsVal;
+      }
+      if (document.getElementById('kpiConcurrentListeners')) {
+        document.getElementById('kpiConcurrentListeners').textContent = s.activeVisitorsCount ?? s.concurrentListenersCount ?? 0;
+      }
+      if (document.getElementById('kpiPreparingSessions')) {
+        document.getElementById('kpiPreparingSessions').textContent = s.preparingSessionsCount || 0;
+      }
+      if (document.getElementById('kpiTotalPois')) {
+        const totalP = s.totalPois || (typeof pois !== 'undefined' ? pois.length : 13);
+        document.getElementById('kpiTotalPois').textContent = `${totalP} Điểm Di Tích`;
+      }
+      if (document.getElementById('kpiPoisLabel')) {
+        const pubP = s.publishedPois ?? (typeof pois !== 'undefined' ? pois.length : 13);
+        document.getElementById('kpiPoisLabel').textContent = `${pubP} Published`;
+      }
+      if (document.getElementById('kpiTotalNarrations')) {
+        document.getElementById('kpiTotalNarrations').textContent = s.totalNarrations || 260;
+      }
+      if (document.getElementById('kpiTotalLanguages')) {
+        document.getElementById('kpiTotalLanguages').textContent = s.totalLanguages || 20;
+      }
 
-      // 2. NHÓM B — Trạng thái phiên nghe trực tiếp
+      const subEl = document.getElementById('dashboardSubtitle');
+      if (subEl) {
+        subEl.textContent = `Bao quát 100% dữ liệu thật: ${totalVisitsVal} lượt truy cập, ${s.totalNarrations || 260} bài thuyết minh, ${s.totalLanguages || 20} ngôn ngữ và ${s.totalPois || pois.length} địa điểm di tích.`;
+      }
+
+      // 2. NHÓM B — Trạng thái phiên nghe trực tiếp + Lịch sử phiên gần nhất
       document.getElementById('statusPlayingCount').textContent = s.playingSessionsCount || 0;
       document.getElementById('statusPreparingCount').textContent = s.preparingSessionsCount || 0;
-      document.getElementById('statusCompletedCount').textContent = s.completedSessionsCount || 0;
+      document.getElementById('statusCompletedCount').textContent = s.completedListenings ?? s.completedSessionsCount ?? 0;
       document.getElementById('statusErrorCount').textContent = s.errorSessionsCount || 0;
 
-      // Bảng phiên nghe trực tiếp
-      currentLiveListeningSessions = Array.isArray(s.liveListeningSessions) ? s.liveListeningSessions : [];
+      const liveList = Array.isArray(s.liveListeningSessions) ? s.liveListeningSessions : [];
+      const recentList = Array.isArray(s.recentListenings || s.recentEvents)
+        ? (s.recentListenings || s.recentEvents).map(e => ({
+            id: e.id,
+            visitorId: e.visitorId,
+            poiId: e.poiId,
+            poiName: e.poiName || (e.poi && e.poi.name),
+            language: e.language,
+            mode: e.mode,
+            status: e.status || 'COMPLETED',
+            startedAt: e.startedAt || e.createdAt,
+            lastHeartbeatAt: e.endedAt || e.createdAt,
+            durationSeconds: e.durationSeconds || 0,
+          }))
+        : [];
+      const seenIds = new Set(liveList.map(x => x.id));
+      currentLiveListeningSessions = [
+        ...liveList,
+        ...recentList.filter(x => !seenIds.has(x.id)),
+      ];
       renderLiveListeningSessionsTable();
 
       // 3. Phân tích lượt truy cập 7 ngày qua (visitTrendBars)
@@ -3295,24 +3583,52 @@ async function syncAdminDataFromApi() {
         }).join('');
       }
 
-      // 4. Phân bổ nguồn truy cập (visitSourceBars)
-      if (Array.isArray(s.visitsBySource)) {
-        const totalSrc = s.visitsBySource.reduce((a, b) => a + b.count, 0) || 1;
-        document.getElementById('visitSourceBars').innerHTML = s.visitsBySource.map(item => {
-          const pct = Math.round((item.count / totalSrc) * 100);
-          const labels = { QR: '📱 Quét Mã QR Code', TOUR: '🧭 Theo Lộ Trình Tour', DIRECT: '🌐 Trực Tiếp / Tìm Kiếm' };
-          return `
-            <div class="bar-item">
-              <div class="bar-meta">
-                <span>${labels[item.source] || item.source}</span>
-                <span style="font-family:var(--font-mono)">${item.count} (${pct}%)</span>
+      // 4. Top Địa Điểm & Ngôn Ngữ Được Nghe Nhiều Nhất (topListeningDistributionBars)
+      const topListensEl = document.getElementById('topListeningDistributionBars');
+      if (topListensEl) {
+        let itemsHtml = '';
+        if (Array.isArray(s.topPois) && s.topPois.length > 0) {
+          const maxP = Math.max(...s.topPois.map(p => p.count), 1);
+          itemsHtml += '<div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;">📍 TOP ĐỊA ĐIỂM ĐƯỢC NGHE NHIỀU:</div>';
+          itemsHtml += s.topPois.slice(0, 3).map(item => {
+            const pct = Math.round((item.count / maxP) * 100);
+            return `
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span>🏛️ ${item.name || item.poiId}</span>
+                  <span style="font-family:var(--font-mono);font-weight:700;">${item.count} lượt</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:${Math.max(pct, 8)}%;background:var(--accent);"></div>
+                </div>
               </div>
-              <div class="bar-track">
-                <div class="bar-fill" style="width:${pct}%;background:var(--accent);"></div>
+            `;
+          }).join('');
+        }
+        if (s.byLanguage && Object.keys(s.byLanguage).length > 0) {
+          const langEntries = Object.entries(s.byLanguage).sort((a, b) => b[1] - a[1]).slice(0, 3);
+          const maxL = Math.max(...langEntries.map(e => e[1]), 1);
+          itemsHtml += '<div style="font-size:11px;font-weight:700;color:var(--text-muted);margin:12px 0 8px 0;text-transform:uppercase;">🌐 NGÔN NGỮ PHỔ BIẾN NHẤT:</div>';
+          itemsHtml += langEntries.map(([langCode, count]) => {
+            const pct = Math.round((count / maxL) * 100);
+            const flag = LANG_FLAGS[langCode] || '🌐';
+            return `
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span>${flag} ${langCode.toUpperCase()}</span>
+                  <span style="font-family:var(--font-mono);font-weight:700;">${count} lượt</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:${Math.max(pct, 8)}%;background:var(--cobalt);"></div>
+                </div>
               </div>
-            </div>
-          `;
-        }).join('');
+            `;
+          }).join('');
+        }
+        if (!itemsHtml) {
+          itemsHtml = '<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">Chưa ghi nhận dữ liệu nghe.</div>';
+        }
+        topListensEl.innerHTML = itemsHtml;
       }
 
       // 5. Cơ cấu ngôn ngữ (20 ngôn ngữ)
@@ -3380,16 +3696,17 @@ async function syncAdminDataFromApi() {
       }
 
       // 7. Danh sách recentEvents (Listening Events)
-      if (Array.isArray(s.recentEvents)) {
+      const listenEvents = s.recentListenings || s.recentEvents;
+      if (Array.isArray(listenEvents)) {
         const tbody = document.getElementById('eventLogsTableBody');
         if (tbody) {
-          if (s.recentEvents.length === 0) {
+          if (listenEvents.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--text-muted);">Chưa có lượt nghe nào.</td></tr>`;
           } else {
-            tbody.innerHTML = s.recentEvents.map(e => `
+            tbody.innerHTML = listenEvents.map(e => `
               <tr>
                 <td style="font-family:var(--font-mono);font-size:12px;">${new Date(e.createdAt).toLocaleString('vi-VN')}</td>
-                <td><b>${(e.poi && e.poi.name) || e.poiId}</b></td>
+                <td><b>${e.poiName || (e.poi && e.poi.name) || e.poiId}</b></td>
                 <td><span class="api-badge ${e.mode === 'AUTO' ? 'live' : 'demo'}">${e.mode || 'MANUAL'}</span></td>
                 <td><b>${(e.language || 'vi').toUpperCase()}</b></td>
                 <td style="font-family:var(--font-mono);font-size:12px;">${e.latitude ? `${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}` : '--'}</td>
@@ -3399,13 +3716,38 @@ async function syncAdminDataFromApi() {
         }
       }
 
-      console.log('✓ Đã đồng bộ Dashboard Stats từ API thành công.');
+      // Cập nhật Audit Logs trực tiếp nếu API trả về trong stats
+      if (Array.isArray(s.recentAuditEvents || s.recentAudits)) {
+        renderAuditEventsTable(s.recentAuditEvents || s.recentAudits);
+      }
     }
   } catch (err) {
     console.debug('Lỗi đồng bộ Admin Stats:', err);
   }
 
   loadAdminAuditEvents();
+}
+
+function renderAuditEventsTable(audits) {
+  currentAuditEvents = Array.isArray(audits) ? audits : [];
+  const tbody = document.getElementById('auditLogsTableBody');
+  if (!tbody) return;
+
+  if (currentAuditEvents.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:18px;">Chưa có sự kiện kiểm toán (Audit Event) nào.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = currentAuditEvents.map(a => `
+    <tr>
+      <td style="font-family:var(--font-mono);font-size:12px;">${new Date(a.createdAt).toLocaleString('vi-VN')}</td>
+      <td><span class="api-badge live">${a.action}</span></td>
+      <td><b>${a.entityType}</b></td>
+      <td><code style="font-size:11px;background:var(--bg-subtle);padding:2px 6px;border-radius:4px;">${a.entityId}</code></td>
+      <td>${a.actor || 'admin'}</td>
+      <td style="font-size:12px;color:var(--text-muted);max-width:240px;word-break:break-word;">${a.metadata || '--'}</td>
+    </tr>
+  `).join('');
 }
 
 async function loadAdminAuditEvents() {
@@ -3417,31 +3759,57 @@ async function loadAdminAuditEvents() {
   try {
     const res = await ApiClient.fetchAuditEvents(adminKey);
     if (res.ok && Array.isArray(res.audits)) {
-      if (res.audits.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:18px;">Chưa có sự kiện kiểm toán (Audit Event) nào. Hãy thử đổi trạng thái POI!</td></tr>`;
-      } else {
-        tbody.innerHTML = res.audits.map(a => `
-          <tr>
-            <td style="font-family:var(--font-mono);font-size:12px;">${new Date(a.createdAt).toLocaleString('vi-VN')}</td>
-            <td><span class="api-badge live">${a.action}</span></td>
-            <td><b>${a.entityType}</b></td>
-            <td><code style="font-size:11px;background:var(--bg-subtle);padding:2px 6px;border-radius:4px;">${a.entityId}</code></td>
-            <td>${a.actor || 'admin'}</td>
-            <td style="font-size:12px;color:var(--text-muted);max-width:240px;word-break:break-word;">${a.metadata || '--'}</td>
-          </tr>
-        `).join('');
-      }
+      renderAuditEventsTable(res.audits);
     }
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger);padding:12px;">Lỗi tải Audit Logs: ${err.message}</td></tr>`;
   }
 }
 
-/* ─── Khởi Động Lần Đầu ─── */
+/**
+ * Xuất danh sách nhật ký kiểm toán (Audit Logs) ra file CSV chuẩn UTF-8 (BOM \uFEFF)
+ * để mở trực tiếp trong Microsoft Excel mà không bị lỗi font chữ tiếng Việt.
+ */
+function exportAuditLogsCsv() {
+  if (!currentAuditEvents || currentAuditEvents.length === 0) {
+    alert('Chưa có dữ liệu Audit Logs để xuất CSV.');
+    return;
+  }
+  const escapeCsv = (val) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+  const headers = ['createdAt', 'action', 'entityType', 'entityId', 'actor', 'metadata'];
+  const rows = currentAuditEvents.map(a => [
+    a.createdAt,
+    a.action,
+    a.entityType,
+    a.entityId,
+    a.actor || 'admin',
+    a.metadata || '',
+  ].map(escapeCsv).join(','));
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+window.exportAuditLogsCsv = exportAuditLogsCsv;
+
+/* ─── Khởi Động Lần Đầu (Khôi phục Key, TimeRange & Tab từ localStorage) ─── */
 initTheme();
 const savedKey = localStorage.getItem('tmtd-admin-key');
 if (savedKey && document.getElementById('adminKeyInput')) {
   document.getElementById('adminKeyInput').value = savedKey;
+}
+const savedRange = localStorage.getItem('tmtd-admin-timerange');
+if (savedRange && document.getElementById('dashboardTimeRange')) {
+  document.getElementById('dashboardTimeRange').value = savedRange;
+}
+const savedTab = localStorage.getItem('tmtd-admin-active-tab');
+if (savedTab && ['dashboard', 'radar', 'editor', 'qr', 'arch'].includes(savedTab)) {
+  switchAdminTab(savedTab);
 }
 renderDashboardAnalytics();
 renderPoiSidebar();

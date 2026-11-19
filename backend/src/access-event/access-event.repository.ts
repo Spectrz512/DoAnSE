@@ -1,3 +1,13 @@
+/**
+ * ==============================================================================
+ * MODULE: ACCESS EVENT (THEO DÕI LƯỢT TRUY CẬP DU KHÁCH)
+ * TẦNG: DATA ACCESS LAYER (BẢNG ACCESS_EVENT)
+ * ==============================================================================
+ * Vai trò:
+ * - Lưu trữ và truy vấn CSDL Prisma trên bảng 'AccessEvent'.
+ * ==============================================================================
+ */
+
 import { Injectable } from '@nestjs/common';
 import { AccessSource, Language } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service.js';

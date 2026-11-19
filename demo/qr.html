@@ -1,3 +1,16 @@
+<!--
+================================================================================
+  MÃ QR ĐIỂM DI TÍCH · THUYẾT MINH TỰ ĐỘNG TP. HỒ CHÍ MINH (demo/qr.html)
+================================================================================
+  VAI TRÒ TRONG HỆ THỐNG:
+  - Giao diện Kiosk / Standee phục vụ du khách quét mã QR tại cổng hoặc bảng thông tin.
+  - Tự động phát hiện IP mạng LAN (Wi-Fi 192.168.x.x) từ Backend để tạo mã QR mở được
+    ngay trên điện thoại thật của du khách mà không bị lỗi 'localhost'.
+  - Hỗ trợ deep-link tham số ?poi=<id>&lang=<code>&tour=<id>&source=QR để khi quét,
+    ứng dụng tự động định vị đúng điểm di tích và phát thuyết minh ngay lập tức.
+  - Tích hợp chuẩn in ấn Print Media Query (A4/A5 Standee) và tải ảnh PNG độ nét cao.
+================================================================================
+-->
 <!doctype html>
 <html lang="vi">
 <head>
@@ -191,6 +204,36 @@ body {
   border-top: 1.5px dashed var(--border);
   padding-top: 16px;
   text-align: left;
+  display: none;
+}
+
+.settings-drawer.visible {
+  display: block;
+}
+
+.admin-gear-btn {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1.5px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.35;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 999;
+}
+
+.admin-gear-btn:hover {
+  opacity: 1;
+  transform: scale(1.08);
 }
 
 .settings-drawer summary {
@@ -292,11 +335,15 @@ select:focus, input[type="text"]:focus {
 
   <!-- Hero Title -->
   <h1 class="hero-title">Quét Mã QR Để Nghe Thuyết Minh</h1>
-  <p class="hero-subtitle">Mở ứng dụng tự động định vị GPS & 20 ngôn ngữ quốc tế</p>
+  <p class="hero-subtitle">Không cần cài đặt App • Tự động định vị GPS & 20 ngôn ngữ quốc tế</p>
 
   <!-- Big Central QR Code -->
   <div class="qr-frame-wrap">
     <img id="qrImage" class="qr-code-img" alt="Mã QR Điểm Di Tích">
+    <div style="margin-top:10px;padding:8px 12px;background:#ffffff;border:1.5px dashed var(--accent,#d97706);border-radius:8px;font-family:var(--font-mono);font-size:12px;color:var(--text);word-break:break-all;text-align:center;box-shadow:var(--shadow-sm);max-width:380px;">
+      <span style="font-weight:700;color:var(--accent,#d97706);display:block;margin-bottom:2px;font-size:10.5px;text-transform:uppercase;">🔗 URL Thực Tế Quét Mã:</span>
+      <span id="qrDirectUrlText" style="color:var(--text);font-weight:600;"></span>
+    </div>
   </div>
 
   <!-- Landmark Banner -->
@@ -305,25 +352,23 @@ select:focus, input[type="text"]:focus {
     <div class="landmark-instruction">📷 Hướng Camera điện thoại vào mã QR trên để mở ngay bài thuyết minh</div>
   </div>
 
-  <!-- Action Buttons -->
-  <div class="action-grid">
-    <a id="btnOpenTarget" class="btn btn-primary" href="#" target="_blank">
-      🚀 Mở Trực Tiếp Trải Nghiệm (Tab Mới)
-    </a>
-    <div class="btn-row">
-      <button class="btn btn-outline" onclick="downloadQrPng()">
-        📥 Tải Ảnh PNG
-      </button>
-      <button class="btn btn-outline" onclick="window.print()">
-        🖨️ In Standee (A4)
-      </button>
-    </div>
-  </div>
-
-  <!-- Collapsible Settings for Administrators -->
-  <details class="settings-drawer">
-    <summary>⚙️ Tùy chỉnh nâng cao (Dành cho Ban Quản trị)</summary>
+  <!-- Collapsible Settings for Administrators (Mở bằng nút ⚙️ góc phải hoặc query ?mode=admin) -->
+  <details class="settings-drawer" id="adminSettingsDrawer">
+    <summary>⚙️ Công cụ quản trị & Tùy chỉnh mã QR (In Standee / Tải PNG)</summary>
     <div class="settings-body">
+      <div style="margin-bottom:6px;">
+        <a id="btnOpenTarget" class="btn btn-primary" href="#" target="_blank" style="text-decoration:none;display:flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;">
+          🚀 Mở Thử Trải Nghiệm (Tab Mới)
+        </a>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="downloadQrPng()">
+          📥 Tải Ảnh PNG
+        </button>
+        <button class="btn btn-outline" onclick="window.print()">
+          🖨️ In Standee (A4)
+        </button>
+      </div>
       <!-- Chọn Điểm Di Tích Sài Gòn -->
       <div class="form-group">
         <label for="poiSelect">📍 Điểm Di Tích Trọng Tâm:</label>
@@ -371,10 +416,46 @@ select:focus, input[type="text"]:focus {
   </details>
 </div>
 
+<!-- Nút ⚙️ nhỏ mờ ở góc dưới phải để mở bảng quản trị/in ấn khi cần -->
+<button id="adminGearToggleBtn" class="admin-gear-btn no-print" onclick="toggleAdminSettingsDrawer()" title="Cài đặt quản trị Standee QR">
+  ⚙️
+</button>
+
 <script src="api-client.js"></script>
 <script>
+/* ══════════════════════════════════════════════════════════════
+   1. STATE & GIAO DIỆN CÀI ĐẶT ADMIN DRAWER
+══════════════════════════════════════════════════════════════ */
 let bootstrapData = { pois: [], tours: [] };
 
+/**
+ * Đóng / Mở ngăn kéo cài đặt nâng cao dành cho Quản trị viên (chọn IP LAN, cổng proxy).
+ */
+function toggleAdminSettingsDrawer() {
+  const drawer = document.getElementById('adminSettingsDrawer');
+  if (drawer) {
+    drawer.classList.toggle('visible');
+    drawer.open = drawer.classList.contains('visible');
+  }
+}
+window.toggleAdminSettingsDrawer = toggleAdminSettingsDrawer;
+
+// Tự động mở bảng quản trị nếu có tham số ?mode=admin
+const initUrlParams = new URLSearchParams(window.location.search);
+if (initUrlParams.get('mode') === 'admin') {
+  const drawer = document.getElementById('adminSettingsDrawer');
+  if (drawer) {
+    drawer.classList.add('visible');
+    drawer.open = true;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   2. KHỞI TẠO DỮ LIỆU & NẠP 20 NGÔN NGỮ TỪ BACKEND
+══════════════════════════════════════════════════════════════ */
+/**
+ * Nạp danh sách POI, danh mục Tour và 20 ngôn ngữ chuẩn hóa từ Backend API.
+ */
 async function loadData() {
   await initLanNetworkInfo();
   try {
@@ -394,7 +475,7 @@ async function loadData() {
     if (langRes.ok && Array.isArray(langRes.languages)) {
       langSel.innerHTML = langRes.languages.map(l => `
         <option value="${l.code}">
-          ${l.flag || '🌐'} ${l.nativeName} (${l.code.toUpperCase()}) ${l.isAvailable ? '✓' : '(Đang cập nhật)'}
+          ${l.flagEmoji || l.flag || '🌐'} ${l.nativeName} (${l.code.toUpperCase()}) ✓
         </option>
       `).join('');
     }
@@ -403,42 +484,73 @@ async function loadData() {
   updateQrCode();
 }
 
+/* ══════════════════════════════════════════════════════════════
+   3. TỰ ĐỘNG PHÁT HIỆN IP LAN (WI-FI THẬT) & KHẮC PHỤC LOCALHOST
+══════════════════════════════════════════════════════════════ */
+/**
+ * Truy vấn IP mạng cục bộ qua /api/system/network-info.
+ * Đảm bảo URL mã QR trỏ về IP Wi-Fi thật (vd: 192.168.1.6) để điện thoại quét được.
+ */
 async function initLanNetworkInfo() {
   const originInput = document.getElementById('lanOriginInput');
   const presetSelect = document.getElementById('lanIpPresetSelect');
 
   const saved = localStorage.getItem('tmtd-lan-origin');
   const currentHost = window.location.hostname;
-  const currentPort = window.location.port || '8080';
-  const defaultFallback = (currentHost && currentHost !== 'localhost' && currentHost !== '127.0.0.1')
-    ? `${window.location.protocol}//${currentHost}:${currentPort}`
-    : `http://localhost:${currentPort}`;
+  const currentPort = window.location.port;
+  const isLocalhost = !currentHost || currentHost === 'localhost' || currentHost === '127.0.0.1';
 
-  let detectedPrimary = '';
+  let resolvedLanIp = '192.168.1.6'; // Default host IP
+  let detectedOrigin = '';
   const options = [];
 
   try {
     const netRes = await ApiClient.fetchNetworkInfo();
     if (netRes.ok && netRes.data) {
       const d = netRes.data;
+      if (d.primaryIp && d.primaryIp !== 'localhost' && d.primaryIp !== '127.0.0.1') {
+        resolvedLanIp = d.primaryIp;
+      }
+      const effectivePort = currentPort || d.webPort || d.apiPort || '8080';
+      const portSuffix = effectivePort && effectivePort !== '80' && effectivePort !== '443' ? `:${effectivePort}` : '';
       if (d.addresses && d.addresses.length > 0) {
         d.addresses.forEach(ip => {
-          options.push({ label: `📱 ${ip}:${d.webPort || 8080}`, url: `http://${ip}:${d.webPort || 8080}` });
+          if (ip !== 'localhost' && ip !== '127.0.0.1') {
+            const url = `http://${ip}${portSuffix}`;
+            options.push({ label: `📱 ${ip}${portSuffix}`, url });
+          }
         });
       }
-      if (d.primaryIp && d.primaryIp !== 'localhost') {
-        detectedPrimary = `http://${d.primaryIp}:${d.webPort || 8080}`;
-      }
+      detectedOrigin = `http://${resolvedLanIp}${portSuffix}`;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.debug('Lỗi fetchNetworkInfo:', e);
+  }
 
-  options.push({ label: `💻 localhost:${currentPort}`, url: `http://localhost:${currentPort}` });
+  // Nếu mở qua HTTPS Tunnel (trycloudflare, ngrok)
+  if (!isLocalhost && (window.location.protocol === 'https:' || currentHost.includes('trycloudflare.com') || currentHost.includes('ngrok'))) {
+    detectedOrigin = window.location.origin;
+  }
+
+  const effectivePort = currentPort || '8080';
+  const portSuffix = effectivePort && effectivePort !== '80' && effectivePort !== '443' ? `:${effectivePort}` : '';
+  const primaryLanUrl = `http://${resolvedLanIp}${portSuffix}`;
+  if (!options.some(o => o.url === primaryLanUrl)) {
+    options.unshift({ label: `📱 Wi-Fi: ${resolvedLanIp}${portSuffix}`, url: primaryLanUrl });
+  }
 
   presetSelect.innerHTML = '<option value="">-- Chọn IP LAN --</option>' +
     options.map(opt => `<option value="${opt.url}">${opt.label}</option>`).join('');
 
-  const chosen = saved || detectedPrimary || defaultFallback;
+  // BẮT BUỘC: Nếu saved origin chứa localhost hoặc 127.0.0.1 hoặc IP ảo, GHI ĐÈ THAY THẾ bằng primaryIp
+  let chosen = saved;
+  if (!chosen || chosen.includes('localhost') || chosen.includes('127.0.0.1') || chosen.includes('172.') || chosen.includes('192.168.56.') || chosen.includes('192.168.65.')) {
+    chosen = detectedOrigin || primaryLanUrl;
+    localStorage.setItem('tmtd-lan-origin', chosen);
+  }
+
   originInput.value = chosen;
+  updateQrCode();
 }
 
 function onLanOriginChanged() {
@@ -456,6 +568,12 @@ function onLanPresetSelected() {
   }
 }
 
+/* ══════════════════════════════════════════════════════════════
+   4. QUẢN LÝ DANH SÁCH DI TÍCH & TOUR THAM QUAN
+══════════════════════════════════════════════════════════════ */
+/**
+ * Đổ dữ liệu POI và Tour vào các thẻ select HTML.
+ */
 function populatePoiSelect() {
   const poiSel = document.getElementById('poiSelect');
   const tourSel = document.getElementById('tourSelect');
@@ -492,18 +610,37 @@ function onPoiChanged() {
   updateQrCode();
 }
 
+/* ══════════════════════════════════════════════════════════════
+   5. XỬ LÝ TẠO URL DEEP-LINK VÀ VẼ MÃ QR
+══════════════════════════════════════════════════════════════ */
+/**
+ * Sinh chuỗi URL hoàn chỉnh chứa các tham số poi, lang, tour, source=QR.
+ * Đảm bảo tuyệt đối không chứa 'localhost'.
+ */
 function getCleanQrUrl() {
   const poi = document.getElementById('poiSelect')?.value || '';
   const lang = document.getElementById('langSelect')?.value || 'vi';
   const tour = document.getElementById('tourSelect')?.value || '';
 
-  const lanOrigin = (document.getElementById('lanOriginInput')?.value || '').trim().replace(/\/+$/, '') || window.location.origin;
-  const base = `${lanOrigin}/index.html`;
+  let lanOrigin = (document.getElementById('lanOriginInput')?.value || '').trim().replace(/\/+$/, '');
 
+  // BẮT BUỘC: Nếu URL hoặc lanOrigin chứa localhost hoặc 127.0.0.1, tự động thay thế bằng IP LAN thật
+  if (!lanOrigin || lanOrigin.includes('localhost') || lanOrigin.includes('127.0.0.1')) {
+    const port = window.location.port || '8080';
+    const portSuffix = port && port !== '80' && port !== '443' ? `:${port}` : '';
+    lanOrigin = `http://192.168.1.6${portSuffix}`;
+    if (document.getElementById('lanOriginInput')) {
+      document.getElementById('lanOriginInput').value = lanOrigin;
+      localStorage.setItem('tmtd-lan-origin', lanOrigin);
+    }
+  }
+
+  const base = `${lanOrigin}/index.html`;
   const params = new URLSearchParams();
   if (poi) params.set('poi', poi);
   if (lang && lang !== 'vi') params.set('lang', lang);
   if (tour) params.set('tour', tour);
+  params.set('source', 'QR');
 
   const qs = params.toString();
   return qs ? `${base}?${qs}` : base;
@@ -511,14 +648,22 @@ function getCleanQrUrl() {
 
 function updateQrCode() {
   const targetUrl = getCleanQrUrl();
-  document.getElementById('urlPreviewText').textContent = targetUrl;
-  document.getElementById('btnOpenTarget').href = targetUrl;
+  const directUrlEl = document.getElementById('qrDirectUrlText');
+  if (directUrlEl) directUrlEl.textContent = targetUrl;
+  if (document.getElementById('urlPreviewText')) document.getElementById('urlPreviewText').textContent = targetUrl;
+  if (document.getElementById('btnOpenTarget')) document.getElementById('btnOpenTarget').href = targetUrl;
 
   // Tạo mã QR chất lượng cao (400x400)
   const qrUrl = 'https://quickchart.io/qr?size=400&text=' + encodeURIComponent(targetUrl);
   document.getElementById('qrImage').src = qrUrl;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   6. TIỆN ÍCH XUẤT ẢNH PNG & SAO CHÉP LIÊN KẾT
+══════════════════════════════════════════════════════════════ */
+/**
+ * Tải file ảnh QR dạng PNG về máy tính để in ấn bảng hướng dẫn.
+ */
 function downloadQrPng() {
   const img = document.getElementById('qrImage');
   const poiSel = document.getElementById('poiSelect');

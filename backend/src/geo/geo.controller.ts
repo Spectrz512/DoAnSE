@@ -1,3 +1,14 @@
+/**
+ * ==============================================================================
+ * MODULE: GEO SPATIAL (ĐỊNH VỊ KHÔNG GIAN ĐỊA LÝ)
+ * TẦNG: PRESENTATION LAYER (GIAO TIẾP HTTP)
+ * ==============================================================================
+ * Vai trò:
+ * - Tiếp nhận tọa độ du khách từ GPS và tìm kiếm ứng viên Geofence lân cận
+ *   (GET /api/geo/trigger-candidates?lat=&lng=&language=vi).
+ * ==============================================================================
+ */
+
 import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { Language } from '@prisma/client';
 import { GeoService } from './geo.service.js';

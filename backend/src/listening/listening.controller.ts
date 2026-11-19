@@ -1,3 +1,15 @@
+/**
+ * ==============================================================================
+ * MODULE: LISTENING SESSIONS & REAL-TIME PRESENCE (PHIÊN NGHE & NHỊP TIM DU KHÁCH)
+ * TẦNG: PRESENTATION LAYER (GIAO TIẾP HTTP)
+ * ==============================================================================
+ * Vai trò:
+ * - Tiếp nhận sự kiện nghe thuyết minh từ demo/index.html (POST /api/listening-events).
+ * - Tiếp nhận nhịp tim định kỳ mỗi 12 giây (POST /api/listening-events/heartbeat).
+ * - Tiếp nhận thông báo du khách đóng tab / rời trang (POST /api/listening-events/leave).
+ * ==============================================================================
+ */
+
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import {
   CreateListeningEventDto,
