@@ -1,3 +1,13 @@
+/**
+ * ==============================================================================
+ * MODULE: ACCESS PASS (MÃ VÉ THAM QUAN QR)
+ * TẦNG: BUSINESS LOGIC LAYER (QUY TẮC THỜI HẠN VÉ 72H)
+ * ==============================================================================
+ * Vai trò:
+ * - Sinh mã vé ngẫu nhiên, kiểm tra trạng thái kích hoạt và thời hạn 72 giờ.
+ * ==============================================================================
+ */
+
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Language, PassStatus } from '@prisma/client';
 import { randomBytes } from 'crypto';

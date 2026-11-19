@@ -1,3 +1,16 @@
+/**
+ * ==============================================================================
+ * MODULE: ADMIN MANAGEMENT & AUDIT LOGS (QUẢN TRỊ VIÊN)
+ * TẦNG: BUSINESS LOGIC LAYER (QUY TẮC NGHIỆP VỤ & GHI NHẬT KÝ KIỂM TOÁN)
+ * ==============================================================================
+ * Vai trò:
+ * - Kiểm tra tính hợp lệ của file upload âm thanh (mimetype audio/*, dung lượng <= 15MB).
+ * - Tự động ghi nhận AuditEvent cho mọi thao tác thay đổi dữ liệu của Admin
+ *   (CREATE_POI, UPDATE_POI, TOGGLE_POI_STATUS, DELETE_POI, UPLOAD_AUDIO).
+ * - Tính toán số liệu thống kê Dashboard và tỷ lệ hoàn thành tham quan.
+ * ==============================================================================
+ */
+
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PoiStatus } from '@prisma/client';
 import { mkdirSync, writeFileSync } from 'node:fs';

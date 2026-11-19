@@ -1,39 +1,62 @@
-# Hồ Chí Minh GPS Audio Guide – Backend API
+# 🏛️ Sài Gòn Di Sản (HCM GPS Audio Guide) – Backend API
 
-Backend NestJS tuân thủ nghiêm ngặt kiến trúc 3 lớp: **Controller** (HTTP/DTO validation/Guards) $\rightarrow$ **Service** (nghiệp vụ 9 Use Cases) $\rightarrow$ **Repository** (truy cập PostgreSQL/PostGIS qua Prisma ORM). API mặc định dùng tiền tố `/api` (ngoại trừ `/health`, `/system/network-info`, `/docs`, `/uploads`).
+Hệ thống Backend xây dựng trên **NestJS 10**, tuân thủ nghiêm ngặt chuẩn kiến trúc **3-Tier Enterprise**:
+- **Presentation Layer (Controllers)**: Tiếp nhận HTTP request, validate dữ liệu đầu vào qua `DTO`, phân quyền qua `Guards`.
+- **Business Logic Layer (Services)**: Chứa toàn bộ luật nghiệp vụ, thuật toán Geofencing Haversine, Hybrid RAG AI Chatbot, xử lý luồng âm thanh TTS.
+- **Data Access Layer (Repositories)**: Thực thi các câu truy vấn Prisma ORM và tính toán không gian địa lý PostGIS.
 
-## Chạy local
+Tất cả API chính đều có tiền tố chuẩn `/api` (ngoại trừ `/health`, `/system/network-info`, `/docs`, `/uploads`).
 
-1. Sao chép `.env.example` thành `.env` và cấu hình các biến môi trường:
-   - `DATABASE_URL`: chuỗi kết nối PostgreSQL / PostGIS.
-   - `ADMIN_API_KEY`: khóa xác thực Admin cho header `x-admin-key` (mặc định Docker: `local-admin-key-change-me`).
-   - `JWT_SECRET`: khóa bí mật ứng dụng.
-   - `GEMINI_API_KEY`: *(tùy chọn)* API key Google Gemini 2.5 Flash cho Chatbot AI RAG; nếu bỏ trống hoặc gặp lỗi mạng, chatbot tự fallback sang `knowledge-grounded`.
-2. Chạy `npm ci`, `npm run prisma:generate`, `npm run prisma:migrate`, `npm run db:seed` và `npm run start:dev`.
-3. Hoặc khởi chạy toàn bộ PostGIS + Backend API + Nginx web tại thư mục gốc bằng `docker compose up --build`.
+---
 
-## API hiện có
+## 📂 Cấu Trúc Các Thư Mục Trong `backend/src/`
 
-| Method | URL | Mô tả |
-|---|---|---|
-| GET | `/health`, `/api/health` | Health check thời gian thực kèm truy vấn DB `SELECT 1` (UC9) |
-| POST / GET | `/api/access-passes/activate`, `/api/access-passes/validate/:code` | Kích hoạt và kiểm tra mã QR / Access Pass vào tour (UC1) |
-| GET | `/api/pois`, `/api/pois/:id`, `/api/pois/nearby` | Danh sách, chi tiết POI và tìm kiếm lân cận kèm Hysteresis 1.0x/1.5x (UC2, UC5) |
-| GET | `/api/geo/trigger-candidates?lat=&lng=&language=vi` | Ứng viên geofence trong bán kính kích hoạt, ưu tiên theo `priority` (UC2) |
-| GET | `/api/languages`, `/api/pois/:poiId/narrations?language=vi` | Danh mục 20 ngôn ngữ và nội dung/audio thuyết minh đa ngôn ngữ |
-| GET / POST | `/api/tours/suggested`, `/api/tours/plan`, `/api/tours/:id/package` | Tour gợi ý, lập lộ trình cá nhân và tải gói tour ngoại tuyến (UC6, UC8) |
-| POST | `/api/chatbot/messages` | Chatbot AI Guide Gemini 2.5 Flash RAG + fallback `knowledge-grounded`, giới hạn 20 req/phút (UC4) |
-| GET / POST | `/api/listening-events/*`, `/api/access-events/*` | Ghi nhận sự kiện nghe (`AUTO`/`MANUAL`), phiên nghe trực tiếp, heartbeat & lượt truy cập (UC7) |
-| GET / POST / PUT / PATCH / DELETE | `/api/admin/*` | Thống kê Dashboard, nhật ký kiểm toán, CRUD POI và thuyết minh (`x-admin-key`) (UC3, UC7) |
-| POST | `/api/admin/upload-audio`, `/api/admin/pois/:id/audio` | Upload file âm thanh `.mp3`/`.wav`/`.ogg`/`.m4a` ($\le$ 15MB, `multipart/form-data`), lưu tại `/uploads/audio/*` (UC3) |
+| Thư mục | Chức năng & Vai trò nghiệp vụ | Các file chính |
+| :--- | :--- | :--- |
+| `poi/` | Quản lý 13 địa điểm di tích Sài Gòn, Geofence trigger & **Cloud TTS Proxy Stream** | `poi.controller.ts`, `poi.service.ts`, `poi.repository.ts`, `dto.ts` |
+| `chatbot/` | Hướng dẫn viên AI Hybrid RAG (Grounding 13 POI + Gemini 2.5 Flash + Fallback) | `chatbot.controller.ts`, `chatbot.service.ts`, `chatbot.repository.ts` |
+| `admin/` | Quản trị viên: CRUD POI, Upload Audio MP3, KPI Dashboard & Audit Logs | `admin.controller.ts`, `admin.service.ts`, `admin.repository.ts` |
+| `listening/` | Theo dõi phiên nghe thuyết minh, chống lặp 5s, Heartbeat Telemetry & Leave | `listening.controller.ts`, `listening.service.ts`, `listening.repository.ts` |
+| `tour/` | Lộ trình 3 Tour chuyên gia gợi ý, tính khoảng cách & thời gian đi bộ | `tour.controller.ts`, `tour.service.ts`, `tour.repository.ts` |
+| `translation/` | Danh mục 20 ngôn ngữ quốc tế và nội dung thuyết minh tương ứng | `translation.controller.ts`, `translation.service.ts`, `translation.repository.ts` |
+| `geo/` | Thuật toán tính khoảng cách lượng giác và tìm kiếm ứng viên Geofence lân cận | `geo.controller.ts`, `geo.service.ts` |
+| `access-pass/` | Quản lý mã vé tham quan QR (hạn dùng 72 giờ) | `access-pass.controller.ts`, `access-pass.service.ts` |
+| `access-event/`| Nhật ký quét mã QR và lượt truy cập của du khách | `access-event.controller.ts`, `access-event.service.ts` |
+| `auth/` | Bảo vệ API Quản trị viên qua header `x-admin-key` (`AdminKeyGuard`) | `admin-key.guard.ts` |
+| `database/` | `PrismaService` kết nối PostgreSQL và tự động kích hoạt extension PostGIS | `prisma.service.ts` |
 
-## Kiểm thử & CI/CD
+---
+
+## 🚀 Danh Sách API Chính
+
+| Phương thức | Đường dẫn Endpoint | Mô tả chức năng |
+| :--- | :--- | :--- |
+| **GET** | `/health`, `/api/health` | Kiểm tra trạng thái máy chủ & kết nối CSDL PostgreSQL |
+| **GET** | `/api/system/network-info` | Lấy danh sách IP LAN thật của máy chủ (lọc bỏ IP ảo) cho mã QR |
+| **GET** | `/api/pois` | Lấy danh sách 13 điểm di tích lịch sử Sài Gòn |
+| **GET** | `/api/pois/tts?lang=vi&text=...` | **Cloud TTS Proxy**: Chuyển văn bản thành audio MP3 cho cả 20 thứ tiếng |
+| **GET** | `/api/pois/nearby` | Tìm kiếm các di tích lân cận kèm trạng thái kích hoạt Geofence |
+| **POST** | `/api/chatbot/messages` | Hỏi đáp với AI Guide Gemini 2.5 Flash RAG (giới hạn 20 req/phút) |
+| **GET** | `/api/languages` | Danh mục 20 ngôn ngữ chính thức được hỗ trợ |
+| **GET** | `/api/tours/suggested` | Lấy danh sách 3 lộ trình Tour chuyên gia gợi ý |
+| **POST** | `/api/listening/heartbeat` | Gửi nhịp tim du khách (mỗi 12s) để Admin đếm người online |
+| **POST** | `/api/listening/leave` | Du khách đóng tab / rời trang, giảm ngay số online |
+| **GET** | `/api/admin/stats` | Thống kê số liệu KPI Dashboard thời gian thực (`x-admin-key`) |
+| **GET** | `/api/admin/audit-events` | Xem toàn bộ nhật ký kiểm toán thao tác quản trị (`x-admin-key`) |
+| **POST** | `/api/admin/upload-audio` | Tải lên file âm thanh MP3 thuyết minh ($\le 15\text{MB}$) |
+| **POST/PUT/DEL**| `/api/admin/pois/*` | Thêm, sửa, đổi trạng thái và xóa điểm di tích (`x-admin-key`) |
+
+---
+
+## 🧪 Kiểm Thử & Kiểm Soát Chất Lượng Mã Nguồn
 
 ```bash
-npm run lint       # Oxlint type-aware: 0 warnings, 0 errors
-npm test           # Vitest: 9 test suites, 55 unit tests PASS
-npm run test:e2e   # Supertest E2E với PostGIS (cần TEST_DATABASE_URL & RUN_INTEGRATION_TESTS=true)
-npm run build      # Biên dịch NestJS sang dist/
-```
+# Kiểm tra cú pháp bằng Oxlint (0 warnings, 0 errors)
+npm run lint
 
-GitHub Actions (`.github/workflows/ci-cd.yml`) tự động chạy `oxlint`, `npm test` (55 unit tests), `prisma migrate deploy` và `npm run test:e2e` trên service `postgis/postgis:16-3.4-alpine`, sau đó `nest build`. Khi push vào `main`, pipeline build và đẩy Docker image `${{ secrets.DOCKER_USERNAME }}/hcm-gps-audio-guide-backend` (`latest` và commit SHA), hỗ trợ deploy SSH khi bật `DEPLOY_ENABLED=true`.
+# Chạy toàn bộ 61 Unit Tests với Vitest
+npm test
+
+# Build biên dịch NestJS sang thư mục dist/
+npm run build
+```

@@ -1,3 +1,14 @@
+/**
+ * ==============================================================================
+ * MODULE: TOURS & ITINERARY (LỘ TRÌNH THAM QUAN GỢI Ý)
+ * TẦNG: BUSINESS LOGIC LAYER (TÍNH TOÁN LỘ TRÌNH & THỜI GIAN ĐI BỘ)
+ * ==============================================================================
+ * Vai trò & Thuật toán:
+ * - Sắp xếp các điểm dừng TourStop theo thứ tự position tăng dần.
+ * - Tính toán tổng khoảng cách di chuyển và ước tính thời gian đi bộ + nghe thuyết minh.
+ * ==============================================================================
+ */
+
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Language } from '@prisma/client';
 import { CustomRouteDto, TourQueryDto } from './dto.js';

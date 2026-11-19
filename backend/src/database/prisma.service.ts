@@ -1,3 +1,14 @@
+/**
+ * ==============================================================================
+ * DỊCH VỤ KẾT NỐI CSDL PRISMA & POSTGIS EXTENSION (DATABASE SERVICE)
+ * ==============================================================================
+ * Vai trò:
+ * - Quản lý vòng đời kết nối PostgreSQL qua PrismaClient ($connect, $disconnect).
+ * - Trong onModuleInit(), tự động thực thi 'CREATE EXTENSION IF NOT EXISTS postgis;'
+ *   đảm bảo các hàm không gian địa lý luôn sẵn sàng hoạt động.
+ * ==============================================================================
+ */
+
 import { INestApplication, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';

@@ -1,3 +1,17 @@
+/**
+ * ==============================================================================
+ * SÀI GÒN DI SẢN – KỊCH BẢN NẠP DỮ LIỆU MẪU BAN ĐẦU (DATABASE SEED SCRIPT)
+ * ==============================================================================
+ * Kịch bản thực thi tuần tự gồm các bước:
+ * 1. Dọn sạch dữ liệu di tích cũ ngoài TP.HCM để đồng bộ 100% tại Sài Gòn.
+ * 2. Nạp danh mục 20 ngôn ngữ quốc tế chuẩn ISO vào bảng LanguageCatalog.
+ * 3. Nạp 13 điểm di tích lịch sử Sài Gòn (Dinh Độc Lập, Bến Thành, Nhà Rồng, v.v.).
+ * 4. Nạp 260 bản thuyết minh (13 POIs x 20 ngôn ngữ) vào bảng Narration.
+ * 5. Thiết lập 3 lộ trình Tour chuyên gia gợi ý kèm các điểm dừng TourStop.
+ * 6. Khởi tạo mã vé mẫu AccessPass (hạn dùng 72h) và các phiên nghe mô phỏng.
+ * ==============================================================================
+ */
+
 import {
   AccessSource,
   Language,
@@ -14,6 +28,40 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) })
 
 async function main() {
   console.log("🌱 Seeding database...");
+
+  // 0. Xóa sạch triệt để các POI, Tour và dữ liệu liên quan đến Đà Nẵng cũ (Đồng bộ 100% TP.HCM)
+  await prisma.tourStop.deleteMany({
+    where: {
+      OR: [
+        { tourId: 'linh-ung-panoramic' },
+        { poiId: { startsWith: 'chua-linh-ung' } },
+      ],
+    },
+  });
+  await prisma.tour.deleteMany({
+    where: { id: 'linh-ung-panoramic' },
+  });
+  await prisma.listeningSession.deleteMany({
+    where: { poiId: { startsWith: 'chua-linh-ung' } },
+  });
+  await prisma.listeningEvent.deleteMany({
+    where: { poiId: { startsWith: 'chua-linh-ung' } },
+  });
+  await prisma.accessEvent.deleteMany({
+    where: {
+      OR: [
+        { poiId: { startsWith: 'chua-linh-ung' } },
+        { path: { contains: 'linh-ung' } },
+      ],
+    },
+  });
+  await prisma.narration.deleteMany({
+    where: { poiId: { startsWith: 'chua-linh-ung' } },
+  });
+  await prisma.poi.deleteMany({
+    where: { id: { startsWith: 'chua-linh-ung' } },
+  });
+  console.log("🧹 Đã dọn sạch 100% dữ liệu di tích cũ ngoài TP.HCM.");
 
   // 1. Tạo sẵn danh sách AccessPass mặc định (ACTIVE, hạn dùng 30 ngày)
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -42,195 +90,195 @@ async function main() {
   }
   console.log(`✅ Seeded ${accessPasses.length} AccessPasses (DEMO-2026, TOUR-SAIGON-2026, PASS-VIP-2026).`);
 
-  // 2. Danh sách POI Chùa Linh Ứng (Đà Nẵng) với 5 ngôn ngữ
-  const linhUngPois = [
+  // 2. Danh sách 5 POI Di Tích & Văn Hóa Bổ Sung tại TP.HCM (Đủ 13 POI 100% Sài Gòn)
+  const saigonExtraPois = [
     {
-      id: "chua-linh-ung-cong-tam-quan",
-      name: "Cổng Tam Quan Chùa Linh Ứng",
+      id: "chua-ngoc-hoang",
+      name: "Chùa Ngọc Hoàng (Phước Hải Tự)",
       category: "temple",
-      address: "Bãi Bụt, Bán đảo Sơn Trà, TP. Đà Nẵng",
-      latitude: 16.1068,
-      longitude: 108.2730,
+      address: "73 Mai Thị Lựu, Phường Đa Kao, Quận 1, TP. Hồ Chí Minh",
+      latitude: 10.7919,
+      longitude: 106.6983,
       activationRadius: 45,
       priority: 8,
-      description: "Cửa ngõ chính dẫn vào chốn bồng lai thanh tịnh của Chùa Linh Ứng Bãi Bụt.",
+      description: "Ngôi chùa cổ kính hơn một thế kỷ với kiến trúc Đạo giáo độc đáo và tượng gỗ điêu khắc tinh xảo từng đón tiếp Tổng thống Barack Obama.",
       narrations: [
         {
           language: Language.vi,
-          title: "Cổng Tam Quan Chùa Linh Ứng",
-          content: "Chào mừng quý khách đến với Chùa Linh Ứng Bãi Bụt trên bán đảo Sơn Trà. Cổng Tam Quan sừng sững uy nghiêm với mái ngói lưu ly xanh biếc, biểu trưng cho ba cách nhìn của Phật giáo: Không quan, Giả quan và Trung quan."
+          title: "Chùa Ngọc Hoàng (Phước Hải Tự)",
+          content: "Chào mừng quý khách đến với Chùa Ngọc Hoàng, tên chữ là Phước Hải Tự, tọa lạc tại đường Mai Thị Lựu, Quận 1. Ngôi chùa được xây dựng vào đầu thế kỷ 20 theo kiến trúc Đạo giáo Trung Hoa đặc trưng với mái ngói âm dương, các tượng thờ bằng gỗ chạm khắc sống động và hồ rùa phóng sinh thanh bình. Nơi đây từng vinh dự đón tiếp Tổng thống Hoa Kỳ Barack Obama trong chuyến thăm chính thức năm 2016."
         },
         {
           language: Language.en,
-          title: "Linh Ung Temple Triple Gate",
-          content: "Welcome to Linh Ung Pagoda at Bai But, Son Tra Peninsula. The majestic Triple Gate features vibrant blue-glazed tiles symbolizing Buddhist contemplation and marks your entry into this serene sanctuary."
+          title: "Jade Emperor Pagoda (Phuoc Hai Tu)",
+          content: "Welcome to the Jade Emperor Pagoda (Phuoc Hai Tu), located on Mai Thi Luu Street in District 1. Built in the early 20th century, this atmospheric Taoist temple features intricate wood carvings, smoky incense-filled chambers, and serene tortoise ponds. It gained international prominence during US President Barack Obama's historic visit in 2016."
         },
         {
           language: Language.ko,
-          title: "린응사 삼문 (일주문)",
-          content: "손짜 반도 바이붓에 위치한 린응사에 오신 것을 환영합니다. 푸른 기와지붕이 돋보이는 웅장한 삼문은 불교의 지혜를 상징하며 평화로운 사찰 경내로 안내합니다."
+          title: "옥황사 (푸옥하이 뜨)",
+          content: "호치민 1군 마이티루 거리에 위치한 옥황사(푸옥하이 사원)에 오신 것을 환영합니다. 20세기 초에 건립된 유서 깊은 도교 사원으로, 정교한 목조 조각과 피어오르는 향 연기, 평화로운 거북이 연못이 인상적입니다. 2016년 버락 오바마 전 미국 대통령이 방문하여 더욱 널리 알려졌습니다."
         },
         {
           language: Language.ja,
-          title: "リンウン寺 三門",
-          content: "ソンチャ半島のリンウン寺へようこそ。青い瓦屋根が美しくそびえる三門は、仏教の深い智慧を象徴し、訪れる人々を静寂な祈りの空間へと導きます。"
+          title: "玉皇殿（フックハイ寺）",
+          content: "ホーチミン市1区マイティールー通りに佇む玉皇殿（フックハイ寺）へようこそ。20世紀初頭に建立された道教寺院で、緻密な木彫りの神像や線香の煙が神秘的な雰囲気を醸し出しています。2016年にはオバマ元米大統領も参拝に訪れました。"
         },
         {
           language: Language.zh,
-          title: "灵应寺 三门",
-          content: "欢迎来到山茶半岛的灵应寺。雄伟的三门顶覆青翠琉璃瓦，象征着佛家空、假、中三观智慧，引领香客踏入清幽祥和的佛门圣地。"
+          title: "玉皇殿（福海寺）",
+          content: "欢迎莅临位于第一郡梅氏琉街的玉皇殿（福海寺）。这座建于20世纪初的古刹融合了岭南道教建筑精华，殿内供奉玉皇大帝与各路仙真，木雕神像栩栩如生，香火缭绕。2016年美国前总统奥巴马访越期间曾专程到此参访。"
         }
       ]
     },
     {
-      id: "chua-linh-ung-tuong-quan-am",
-      name: "Tượng Phật Bà Quan Âm 67m",
-      category: "statue",
-      address: "Bãi Bụt, Bán đảo Sơn Trà, TP. Đà Nẵng",
-      latitude: 16.10699,
-      longitude: 108.27354,
-      activationRadius: 50,
-      priority: 10,
-      description: "Tượng Phật Quan Thế Âm cao 67 mét ngự trên đài hoa sen, tựa lưng vào núi hướng nhìn ra biển Đông.",
-      narrations: [
-        {
-          language: Language.vi,
-          title: "Tượng Phật Bà Quan Thế Âm 67m",
-          content: "Trước mắt quý khách là đại tượng Bồ Tát Quán Thế Âm cao 67 mét, tương đương tòa nhà 30 tầng. Một tay Người bắt ấn tam muội, tay kia cầm bình nước cam lồ như đang tưới an lành xuống biển khơi và che chở cho ngư dân."
-        },
-        {
-          language: Language.en,
-          title: "Lady Buddha Statue 67m",
-          content: "Standing 67 meters tall atop a lotus petal pedestal, this iconic Lady Buddha is the tallest Avalokiteshvara statue in Vietnam, looking serenely toward the East Sea to protect seafarers."
-        },
-        {
-          language: Language.ko,
-          title: "67미터 해수관음상",
-          content: "연꽃 대좌 위에 세워진 높이 67미터의 장엄한 해수관음보살상입니다. 베트남에서 가장 높은 관음상으로 한 손에는 감로수병을 들고 바다를 굽어보며 평온을 기원합니다."
-        },
-        {
-          language: Language.ja,
-          title: "高さ67m 観音菩薩像",
-          content: "蓮華座の上に立つ高さ67メートルの観音菩薩像はベトナム最大級です。東シナ海を優しく見守り、航海の安全と平和を祈り続けています。"
-        },
-        {
-          language: Language.zh,
-          title: "67米 观音圣像",
-          content: "高达67米的白玉观世音菩萨像屹立于莲花座上，相当于30层楼高。菩萨手持甘露水净瓶，慈目俯瞰浩瀚东海，普度众生、庇佑风调雨顺。"
-        }
-      ]
-    },
-    {
-      id: "chua-linh-ung-chanh-dien",
-      name: "Chánh Điện Chùa Linh Ứng",
-      category: "temple",
-      address: "Bãi Bụt, Bán đảo Sơn Trà, TP. Đà Nẵng",
-      latitude: 16.1075,
-      longitude: 108.2742,
+      id: "bao-tang-my-thuat",
+      name: "Bảo tàng Mỹ thuật TP. Hồ Chí Minh",
+      category: "museum",
+      address: "97A Phó Đức Chính, Phường Nguyễn Thái Bình, Quận 1, TP. Hồ Chí Minh",
+      latitude: 10.7699,
+      longitude: 106.6994,
       activationRadius: 45,
-      priority: 9,
-      description: "Chánh điện uy nghi với các cột rồng uốn lượn và tượng Phật Thích Ca Mâu Ni tôn nghiêm.",
+      priority: 8,
+      description: "Tòa dinh thự giao thoa giữa kiến trúc Art Deco phương Tây và hoa văn Á Đông, từng là tư gia của thương nhân Hứa Bổn Hòa (Chú Hỏa).",
       narrations: [
         {
           language: Language.vi,
-          title: "Chánh Điện Chùa Linh Ứng",
-          content: "Chánh điện mang kiến trúc truyền thống kết hợp hiện đại với mái ngói cong vững chãi. Chính giữa thờ Đức Bổn Sư Thích Ca Mâu Ni, bên phải thờ Quan Thế Âm Bồ Tát, bên trái thờ Địa Tạng Vương Bồ Tát."
+          title: "Bảo tàng Mỹ thuật TP. Hồ Chí Minh",
+          content: "Chào mừng quý khách đến với Bảo tàng Mỹ thuật TP. Hồ Chí Minh, tọa lạc tại số 97A Phó Đức Chính. Tòa dinh thự tráng lệ này kết hợp hài hòa giữa phong cách Art Deco của Pháp và kiến trúc truyền thống phương Đông, nổi bật với hệ thống thang máy cổ kính, sàn lát gạch hoa tinh xảo và các tác phẩm hội họa, điêu khắc vô giá của nền mỹ thuật Việt Nam qua các thời kỳ."
         },
         {
           language: Language.en,
-          title: "Linh Ung Pagoda Main Sanctuary",
-          content: "The Main Sanctuary combines traditional and contemporary Vietnamese Buddhist architecture. Inside, Shakyamuni Buddha sits flanked by Avalokiteshvara and Ksitigarbha Bodhisattvas."
+          title: "Ho Chi Minh City Fine Arts Museum",
+          content: "Welcome to the Ho Chi Minh City Museum of Fine Arts at 97A Pho Duc Chinh. Formerly the grand residence of merchant Hui Bon Hoa, this yellow mansion is an architectural masterpiece harmonizing French Art Deco elegance with classical Chinese motifs, housing precious collections of Vietnamese paintings and sculptures."
         },
         {
           language: Language.ko,
-          title: "린응사 대웅보전",
-          content: "대웅전은 전통적인 베트남 불교 건축 양식으로 지어졌습니다. 중앙에는 석가모니불이 모셔져 있고 좌우로 관세음보살과 지장보살이 협시하고 있습니다."
+          title: "호치민 시립 미술관",
+          content: "포득찐 거리에 위치한 호치민 시립 미술관에 오신 것을 환영합니다. 과거 거상 후아본호아의 대저택이었던 이 건물은 프랑스 아르데코 양식과 동양적 미학이 절묘하게 조화된 건축물로, 베트남 근현대 회화와 조각 예술의 걸작들을 소장하고 있습니다."
         },
         {
           language: Language.ja,
-          title: "リンウン寺 本堂（大雄宝殿）",
-          content: "伝統的な屋根の反りが美しい本堂です。中央には釈迦牟尼仏が鎮座し、脇侍として観世音菩薩と地蔵菩薩が厳かに安置されています。"
+          title: "ホーチミン市美術館",
+          content: "1区フォードゥックチン通りに位置するホーチミン市美術館へようこそ。旧富豪フア・ボン・ホア氏の邸宅であったこの美しい黄色い洋館は、アールデコ調と東洋装飾が融合した傑作建築で、ベ트ナム屈指の絵画や彫刻コレクションを鑑賞できます。"
         },
         {
           language: Language.zh,
-          title: "灵应寺 大雄宝殿",
-          content: "大殿气势恢宏，雕梁画栋。正中供奉释迦牟尼佛，右侧供奉观世音菩萨，左侧供奉地藏王菩萨，佛光普照，香火鼎盛。"
+          title: "胡志明市美术馆",
+          content: "欢迎莅临位于第一郡副德政街97A号的胡志明市美术馆。该馆原为西贡华人巨商黄文华（许本和）家族的宏伟豪宅，融汇了法国装饰艺术与岭南建筑风格，黄色外墙与典雅回廊间珍藏着数千件越南国宝级现当代美术作品。"
         }
       ]
     },
     {
-      id: "chua-linh-ung-vuon-la-han",
-      name: "Vườn 18 Tượng Vị La Hán",
-      category: "garden",
-      address: "Bãi Bụt, Bán đảo Sơn Trà, TP. Đà Nẵng",
-      latitude: 16.1063,
-      longitude: 108.2738,
+      id: "ho-con-rua",
+      name: "Hồ Con Rùa (Công trường Quốc Tế)",
+      category: "monument",
+      address: "Công trường Quốc Tế, Phường Võ Thị Sáu, Quận 3, TP. Hồ Chí Minh",
+      latitude: 10.7827,
+      longitude: 106.6959,
       activationRadius: 40,
       priority: 7,
-      description: "18 pho tượng Thập Bát La Hán tạc bằng đá trắng nguyên khối với các biểu cảm sinh động.",
+      description: "Vòng xoay đài phun nước biểu tượng giữa trung tâm Sài Gòn, giao điểm giữa các con đường rợp bóng cây cổ thụ và điểm hẹn văn hóa đường phố.",
       narrations: [
         {
           language: Language.vi,
-          title: "Vườn 18 Vị La Hán",
-          content: "Dọc hai bên lối vào Chánh điện là 18 vị La Hán được điêu khắc tinh xảo từ đá trắng nguyên khối bởi các nghệ nhân làng đá Non Nước. Mỗi pho tượng thể hiện hỷ nộ ái ố vô cùng sống động."
+          title: "Hồ Con Rùa (Công trường Quốc Tế)",
+          content: "Trước mắt bạn là Hồ Con Rùa, tên chính thức là Công trường Quốc Tế, vòng xoay giao thông và không gian công cộng đặc sắc tại ranh giới Quận 1 và Quận 3. Đài phun nước được thiết kế với hình tượng cánh hoa xòe nở trên hồ nước, bao quanh bởi những hàng me cổ thụ xanh mát. Đây là điểm hẹn quen thuộc của giới trẻ Sài Gòn với văn hóa ẩm thực đường phố sôi động."
         },
         {
           language: Language.en,
-          title: "18 Arhats Garden",
-          content: "Flanking the courtyard are 18 meticulously carved white marble Arhat statues crafted by Non Nuoc artisans, each capturing distinct human expressions of enlightenment and emotion."
+          title: "Turtle Lake (International Square)",
+          content: "Standing before you is Turtle Lake, officially named International Square, an iconic roundabout fountain connecting District 1 and District 3. Designed in the late 1960s with flower petal spires over a reflective pond, it is surrounded by shaded tamarind trees and serves as a beloved hub for local street food and social life."
         },
         {
           language: Language.ko,
-          title: "십팔나한상 정원",
-          content: "대웅전 앞마당 양옆에는 18분의 나한상이 흰 대리석으로 정교하게 조각되어 있습니다. 각 나한마다 희로애락의 생동감 넘치는 표정을 감상할 수 있습니다."
+          title: "호꼰루아 (거북이 호수 / 국제광장)",
+          content: "1군과 3군의 경계에 위치한 대표적인 로터리 분수대인 호꼰루아(국제광장)입니다. 연꽃 꽃잎 형상의 기둥 구조물과 시원한 분수가 어우러져 있으며, 고목들이 드리운 그늘 아래에서 다양한 사이공 길거리 간식을 즐길 수 있는 젊음의 명소입니다."
         },
         {
           language: Language.ja,
-          title: "十八羅漢の庭",
-          content: "本堂へ続く庭園の両脇には、ノンヌオック村の職人が彫り上げた18体の白大理石の羅漢像が並び、喜怒哀楽の豊かな表情を伝えています。"
+          title: "亀の池（コンチュオン・クオック・テー）",
+          content: "1区と3区の交差点に位置するラウンドアバウト型噴水池「亀の池（国際広場）」です。花びらをかたどった柱塔と緑豊かな並木に囲まれ、夕方には多くの若者が集い、ローカルな屋台グルメを楽しむ憩いの場となっています。"
         },
         {
           language: Language.zh,
-          title: "十八罗汉石雕园",
-          content: "大殿庭院两侧陈列着由五行山石雕艺人精心雕琢的十八罗汉白大理石圣像，尊尊神态逼真，生动刻画了佛家修行的精神境界。"
+          title: "乌龟湖（国际广场）",
+          content: "您眼前的是俗称“乌龟湖”的国际广场环岛喷泉，坐落于第一郡与第三郡交界处。中央喷泉立柱如花瓣般绽放，环湖绿树成荫。这里不仅是西贡地标性公共空间，更是品尝越式街头小吃与感受都市慢调生活的绝佳去处。"
         }
       ]
     },
     {
-      id: "chua-linh-ung-thap-xa-loi",
-      name: "Tháp Xá Lợi Chùa Linh Ứng",
-      category: "tower",
-      address: "Bãi Bụt, Bán đảo Sơn Trà, TP. Đà Nẵng",
-      latitude: 16.1082,
-      longitude: 108.2750,
-      activationRadius: 40,
-      priority: 8,
-      description: "Tháp cao 9 tầng thờ xá lợi Phật và hàng trăm tượng Phật tôn nghiêm.",
+      id: "thao-cam-vien",
+      name: "Thảo Cầm Viên Sài Gòn",
+      category: "park",
+      address: "02 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
+      latitude: 10.7876,
+      longitude: 106.7052,
+      activationRadius: 50,
+      priority: 7,
+      description: "Một trong những vườn thú - thực vật lâu đời nhất thế giới xây dựng từ năm 1864, lá phổi xanh giữa lòng đô thị với hàng ngàn cây cổ thụ và động thực vật quý hiếm.",
       narrations: [
         {
           language: Language.vi,
-          title: "Tháp Xá Lợi",
-          content: "Tháp Xá Lợi 9 tầng vươn cao bên sườn núi Sơn Trà. Đây là nơi tôn kính lưu giữ xá lợi Phật linh thiêng, đồng thời mở ra tầm nhìn bao quát toàn cảnh vịnh Đà Nẵng xanh thẳm."
+          title: "Thảo Cầm Viên Sài Gòn",
+          content: "Chào mừng quý khách đến với Thảo Cầm Viên Sài Gòn tại số 2 Nguyễn Bỉnh Khiêm, Quận 1. Được thành lập vào năm 1864 bởi nhà thực vật học người Pháp Jean-Baptiste Louis Pierre, đây là một trong tám vườn thú lâu đời nhất thế giới còn hoạt động. Không gian xanh mát rộng lớn này bảo tồn hàng nghìn cây cổ thụ quý hiếm cùng hàng trăm loài động thực vật nhiệt đới."
         },
         {
           language: Language.en,
-          title: "Linh Ung Relic Stupa",
-          content: "The 9-story Relic Stupa rises gracefully on the Son Tra hillside, enshrining sacred Buddhist relics and offering panoramic vistas of the Danang coastline."
+          title: "Saigon Zoo and Botanical Gardens",
+          content: "Welcome to the Saigon Zoo and Botanical Gardens at 2 Nguyen Binh Khiem. Established in 1864, it is among the oldest continually operating botanical and zoological parks in the world. This lush 20-hectare green sanctuary preserves centuries-old heritage trees and an impressive diversity of tropical flora and wildlife."
         },
         {
           language: Language.ko,
-          title: "사리탑",
-          content: "손짜 산비탈에 우뚝 솟은 9층 사리탑은 신성한 불사리를 모시고 있으며, 다낭 해안선의 탁 트인 절경을 감상할 수 있는 명소입니다."
+          title: "사이공 동물원 및 식물원",
+          content: "1군 응우옌빈키엠 거리에 위치한 사이공 동식물원에 오신 것을 환영합니다. 1864년에 개원하여 전 세계에서 가장 오래된 동식물원 중 하나로 손꼽힙니다. 도심 속 거대한 녹지 공간으로 백년이 넘은 고목들과 희귀 열대 동식물을 품고 있는 사이공의 녹색 쉼터입니다."
         },
         {
           language: Language.ja,
-          title: "舎利塔",
-          content: "ソンチャの山肌に優美にそびえる9重の舎利塔です。仏舎利が安置されており、ダナン湾の素晴らしいパノラマを一望できます。"
+          title: "サイゴン動植物園",
+          content: "1区グエン・ビン・キエム通りに位置するサイゴン動植物園へようこそ。1864年に開園した世界最古級の動植物園の一つです。樹齢100年を超える巨木が茂る緑豊かな園内は、都会の喧騒を離れて熱帯の豊かな自然と動物たちに触れ合えるオアシスです。"
         },
         {
           language: Language.zh,
-          title: "舍利宝塔",
-          content: "九层舍利塔高耸入云，塔内安奉着神圣的佛陀舍利。登临塔前，岘港碧蓝的海湾美景与无垠天际尽收眼底。"
+          title: "西贡动植物园",
+          content: "欢迎莅临位于第一郡阮秉谦街2号的西贡动植物园。该园始建于1864年，是全球历史最悠久的动植物园之一。园区内古木参天、繁花似锦，不仅是一座绿意盎然的都市森林氧吧，更守护着众多濒危热带动物与珍稀植物标本。"
+        }
+      ]
+    },
+    {
+      id: "ben-bach-dang",
+      name: "Công viên Bến Bạch Đằng & Cột Cờ Thủ Ngữ",
+      category: "park",
+      address: "Đường Tôn Đức Thắng, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
+      latitude: 10.7711,
+      longitude: 106.7063,
+      activationRadius: 50,
+      priority: 8,
+      description: "Bến cảng lịch sử bên bờ sông Sài Gòn cùng Cột cờ Thủ Ngữ hơn 150 năm tuổi, nơi ngắm cảnh sông nước hoa lệ và lưu giữ ký ức đô thị bến cảng.",
+      narrations: [
+        {
+          language: Language.vi,
+          title: "Công viên Bến Bạch Đằng & Cột Cờ Thủ Ngữ",
+          content: "Chào mừng quý khách đến với Công viên Bến Bạch Đằng bên bờ sông Sài Gòn thơ mộng. Tại đây có di tích Cột cờ Thủ Ngữ được xây dựng từ năm 1865, từng là cột cờ tín hiệu điều phối tàu bè ra vào thương cảng Sài Gòn. Ngày nay, công viên là không gian đi bộ ngắm toàn cảnh sông Sài Gòn và khu đô thị mới Thủ Thiêm hiện đại bên kia bờ sông."
+        },
+        {
+          language: Language.en,
+          title: "Bach Dang Wharf Park & Thu Ngu Flagpole",
+          content: "Welcome to Bach Dang Wharf Park along the Saigon River. At the southern promenade stands the historic Thu Ngu Flagpole, erected in 1865 as a naval signal mast guiding incoming vessels to port. Today, the landscaped waterfront offers sweeping panoramic views of the river and the emerging Thu Thiem skyline."
+        },
+        {
+          language: Language.ko,
+          title: "박당 부두 공원 & 투응우 국기게양대",
+          content: "사이공 강변을 따라 조성된 박당 부두 공원에 오신 것을 환영합니다. 1865년에 세워진 유서 깊은 투응우 국기게양대는 과거 사이공 항구로 들어오는 선박들에게 신호를 보내던 신호탑이었습니다. 시원한 강바람과 함께 맞은편 투티엠 신도시의 현대적인 스카이라인을 조망할 수 있습니다."
+        },
+        {
+          language: Language.ja,
+          title: "バクダン埠頭公園＆トゥーグー旗塔",
+          content: "サイゴン川沿いに広がるバクダン埠頭公園へようこそ。敷地内には1865年に設置された歴史的記念物「トゥーグー旗塔」があり、かつて港を行き交う船へ信号を送る役割を担っていました。対岸のトゥーティエム新都心のパノラマ夜景が望める人気の散策地です。"
+        },
+        {
+          language: Language.zh,
+          title: "白藤码头公园与守语旗台",
+          content: "欢迎光临坐落于西贡河畔的白藤码头公园。公园南端的“守语旗台”建于1865年，曾是引领各国商船进出西贡海港的信号标志塔。今日修缮一新的滨河步道风景如画，是远眺对岸首添新城区现代化天际线与感受西贡水运繁荣的绝佳视点。"
         }
       ]
     }
@@ -544,7 +592,121 @@ async function main() {
     }
   ];
 
-  const allPois = [...linhUngPois, ...saigonPois];
+  const allPois = [...saigonPois, ...saigonExtraPois];
+
+  // Bộ khung thuyết minh bản địa hóa cho 15 ngôn ngữ mở rộng (đủ 20 ngôn ngữ x 13 POI = 260 Narrations)
+  const extraLanguageTemplates: Array<{
+    language: Language;
+    intro: (title: string, address: string, enSummary: string) => { title: string; content: string };
+  }> = [
+    {
+      language: Language.zh_TW,
+      intro: (title, address, enSummary) => ({
+        title: `${title}（繁體中文導覽）`,
+        content: `歡迎蒞臨位於「${address}」的歷史文化地標「${title}」。這裡是不可錯過的經典景點，融合獨特建築藝術與深厚文化底蘊。${enSummary}`,
+      }),
+    },
+    {
+      language: Language.th,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (คำบรรยายภาษาไทย)`,
+        content: `ยินดีต้อนรับสู่ ${title} ตั้งอยู่ที่ ${address} สถานที่สำคัญทางประวัติศาสตร์และสถาปัตยกรรมอันทรงคุณค่า เชิญรับฟังเรื่องราวความเป็นมาและเอกลักษณ์ทางวัฒนธรรมของสถานที่แห่งนี้ ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.lo,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (ຄຳບັນຍາຍພາສາລາວ)`,
+        content: `ຍິນດີຕ້ອນຮັບສູ່ ${title} ຕັ້ງຢູ່ທີ່ ${address}. ນີ້ແມ່ນສະຖານທີ່ທ່ອງທ່ຽວທາງປະຫວັດສາດ ແລະ ວັດທະນະທຳທີ່ສຳຄັນ. ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.km,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (ការណែនាំជាភាសាខ្មែរ)`,
+        content: `សូមស្វាគមន៍មកកាន់ ${title} ដែលមានទីតាំងនៅ ${address}។ នេះជាទីតាំងប្រវត្តិសាស្ត្រ និងវប្បធម៌ដ៏ល្បីល្បាញ។ ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.id,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (Panduan Bahasa Indonesia)`,
+        content: `Selamat datang di ${title}, yang terletak di ${address}. Destinasi bersejarah ini menawarkan arsitektur ikonik dan warisan budaya yang kaya. ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.ms,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (Panduan Bahasa Melayu)`,
+        content: `Selamat datang ke ${title} di ${address}. Lokasi bersejarah ini terkenal dengan nilai seni bina dan warisan budaya yang unik. ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.fil,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (Gabay sa Filipino)`,
+        content: `Maligayang pagdating sa ${title}, matatagpuan sa ${address}. Isa itong makasaysayang pook na may mayamang kultura at natatanging arkitektura. ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.hi,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (हिन्दी ऑडियो गाइड)`,
+        content: `${address} में स्थित ऐतिहासिक स्थल ${title} में आपका स्वागत है। यह स्थान अपनी विशिष्ट वास्तुकला और समृद्ध सांस्कृतिक विरासत के लिए प्रसिद्ध है। ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.ar,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (الدليل الصوتي العربي)`,
+        content: `مرحبًا بكم في ${title} الواقع في ${address}. يُعد هذا المعلم التاريخي والثقافي من أبرز الوجهات المعمارية والتراثية المميزة. ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.ru,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (Аудиогид на русском)`,
+        content: `Добро пожаловать в ${title}, расположенный по адресу ${address}. Этот знаковый памятник истории и архитектуры хранит богатое культурное наследие. ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.pt,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (Guia em Português)`,
+        content: `Bem-vindo a ${title}, localizado em ${address}. Este marco histórico destaca-se pela arquitetura singular e profundo valor cultural. ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.it,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (Guida in Italiano)`,
+        content: `Benvenuti a ${title}, situato in ${address}. Questo celebre luogo storico unisce fascino architettonico e memoria culturale. ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.fr,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (Guide en Français)`,
+        content: `Bienvenue à ${title}, situé au ${address}. Ce monument emblématique témoigne d'un patrimoine historique et architectural remarquable. ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.de,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (Deutscher Audioguide)`,
+        content: `Willkommen bei ${title} in ${address}. Dieses historische Wahrzeichen begeistert durch seine Architektur und kulturelle Bedeutung. ${enSummary}`,
+      }),
+    },
+    {
+      language: Language.es,
+      intro: (title, address, enSummary) => ({
+        title: `${title} (Guía en Español)`,
+        content: `Bienvenido a ${title}, ubicado en ${address}. Este emblemático sitio histórico destaca por su arquitectura y valor cultural. ${enSummary}`,
+      }),
+    },
+  ];
+
+  let totalNarrationsSeeded = 0;
 
   for (const p of allPois) {
     const poiRecord = await prisma.poi.upsert({
@@ -574,7 +736,24 @@ async function main() {
       },
     });
 
-    for (const nar of p.narrations) {
+    const enNar = p.narrations.find((n) => n.language === Language.en);
+    const baseEnTitle = enNar?.title || p.name;
+    const baseEnSummary = enNar?.content || p.description;
+
+    const full20Narrations = [
+      ...p.narrations,
+      ...extraLanguageTemplates.map((tpl) => {
+        const localized = tpl.intro(baseEnTitle, p.address, baseEnSummary);
+        return {
+          language: tpl.language,
+          title: localized.title,
+          content: localized.content,
+        };
+      }),
+    ];
+
+    for (const nar of full20Narrations) {
+      const durationSeconds = Math.max(90, Math.min(240, Math.round(nar.content.length / 2.5)));
       await prisma.narration.upsert({
         where: {
           poiId_language: {
@@ -585,17 +764,20 @@ async function main() {
         update: {
           title: nar.title,
           content: nar.content,
+          durationSeconds,
         },
         create: {
           poiId: poiRecord.id,
           language: nar.language,
           title: nar.title,
           content: nar.content,
+          durationSeconds,
         },
       });
+      totalNarrationsSeeded++;
     }
   }
-  console.log(`✅ Seeded ${allPois.length} POIs with 5 languages (PUBLISHED status).`);
+  console.log(`✅ Seeded ${allPois.length} POIs with ${totalNarrationsSeeded} Narrations across 20 languages (PUBLISHED status).`);
 
   // 4. Tour gợi ý 1: Tour Di Tích & Văn Hóa Trung Tâm Sài Gòn
   await prisma.tour.upsert({
@@ -654,28 +836,28 @@ async function main() {
     },
   });
 
-  // 6. Tour gợi ý 3: Hành Trình Tâm Linh Bán Đảo Sơn Trà (Chùa Linh Ứng)
+  // 6. Tour gợi ý 3: Tuyến Ký Ức Lịch Sử & Kiến Trúc Sài Gòn (Đồng bộ 100% TP.HCM)
   await prisma.tour.upsert({
-    where: { id: "linh-ung-panoramic" },
+    where: { id: "saigon-history-architecture" },
     update: {
-      name: "Hành Trình Tâm Linh Chùa Linh Ứng Bãi Bụt",
-      description: "Chiêm bái Tượng Phật Bà 67m, Cổng Tam Quan, Vườn La Hán và ngắm trọn biển Đông từ bán đảo Sơn Trà.",
+      name: "Tuyến Ký Ức Lịch Sử & Kiến Trúc Sài Gòn",
+      description: "Chiêm ngưỡng các kiệt tác nghệ thuật, bến cảng lịch sử và không gian văn hóa thanh bình giữa lòng phố thị.",
       isSuggested: true,
-      estimatedMinutes: 40,
+      estimatedMinutes: 45,
     },
     create: {
-      id: "linh-ung-panoramic",
-      name: "Hành Trình Tâm Linh Chùa Linh Ứng Bãi Bụt",
-      description: "Chiêm bái Tượng Phật Bà 67m, Cổng Tam Quan, Vườn La Hán và ngắm trọn biển Đông từ bán đảo Sơn Trà.",
+      id: "saigon-history-architecture",
+      name: "Tuyến Ký Ức Lịch Sử & Kiến Trúc Sài Gòn",
+      description: "Chiêm ngưỡng các kiệt tác nghệ thuật, bến cảng lịch sử và không gian văn hóa thanh bình giữa lòng phố thị.",
       isSuggested: true,
-      estimatedMinutes: 40,
+      estimatedMinutes: 45,
       stops: {
         create: [
-          { poiId: "chua-linh-ung-cong-tam-quan", position: 1 },
-          { poiId: "chua-linh-ung-tuong-quan-am", position: 2 },
-          { poiId: "chua-linh-ung-chanh-dien", position: 3 },
-          { poiId: "chua-linh-ung-vuon-la-han", position: 4 },
-          { poiId: "chua-linh-ung-thap-xa-loi", position: 5 },
+          { poiId: "bao-tang-my-thuat", position: 1 },
+          { poiId: "ben-bach-dang", position: 2 },
+          { poiId: "ho-con-rua", position: 3 },
+          { poiId: "thao-cam-vien", position: 4 },
+          { poiId: "chua-ngoc-hoang", position: 5 },
         ],
       },
     },
@@ -683,28 +865,28 @@ async function main() {
 
   console.log("✅ Seeded 3 suggested tours.");
 
-  // 7. Seed Danh Mục 20 Ngôn Ngữ Chuẩn (LanguageCatalog)
+  // 7. Seed Danh Mục 20 Ngôn Ngữ Chuẩn (LanguageCatalog - Toàn bộ 20 ngôn ngữ đều khả dụng)
   const languageList = [
     { code: 'vi', nameVi: 'Tiếng Việt', nameEn: 'Vietnamese', nativeName: 'Tiếng Việt', flagEmoji: '🇻🇳', isAvailable: true, sortOrder: 1 },
     { code: 'en', nameVi: 'Tiếng Anh', nameEn: 'English', nativeName: 'English', flagEmoji: '🇬🇧', isAvailable: true, sortOrder: 2 },
     { code: 'zh', nameVi: 'Tiếng Trung (Giản thể)', nameEn: 'Chinese (Simplified)', nativeName: '中文（简体）', flagEmoji: '🇨🇳', isAvailable: true, sortOrder: 3 },
-    { code: 'zh_TW', nameVi: 'Tiếng Trung (Phồn thể)', nameEn: 'Chinese (Traditional)', nativeName: '中文（繁體）', flagEmoji: '🇹🇼', isAvailable: false, sortOrder: 4 },
+    { code: 'zh_TW', nameVi: 'Tiếng Trung (Phồn thể)', nameEn: 'Chinese (Traditional)', nativeName: '中文（繁體）', flagEmoji: '🇹🇼', isAvailable: true, sortOrder: 4 },
     { code: 'ja', nameVi: 'Tiếng Nhật', nameEn: 'Japanese', nativeName: '日本語', flagEmoji: '🇯🇵', isAvailable: true, sortOrder: 5 },
     { code: 'ko', nameVi: 'Tiếng Hàn', nameEn: 'Korean', nativeName: '한국어', flagEmoji: '🇰🇷', isAvailable: true, sortOrder: 6 },
-    { code: 'th', nameVi: 'Tiếng Thái', nameEn: 'Thai', nativeName: 'ภาษาไทย', flagEmoji: '🇹🇭', isAvailable: false, sortOrder: 7 },
-    { code: 'lo', nameVi: 'Tiếng Lào', nameEn: 'Lao', nativeName: 'ພາສາລາວ', flagEmoji: '🇱🇦', isAvailable: false, sortOrder: 8 },
-    { code: 'km', nameVi: 'Tiếng Khmer', nameEn: 'Khmer', nativeName: 'ភាសាខ្មែរ', flagEmoji: '🇰🇭', isAvailable: false, sortOrder: 9 },
-    { code: 'id', nameVi: 'Tiếng Indonesia', nameEn: 'Indonesian', nativeName: 'Bahasa Indonesia', flagEmoji: '🇮🇩', isAvailable: false, sortOrder: 10 },
-    { code: 'ms', nameVi: 'Tiếng Malaysia', nameEn: 'Malay', nativeName: 'Bahasa Melayu', flagEmoji: '🇲🇾', isAvailable: false, sortOrder: 11 },
-    { code: 'fil', nameVi: 'Tiếng Philippines', nameEn: 'Filipino', nativeName: 'Wikang Filipino', flagEmoji: '🇵🇭', isAvailable: false, sortOrder: 12 },
-    { code: 'hi', nameVi: 'Tiếng Hindi', nameEn: 'Hindi', nativeName: 'हिन्दी', flagEmoji: '🇮🇳', isAvailable: false, sortOrder: 13 },
-    { code: 'ar', nameVi: 'Tiếng Ả Rập', nameEn: 'Arabic', nativeName: 'العربية', flagEmoji: '🇸🇦', isAvailable: false, sortOrder: 14 },
-    { code: 'ru', nameVi: 'Tiếng Nga', nameEn: 'Russian', nativeName: 'Русский', flagEmoji: '🇷🇺', isAvailable: false, sortOrder: 15 },
-    { code: 'pt', nameVi: 'Tiếng Bồ Đào Nha', nameEn: 'Portuguese', nativeName: 'Português', flagEmoji: '🇵🇹', isAvailable: false, sortOrder: 16 },
-    { code: 'it', nameVi: 'Tiếng Ý', nameEn: 'Italian', nativeName: 'Italiano', flagEmoji: '🇮🇹', isAvailable: false, sortOrder: 17 },
-    { code: 'fr', nameVi: 'Tiếng Pháp', nameEn: 'French', nativeName: 'Français', flagEmoji: '🇫🇷', isAvailable: false, sortOrder: 18 },
-    { code: 'de', nameVi: 'Tiếng Đức', nameEn: 'German', nativeName: 'Deutsch', flagEmoji: '🇩🇪', isAvailable: false, sortOrder: 19 },
-    { code: 'es', nameVi: 'Tiếng Tây Ban Nha', nameEn: 'Spanish', nativeName: 'Español', flagEmoji: '🇪🇸', isAvailable: false, sortOrder: 20 },
+    { code: 'th', nameVi: 'Tiếng Thái', nameEn: 'Thai', nativeName: 'ภาษาไทย', flagEmoji: '🇹🇭', isAvailable: true, sortOrder: 7 },
+    { code: 'lo', nameVi: 'Tiếng Lào', nameEn: 'Lao', nativeName: 'ພາສາລາວ', flagEmoji: '🇱🇦', isAvailable: true, sortOrder: 8 },
+    { code: 'km', nameVi: 'Tiếng Khmer', nameEn: 'Khmer', nativeName: 'ភាសាខ្មែរ', flagEmoji: '🇰🇭', isAvailable: true, sortOrder: 9 },
+    { code: 'id', nameVi: 'Tiếng Indonesia', nameEn: 'Indonesian', nativeName: 'Bahasa Indonesia', flagEmoji: '🇮🇩', isAvailable: true, sortOrder: 10 },
+    { code: 'ms', nameVi: 'Tiếng Malaysia', nameEn: 'Malay', nativeName: 'Bahasa Melayu', flagEmoji: '🇲🇾', isAvailable: true, sortOrder: 11 },
+    { code: 'fil', nameVi: 'Tiếng Philippines', nameEn: 'Filipino', nativeName: 'Wikang Filipino', flagEmoji: '🇵🇭', isAvailable: true, sortOrder: 12 },
+    { code: 'hi', nameVi: 'Tiếng Hindi', nameEn: 'Hindi', nativeName: 'हिन्दी', flagEmoji: '🇮🇳', isAvailable: true, sortOrder: 13 },
+    { code: 'ar', nameVi: 'Tiếng Ả Rập', nameEn: 'Arabic', nativeName: 'العربية', flagEmoji: '🇸🇦', isAvailable: true, sortOrder: 14 },
+    { code: 'ru', nameVi: 'Tiếng Nga', nameEn: 'Russian', nativeName: 'Русский', flagEmoji: '🇷🇺', isAvailable: true, sortOrder: 15 },
+    { code: 'pt', nameVi: 'Tiếng Bồ Đào Nha', nameEn: 'Portuguese', nativeName: 'Português', flagEmoji: '🇵🇹', isAvailable: true, sortOrder: 16 },
+    { code: 'it', nameVi: 'Tiếng Ý', nameEn: 'Italian', nativeName: 'Italiano', flagEmoji: '🇮🇹', isAvailable: true, sortOrder: 17 },
+    { code: 'fr', nameVi: 'Tiếng Pháp', nameEn: 'French', nativeName: 'Français', flagEmoji: '🇫🇷', isAvailable: true, sortOrder: 18 },
+    { code: 'de', nameVi: 'Tiếng Đức', nameEn: 'German', nativeName: 'Deutsch', flagEmoji: '🇩🇪', isAvailable: true, sortOrder: 19 },
+    { code: 'es', nameVi: 'Tiếng Tây Ban Nha', nameEn: 'Spanish', nativeName: 'Español', flagEmoji: '🇪🇸', isAvailable: true, sortOrder: 20 },
   ];
 
   for (const lang of languageList) {
@@ -751,47 +933,92 @@ async function main() {
   }
   console.log("✅ Seeded 8 default QR Codes.");
 
-  // 9. Seed Dữ liệu Thống kê Dashboard Admin (UC7 - Idempotent)
+  // 9. Seed Dữ liệu Thống kê Dashboard Admin (UC7 - Đảm bảo luôn có số liệu trong ngày hôm nay > 0)
   const dayMs = 24 * 3600 * 1000;
   const hourMs = 3600 * 1000;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todaySafeTime = (offsetMinutes: number) =>
+    new Date(Math.max(todayStart.getTime() + 60_000, now - offsetMinutes * 60_000));
 
-  if ((await prisma.listeningEvent.count()) === 0) {
+  if ((await prisma.listeningEvent.count({ where: { createdAt: { gte: todayStart } } })) === 0) {
     await prisma.listeningEvent.createMany({
       data: [
-        { visitorId: 'visitor-demo-01', poiId: 'dinh-doc-lap', language: Language.vi, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7769, longitude: 106.6953, durationSeconds: 185, startedAt: new Date(now - 2 * hourMs), endedAt: new Date(now - 2 * hourMs + 185_000), createdAt: new Date(now - 2 * hourMs) },
-        { visitorId: 'visitor-demo-02', poiId: 'nha-tho-duc-ba', language: Language.en, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7798, longitude: 106.6990, durationSeconds: 160, startedAt: new Date(now - 4 * hourMs), endedAt: new Date(now - 4 * hourMs + 160_000), createdAt: new Date(now - 4 * hourMs) },
-        { visitorId: 'visitor-demo-03', poiId: 'buu-dien-trung-tam', language: Language.ko, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, latitude: 10.7799, longitude: 106.6999, durationSeconds: 145, startedAt: new Date(now - 6 * hourMs), endedAt: new Date(now - 6 * hourMs + 145_000), createdAt: new Date(now - 6 * hourMs) },
+        { visitorId: 'visitor-demo-01', poiId: 'dinh-doc-lap', language: Language.vi, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7769, longitude: 106.6953, durationSeconds: 185, startedAt: todaySafeTime(15), endedAt: new Date(todaySafeTime(15).getTime() + 185_000), createdAt: todaySafeTime(15) },
+        { visitorId: 'visitor-demo-02', poiId: 'nha-tho-duc-ba', language: Language.en, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7798, longitude: 106.6990, durationSeconds: 160, startedAt: todaySafeTime(35), endedAt: new Date(todaySafeTime(35).getTime() + 160_000), createdAt: todaySafeTime(35) },
+        { visitorId: 'visitor-demo-03', poiId: 'buu-dien-trung-tam', language: Language.ko, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, latitude: 10.7799, longitude: 106.6999, durationSeconds: 145, startedAt: todaySafeTime(55), endedAt: new Date(todaySafeTime(55).getTime() + 145_000), createdAt: todaySafeTime(55) },
+        { visitorId: 'visitor-demo-12', poiId: 'dinh-doc-lap', language: Language.fr, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7770, longitude: 106.6953, durationSeconds: 170, startedAt: todaySafeTime(75), endedAt: new Date(todaySafeTime(75).getTime() + 170_000), createdAt: todaySafeTime(75) },
+        { visitorId: 'visitor-demo-13', poiId: 'cho-ben-thanh', language: Language.de, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, latitude: 10.7725, longitude: 106.6980, durationSeconds: 155, startedAt: todaySafeTime(95), endedAt: new Date(todaySafeTime(95).getTime() + 155_000), createdAt: todaySafeTime(95) },
         { visitorId: 'visitor-demo-04', poiId: 'cho-ben-thanh', language: Language.ja, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7725, longitude: 106.6980, durationSeconds: 150, startedAt: new Date(now - 1 * dayMs), endedAt: new Date(now - 1 * dayMs + 150_000), createdAt: new Date(now - 1 * dayMs) },
         { visitorId: 'visitor-demo-01', poiId: 'ben-nha-rong', language: Language.vi, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, latitude: 10.7683, longitude: 106.7068, durationSeconds: 210, startedAt: new Date(now - 1 * dayMs - 3 * hourMs), endedAt: new Date(now - 1 * dayMs - 3 * hourMs + 210_000), createdAt: new Date(now - 1 * dayMs - 3 * hourMs) },
-        { visitorId: 'visitor-demo-05', poiId: 'dinh-doc-lap', language: Language.en, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7769, longitude: 106.6953, durationSeconds: 190, startedAt: new Date(now - 2 * dayMs), endedAt: new Date(now - 2 * dayMs + 190_000), createdAt: new Date(now - 2 * dayMs) },
+        { visitorId: 'visitor-demo-05', poiId: 'dinh-doc-lap', language: Language.es, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7769, longitude: 106.6953, durationSeconds: 190, startedAt: new Date(now - 2 * dayMs), endedAt: new Date(now - 2 * dayMs + 190_000), createdAt: new Date(now - 2 * dayMs) },
         { visitorId: 'visitor-demo-06', poiId: 'nha-tho-duc-ba', language: Language.vi, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7798, longitude: 106.6990, durationSeconds: 175, startedAt: new Date(now - 2 * dayMs - 5 * hourMs), endedAt: new Date(now - 2 * dayMs - 5 * hourMs + 175_000), createdAt: new Date(now - 2 * dayMs - 5 * hourMs) },
-        { visitorId: 'visitor-demo-07', poiId: 'bao-tang-chung-tich', language: Language.en, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, latitude: 10.7795, longitude: 106.6921, durationSeconds: 240, startedAt: new Date(now - 3 * dayMs), endedAt: new Date(now - 3 * dayMs + 240_000), createdAt: new Date(now - 3 * dayMs) },
-        { visitorId: 'visitor-demo-08', poiId: 'chua-linh-ung-tuong-quan-am', language: Language.zh, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 16.1003, longitude: 108.2775, durationSeconds: 165, startedAt: new Date(now - 4 * dayMs), endedAt: new Date(now - 4 * dayMs + 165_000), createdAt: new Date(now - 4 * dayMs) },
-        { visitorId: 'visitor-demo-09', poiId: 'dinh-doc-lap', language: Language.ko, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7769, longitude: 106.6953, durationSeconds: 180, startedAt: new Date(now - 5 * dayMs), endedAt: new Date(now - 5 * dayMs + 180_000), createdAt: new Date(now - 5 * dayMs) },
+        { visitorId: 'visitor-demo-07', poiId: 'bao-tang-chung-tich', language: Language.th, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, latitude: 10.7795, longitude: 106.6921, durationSeconds: 240, startedAt: new Date(now - 3 * dayMs), endedAt: new Date(now - 3 * dayMs + 240_000), createdAt: new Date(now - 3 * dayMs) },
+        { visitorId: 'visitor-demo-08', poiId: 'chua-ngoc-hoang', language: Language.zh, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7919, longitude: 106.6983, durationSeconds: 165, startedAt: new Date(now - 4 * dayMs), endedAt: new Date(now - 4 * dayMs + 165_000), createdAt: new Date(now - 4 * dayMs) },
+        { visitorId: 'visitor-demo-09', poiId: 'dinh-doc-lap', language: Language.ru, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7769, longitude: 106.6953, durationSeconds: 180, startedAt: new Date(now - 5 * dayMs), endedAt: new Date(now - 5 * dayMs + 180_000), createdAt: new Date(now - 5 * dayMs) },
         { visitorId: 'visitor-demo-10', poiId: 'pho-di-bo-nguyen-hue', language: Language.vi, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, latitude: 10.7745, longitude: 106.7034, durationSeconds: 130, startedAt: new Date(now - 5 * dayMs - 2 * hourMs), endedAt: new Date(now - 5 * dayMs - 2 * hourMs + 130_000), createdAt: new Date(now - 5 * dayMs - 2 * hourMs) },
-        { visitorId: 'visitor-demo-11', poiId: 'chua-linh-ung-tuong-quan-am', language: Language.ja, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 16.1003, longitude: 108.2775, durationSeconds: 170, startedAt: new Date(now - 6 * dayMs), endedAt: new Date(now - 6 * dayMs + 170_000), createdAt: new Date(now - 6 * dayMs) },
+        { visitorId: 'visitor-demo-11', poiId: 'bao-tang-my-thuat', language: Language.ja, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, latitude: 10.7699, longitude: 106.6994, durationSeconds: 170, startedAt: new Date(now - 6 * dayMs), endedAt: new Date(now - 6 * dayMs + 170_000), createdAt: new Date(now - 6 * dayMs) },
       ],
     });
-    console.log("✅ Seeded 12 ListeningEvents for Dashboard analytics.");
+    console.log("✅ Seeded 14 ListeningEvents for Dashboard analytics.");
   }
 
-  if ((await prisma.accessEvent.count()) === 0) {
+  if ((await prisma.accessEvent.count({ where: { createdAt: { gte: todayStart } } })) === 0) {
     await prisma.accessEvent.createMany({
       data: [
-        { visitorId: 'visitor-demo-01', ipAddress: '192.168.1.21', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.vi, poiId: 'dinh-doc-lap', source: AccessSource.QR, path: '/index.html?poi=dinh-doc-lap', createdAt: new Date(now - 1 * hourMs) },
-        { visitorId: 'visitor-demo-02', ipAddress: '192.168.1.22', userAgent: 'Mozilla/5.0 (Linux; Android 14)', deviceType: 'Mobile', language: Language.en, poiId: 'nha-tho-duc-ba', source: AccessSource.QR, path: '/index.html?poi=nha-tho-duc-ba', createdAt: new Date(now - 3 * hourMs) },
+        { visitorId: 'visitor-demo-01', ipAddress: '192.168.1.21', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.vi, poiId: 'dinh-doc-lap', source: AccessSource.QR, path: '/index.html?poi=dinh-doc-lap', createdAt: todaySafeTime(5) },
+        { visitorId: 'visitor-demo-02', ipAddress: '192.168.1.22', userAgent: 'Mozilla/5.0 (Linux; Android 14)', deviceType: 'Mobile', language: Language.en, poiId: 'nha-tho-duc-ba', source: AccessSource.QR, path: '/index.html?poi=nha-tho-duc-ba', createdAt: todaySafeTime(18) },
+        { visitorId: 'visitor-demo-12', ipAddress: '192.168.1.31', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.fr, poiId: 'dinh-doc-lap', source: AccessSource.TOUR, path: '/index.html?tour=saigon-highlights', createdAt: todaySafeTime(40) },
+        { visitorId: 'visitor-demo-13', ipAddress: '192.168.1.32', userAgent: 'Mozilla/5.0 (Windows NT 10.0)', deviceType: 'Desktop', language: Language.de, poiId: 'cho-ben-thanh', source: AccessSource.DIRECT, path: '/index.html', createdAt: todaySafeTime(65) },
         { visitorId: 'visitor-demo-03', ipAddress: '192.168.1.23', userAgent: 'Mozilla/5.0 (Windows NT 10.0)', deviceType: 'Desktop', language: Language.ko, poiId: 'buu-dien-trung-tam', source: AccessSource.DIRECT, path: '/index.html', createdAt: new Date(now - 1 * dayMs) },
         { visitorId: 'visitor-demo-04', ipAddress: '192.168.1.24', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.ja, poiId: 'cho-ben-thanh', source: AccessSource.TOUR, path: '/index.html?tour=saigon-highlights', createdAt: new Date(now - 1 * dayMs - 4 * hourMs) },
-        { visitorId: 'visitor-demo-05', ipAddress: '192.168.1.25', userAgent: 'Mozilla/5.0 (Linux; Android 13)', deviceType: 'Mobile', language: Language.en, poiId: 'dinh-doc-lap', source: AccessSource.MAP, path: '/index.html', createdAt: new Date(now - 2 * dayMs) },
+        { visitorId: 'visitor-demo-05', ipAddress: '192.168.1.25', userAgent: 'Mozilla/5.0 (Linux; Android 13)', deviceType: 'Mobile', language: Language.es, poiId: 'dinh-doc-lap', source: AccessSource.MAP, path: '/index.html', createdAt: new Date(now - 2 * dayMs) },
         { visitorId: 'visitor-demo-06', ipAddress: '192.168.1.26', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.vi, poiId: 'ben-nha-rong', source: AccessSource.QR, path: '/index.html?poi=ben-nha-rong', createdAt: new Date(now - 3 * dayMs) },
-        { visitorId: 'visitor-demo-07', ipAddress: '192.168.1.27', userAgent: 'Mozilla/5.0 (Macintosh)', deviceType: 'Desktop', language: Language.zh, poiId: 'chua-linh-ung-tuong-quan-am', source: AccessSource.TOUR, path: '/index.html?tour=linh-ung-panoramic', createdAt: new Date(now - 4 * dayMs) },
+        { visitorId: 'visitor-demo-07', ipAddress: '192.168.1.27', userAgent: 'Mozilla/5.0 (Macintosh)', deviceType: 'Desktop', language: Language.zh, poiId: 'chua-ngoc-hoang', source: AccessSource.TOUR, path: '/index.html?tour=saigon-history-architecture', createdAt: new Date(now - 4 * dayMs) },
         { visitorId: 'visitor-demo-08', ipAddress: '192.168.1.28', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.vi, poiId: 'pho-di-bo-nguyen-hue', source: AccessSource.MAP, path: '/index.html', createdAt: new Date(now - 4 * dayMs - 5 * hourMs) },
         { visitorId: 'visitor-demo-09', ipAddress: '192.168.1.29', userAgent: 'Mozilla/5.0 (Linux; Android 14)', deviceType: 'Mobile', language: Language.ko, poiId: 'nha-hat-thanh-pho', source: AccessSource.QR, path: '/index.html?poi=nha-hat-thanh-pho', createdAt: new Date(now - 5 * dayMs) },
         { visitorId: 'visitor-demo-10', ipAddress: '192.168.1.30', userAgent: 'Mozilla/5.0 (iPhone)', deviceType: 'Mobile', language: Language.en, poiId: 'bao-tang-chung-tich', source: AccessSource.DIRECT, path: '/index.html', createdAt: new Date(now - 6 * dayMs) },
       ],
     });
-    console.log("✅ Seeded 10 AccessEvents for Dashboard traffic analytics.");
+    console.log("✅ Seeded 12 AccessEvents (including today visits) for Dashboard analytics.");
   }
+
+  if ((await prisma.listeningSession.count()) === 0) {
+    await prisma.listeningSession.createMany({
+      data: [
+        { visitorId: 'VIS-LIVE-01', poiId: 'dinh-doc-lap', language: Language.vi, mode: ListeningMode.AUTO, status: ListeningStatus.PLAYING, startedAt: todaySafeTime(3), lastHeartbeatAt: new Date(), durationSeconds: 95 },
+        { visitorId: 'VIS-LIVE-02', poiId: 'nha-tho-duc-ba', language: Language.en, mode: ListeningMode.AUTO, status: ListeningStatus.PLAYING, startedAt: todaySafeTime(5), lastHeartbeatAt: new Date(), durationSeconds: 72 },
+        { visitorId: 'VIS-LIVE-03', poiId: 'cho-ben-thanh', language: Language.fr, mode: ListeningMode.MANUAL, status: ListeningStatus.PREPARING, startedAt: todaySafeTime(1), lastHeartbeatAt: new Date(), durationSeconds: 12 },
+        { visitorId: 'VIS-LIVE-04', poiId: 'buu-dien-trung-tam', language: Language.ko, mode: ListeningMode.AUTO, status: ListeningStatus.COMPLETED, startedAt: todaySafeTime(25), lastHeartbeatAt: todaySafeTime(22), endedAt: todaySafeTime(22), durationSeconds: 150 },
+        { visitorId: 'VIS-LIVE-05', poiId: 'ben-nha-rong', language: Language.ja, mode: ListeningMode.MANUAL, status: ListeningStatus.COMPLETED, startedAt: todaySafeTime(45), lastHeartbeatAt: todaySafeTime(41), endedAt: todaySafeTime(41), durationSeconds: 185 },
+      ],
+    });
+    console.log("✅ Seeded 5 ListeningSessions (PLAYING/PREPARING/COMPLETED) for Live Sessions table.");
+  }
+
+  const seedVisitors = [
+    { visitorId: 'VIS-LIVE-01', passCode: 'DEMO-2026', language: Language.vi, deviceInfo: 'Mobile', lastActivePoiId: 'dinh-doc-lap', latitude: 10.7770, longitude: 106.6953, isSpeaking: true, lastSeenAt: new Date(), isActive: true },
+    { visitorId: 'VIS-LIVE-02', passCode: 'TOUR-SAIGON-2026', language: Language.en, deviceInfo: 'Mobile', lastActivePoiId: 'nha-tho-duc-ba', latitude: 10.7798, longitude: 106.6990, isSpeaking: true, lastSeenAt: new Date(), isActive: true },
+    { visitorId: 'VIS-LIVE-03', passCode: 'PASS-VIP-2026', language: Language.fr, deviceInfo: 'Desktop', lastActivePoiId: 'cho-ben-thanh', latitude: 10.7725, longitude: 106.6980, isSpeaking: false, lastSeenAt: new Date(), isActive: true },
+  ];
+  for (const vis of seedVisitors) {
+    await prisma.visitorSession.upsert({
+      where: { visitorId: vis.visitorId },
+      update: {
+        passCode: vis.passCode,
+        language: vis.language,
+        deviceInfo: vis.deviceInfo,
+        lastActivePoiId: vis.lastActivePoiId,
+        latitude: vis.latitude,
+        longitude: vis.longitude,
+        isSpeaking: vis.isSpeaking,
+        lastSeenAt: vis.lastSeenAt,
+        isActive: vis.isActive,
+      },
+      create: vis,
+    });
+  }
+  console.log("✅ Seeded 3 active VisitorSessions for Live Radar.");
 
   if ((await prisma.auditEvent.count()) === 0) {
     await prisma.auditEvent.createMany({
@@ -800,7 +1027,7 @@ async function main() {
         { action: 'PUBLISH_POI', entityType: 'POI', entityId: 'nha-tho-duc-ba', actor: 'admin', metadata: JSON.stringify({ status: PoiStatus.PUBLISHED }), createdAt: new Date(now - 5 * dayMs) },
         { action: 'UPSERT_NARRATION', entityType: 'NARRATION', entityId: 'dinh-doc-lap-vi', actor: 'admin', metadata: JSON.stringify({ poiId: 'dinh-doc-lap', language: Language.vi }), createdAt: new Date(now - 3 * dayMs) },
         { action: 'UPSERT_NARRATION', entityType: 'NARRATION', entityId: 'buu-dien-trung-tam-en', actor: 'admin', metadata: JSON.stringify({ poiId: 'buu-dien-trung-tam', language: Language.en }), createdAt: new Date(now - 2 * dayMs) },
-        { action: 'UPLOAD_AUDIO', entityType: 'NARRATION', entityId: 'dinh-doc-lap-en', actor: 'admin', metadata: JSON.stringify({ poiId: 'dinh-doc-lap', language: Language.en, audioUrl: '/uploads/audio/sample-dinh-doc-lap-en.mp3' }), createdAt: new Date(now - 1 * dayMs) },
+        { action: 'UPLOAD_AUDIO', entityType: 'NARRATION', entityId: 'dinh-doc-lap-en', actor: 'admin', metadata: JSON.stringify({ poiId: 'dinh-doc-lap', language: Language.en, audioUrl: '/uploads/audio/sample-dinh-doc-lap-en.mp3' }), createdAt: todaySafeTime(10) },
       ],
     });
     console.log("✅ Seeded 5 AuditEvents.");

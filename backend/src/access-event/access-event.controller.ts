@@ -1,3 +1,13 @@
+/**
+ * ==============================================================================
+ * MODULE: ACCESS EVENT (THEO DÕI LƯỢT TRUY CẬP DU KHÁCH)
+ * TẦNG: PRESENTATION LAYER (GIAO TIẾP HTTP)
+ * ==============================================================================
+ * Vai trò:
+ * - Ghi nhận lượt quét mã QR từ demo/qr.html hoặc lượt vào trực tiếp (POST /api/access-events).
+ * ==============================================================================
+ */
+
 import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { AccessEventService } from './access-event.service.js';

@@ -1,3 +1,15 @@
+/**
+ * ==============================================================================
+ * MODULE: POI (POINT OF INTEREST)
+ * TẦNG: DATA ACCESS LAYER (TRUY VẤN CƠ SỞ DỮ LIỆU PRISMA & POSTGIS)
+ * ==============================================================================
+ * Vai trò:
+ * - Thực hiện các câu lệnh truy vấn dữ liệu trên PostgreSQL bảng 'Poi' và 'Narration'.
+ * - Tích hợp extension PostGIS với các hàm tính khoảng cách không gian:
+ *   ST_DistanceSphere, ST_DWithin và chỉ mục GiST không gian tối ưu O(log N).
+ * ==============================================================================
+ */
+
 import { Injectable } from '@nestjs/common';
 import { Language, PoiStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service.js';

@@ -1,3 +1,13 @@
+/**
+ * ==============================================================================
+ * MODULE: GEO SPATIAL (ĐỊNH VỊ KHÔNG GIAN ĐỊA LÝ)
+ * TẦNG: DATA ACCESS LAYER (TRUY VẤN POSTGIS)
+ * ==============================================================================
+ * Vai trò:
+ * - Thực thi truy vấn không gian trên PostgreSQL với PostGIS ST_DistanceSphere.
+ * ==============================================================================
+ */
+
 import { Injectable } from '@nestjs/common';
 import { Language } from '@prisma/client';
 import { PoiRepository } from '../poi/poi.repository.js';

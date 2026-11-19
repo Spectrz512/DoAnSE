@@ -1,3 +1,14 @@
+/**
+ * ==============================================================================
+ * MODULE: LISTENING SESSIONS & REAL-TIME PRESENCE (PHIÊN NGHE & NHỊP TIM DU KHÁCH)
+ * TẦNG: DATA ACCESS LAYER (TRUY VẤN BẢNG PHIÊN NGHE)
+ * ==============================================================================
+ * Vai trò:
+ * - Thao tác CSDL Prisma trên các bảng:
+ *   'ListeningEvent', 'ListeningSession', 'VisitorSession'.
+ * ==============================================================================
+ */
+
 import { Injectable } from '@nestjs/common';
 import { Language, ListeningMode, ListeningStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service.js';

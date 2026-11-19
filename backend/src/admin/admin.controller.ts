@@ -1,3 +1,19 @@
+/**
+ * ==============================================================================
+ * MODULE: ADMIN MANAGEMENT & AUDIT LOGS (QUẢN TRỊ VIÊN)
+ * TẦNG: PRESENTATION LAYER (GIAO TIẾP HTTP & XÁC THỰC ADMIN KEY)
+ * ==============================================================================
+ * Vai trò:
+ * - Tiếp nhận các yêu cầu quản trị từ demo/admin.html.
+ * - Được bảo vệ 100% bởi AdminKeyGuard (yêu cầu header 'x-admin-key' hợp lệ).
+ * - Cung cấp các endpoint:
+ *   + GET /api/admin/stats: Thống kê KPI Dashboard và đếm du khách online.
+ *   + GET /api/admin/audit-events: Xem lịch sử nhật ký kiểm toán thao tác quản trị.
+ *   + POST/PUT/PATCH/DELETE /api/admin/pois: Thao tác CRUD địa điểm di tích.
+ *   + POST /api/admin/upload-audio: Upload file âm thanh thuyết minh MP3 (<= 15MB).
+ * ==============================================================================
+ */
+
 import {
   Body,
   Controller,

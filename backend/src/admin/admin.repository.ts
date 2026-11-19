@@ -1,3 +1,15 @@
+/**
+ * ==============================================================================
+ * MODULE: ADMIN MANAGEMENT & AUDIT LOGS (QUẢN TRỊ VIÊN)
+ * TẦNG: DATA ACCESS LAYER (TRUY VẤN THỐNG KÊ & BẢNG AUDIT_EVENT)
+ * ==============================================================================
+ * Vai trò:
+ * - Đếm số lượng du khách online trong cửa sổ trượt 45 giây gần nhất từ ListeningSession.
+ * - Thống kê tổng lượt nghe, số POI, phân bổ ngôn ngữ từ bảng ListeningEvent.
+ * - Quản lý truy vấn bảng 'AuditEvent' phục vụ hiển thị và xuất báo cáo CSV.
+ * ==============================================================================
+ */
+
 import { Injectable } from '@nestjs/common';
 import { Language, ListeningMode, ListeningStatus, PoiStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service.js';
@@ -12,7 +24,8 @@ export class AdminRepository {
    * Thống kê tổng hợp toàn diện phục vụ Admin Dashboard (Nhóm A & Nhóm B)
    */
   async getStats() {
-    const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -67,19 +80,19 @@ export class AdminRepository {
       this.prisma.listeningSession.count({
         where: {
           status: { in: [ListeningStatus.PLAYING, ListeningStatus.PREPARING] },
-          lastHeartbeatAt: { gte: sixtySecondsAgo },
+          lastHeartbeatAt: { gte: tenMinutesAgo },
         },
       }),
       this.prisma.listeningSession.count({
         where: {
           status: ListeningStatus.PREPARING,
-          lastHeartbeatAt: { gte: sixtySecondsAgo },
+          lastHeartbeatAt: { gte: tenMinutesAgo },
         },
       }),
       this.prisma.listeningSession.count({
         where: {
           status: ListeningStatus.PLAYING,
-          lastHeartbeatAt: { gte: sixtySecondsAgo },
+          lastHeartbeatAt: { gte: tenMinutesAgo },
         },
       }),
       this.prisma.listeningEvent.count({
@@ -89,25 +102,24 @@ export class AdminRepository {
         where: { status: ListeningStatus.ERROR },
       }),
 
-      // Telemetry du khách online
+      // Telemetry du khách online (cửa sổ 2 phút cho heartbeat thời gian thực)
       this.prisma.visitorSession.count({
         where: {
           isActive: true,
-          lastSeenAt: { gte: sixtySecondsAgo },
+          lastSeenAt: { gte: twoMinutesAgo },
         },
       }),
       this.prisma.visitorSession.findMany({
         where: {
           isActive: true,
-          lastSeenAt: { gte: sixtySecondsAgo },
+          lastSeenAt: { gte: twoMinutesAgo },
         },
         orderBy: { lastSeenAt: 'desc' },
         take: 50,
       }),
 
-      // Danh sách phiên nghe trực tiếp
+      // Danh sách phiên nghe (bao gồm đang chạy & lịch sử gần nhất)
       this.prisma.listeningSession.findMany({
-        where: { lastHeartbeatAt: { gte: sixtySecondsAgo } },
         include: { poi: { select: { id: true, name: true } } },
         orderBy: { lastHeartbeatAt: 'desc' },
         take: 50,
@@ -232,18 +244,45 @@ export class AdminRepository {
       count,
     }));
 
+    const mappedVisitsBySource = accessBySource.map((b) => ({
+      source: b.source,
+      count: b._count.source,
+    }));
+    const mappedLiveSessions = liveListeningSessions.map((s) => ({
+      id: s.id,
+      visitorId: s.visitorId,
+      poiId: s.poiId,
+      poiName: s.poi ? s.poi.name : (nameMap.get(s.poiId) || s.poiId),
+      language: s.language,
+      mode: s.mode,
+      status: s.status,
+      startedAt: s.startedAt,
+      lastHeartbeatAt: s.lastHeartbeatAt,
+      durationSeconds: s.durationSeconds,
+      errorMessage: s.errorMessage,
+    }));
+    const mappedRecentEvents = recentEvents.map((e) => ({
+      ...e,
+      poiName: e.poi ? e.poi.name : (nameMap.get(e.poiId) || e.poiId),
+    }));
+
     return {
       // ══════════════════════════════════════════════
       // NHÓM A — THỐNG KÊ TỔNG QUAN
       // ══════════════════════════════════════════════
       totalVisits,
+      totalAccessEvents: totalVisits,
       todayVisits,
+      todayAccessEvents: todayVisits,
       totalListeningEvents,
+      totalListenings: totalListeningEvents,
       activeListeningSessionsCount,
+      activeSessionsCount: activeListeningSessionsCount,
       concurrentListenersCount: distinctListeners,
       preparingSessionsCount,
       playingSessionsCount,
       completedSessionsCount,
+      completedListenings: completedSessionsCount,
       errorSessionsCount,
       totalPois,
       publishedPois,
@@ -251,25 +290,13 @@ export class AdminRepository {
       totalNarrations,
       totalTours,
       totalLanguages: totalLanguages || 20,
-      availableLanguagesCount: availableLanguagesCount || 5,
+      availableLanguagesCount: availableLanguagesCount || 20,
       activeVisitorsCount,
 
       // ══════════════════════════════════════════════
       // NHÓM B — TRẠNG THÁI NGHE TRỰC TIẾP & CHI TIẾT
       // ══════════════════════════════════════════════
-      liveListeningSessions: liveListeningSessions.map((s) => ({
-        id: s.id,
-        visitorId: s.visitorId,
-        poiId: s.poiId,
-        poiName: s.poi ? s.poi.name : (nameMap.get(s.poiId) || s.poiId),
-        language: s.language,
-        mode: s.mode,
-        status: s.status,
-        startedAt: s.startedAt,
-        lastHeartbeatAt: s.lastHeartbeatAt,
-        durationSeconds: s.durationSeconds,
-        errorMessage: s.errorMessage,
-      })),
+      liveListeningSessions: mappedLiveSessions,
       activeVisitorSessions,
       byMode,
       byLanguage,
@@ -285,13 +312,13 @@ export class AdminRepository {
       })),
       visitsByDate,
       visitsByLanguage: accessByLang.map((b) => ({ language: b.language, count: b._count.language })),
-      visitsBySource: accessBySource.map((b) => ({ source: b.source, count: b._count.source })),
+      visitsBySource: mappedVisitsBySource,
+      accessBySource: mappedVisitsBySource,
       visitsByDevice: accessByDevice.map((b) => ({ deviceType: b.deviceType || 'Unknown', count: b._count.deviceType })),
-      recentEvents: recentEvents.map((e) => ({
-        ...e,
-        poiName: e.poi ? e.poi.name : (nameMap.get(e.poiId) || e.poiId),
-      })),
+      recentEvents: mappedRecentEvents,
+      recentListenings: mappedRecentEvents,
       recentAudits,
+      recentAuditEvents: recentAudits,
       recentVisits,
     };
   }

@@ -1,3 +1,14 @@
+/**
+ * ==============================================================================
+ * MODULE: ACCESS PASS (MÃ VÉ THAM QUAN QR)
+ * TẦNG: PRESENTATION LAYER (GIAO TIẾP HTTP)
+ * ==============================================================================
+ * Vai trò:
+ * - Kích hoạt vé tham quan (POST /api/access-passes/activate).
+ * - Xác thực tính hợp lệ của mã vé (GET /api/access-passes/validate/:code).
+ * ==============================================================================
+ */
+
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { AccessPassService } from './access-pass.service.js';
 import { ActivateAccessPassDto, CreateAccessPassDto } from './dto.js';

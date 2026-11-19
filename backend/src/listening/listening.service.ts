@@ -1,4 +1,18 @@
 /**
+ * ==============================================================================
+ * MODULE: LISTENING SESSIONS & REAL-TIME PRESENCE (PHIÊN NGHE & NHỊP TIM DU KHÁCH)
+ * TẦNG: BUSINESS LOGIC LAYER (CHỐNG TRÙNG LẶP & ĐỒNG BỘ HIỆN DIỆN THỜI GIAN THỰC)
+ * ==============================================================================
+ * Vai trò & Thuật toán:
+ * 1. Deduplication (Chống gửi lặp sự kiện):
+ *    - Chặn các sự kiện nghe liên tiếp cho cùng 1 POI trong vòng 4-5 giây.
+ * 2. Real-Time Presence:
+ *    - Cập nhật thời điểm lastActiveAt của du khách khi nhận nhịp tim heartbeat.
+ *    - Xóa ngay trạng thái hoạt động khi nhận sự kiện leave để Admin hiển thị tức thì.
+ * ==============================================================================
+ */
+
+/**
  * Module Dịch Vụ Theo Dõi Phiên Nghe Thuyết Minh (Listening Service)
  * Dự án: Thuyết minh tự động Thành phố Hồ Chí Minh (GeoAudio Guide Sài Gòn)
  * 
